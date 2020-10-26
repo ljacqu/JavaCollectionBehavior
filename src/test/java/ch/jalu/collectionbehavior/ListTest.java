@@ -88,6 +88,8 @@ class ListTest {
     /**
      * {@link Arrays#asList} wraps an array into the List interface. Allows to change individual elements
      * but elements cannot be added or removed. The array passed into it is not copied! Supports null.
+     * Basically wraps an array into a List interface as changes to the array are propagated to the List and
+     * vice versa (changing an entry in the List actually changes the backing array).
      */
     @Test
     void testJdkArraysAsList() {
