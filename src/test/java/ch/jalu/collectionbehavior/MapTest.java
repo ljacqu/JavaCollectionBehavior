@@ -76,7 +76,7 @@ class MapTest {
     }
 
     /**
-     * {@link Map#of} returns a fully immutable Map. Does not support null as value or key; even querying with null to
+     * {@link Map#of} returns an immutable Map. Does not support null as value or key; even querying with null to
      * {@link Map#containsKey} results in an exception. Also throws an exception if there are duplicate keys when
      * the Map is being created. Random iteration order.
      */
@@ -101,7 +101,7 @@ class MapTest {
     }
 
     /**
-     * {@link Map#copyOf} returns a fully immutable Map copied from another map. Iteration order is not preserved from
+     * {@link Map#copyOf} returns an immutable Map copied from another map. Iteration order is not preserved from
      * the original Map. Null is not supported as key or as value. Throws also for null in {@link Map#containsKey} and
      * similar. Recognizes maps of its own class and avoids unnecessary copies.
      */
@@ -129,7 +129,7 @@ class MapTest {
     }
 
     /**
-     * {@link ImmutableMap#of} creates a fully immutable Map. Null is not supported as key or as values but can be
+     * {@link ImmutableMap#of} creates an immutable Map. Null is not supported as key or as values but can be
      * supplied to methods like {@link Map#containsKey} without problems. Iteration order is by order of encounter.
      * Throws if the same key is provided twice on creation.
      */
@@ -157,7 +157,7 @@ class MapTest {
     }
 
     /**
-     * {@link ImmutableMap#copyOf} copies a fully immutable Map and keeps the iteration order of the original map.
+     * {@link ImmutableMap#copyOf} copies an immutable Map and keeps the iteration order of the original map.
      * Does not support null as key or values but accepts null in methods such as {@link Map#containsKey}.
      */
     @Test
@@ -184,8 +184,8 @@ class MapTest {
     }
 
     /**
-     * {@link Collections#unmodifiableMap} wraps the original Map and provides a fully immutable Map view. Changes to
-     * the original map are reflected. Supports null as key and as values.
+     * {@link Collections#unmodifiableMap} wraps the original Map and provides an unmodifiable Map facade, i.e.
+     * changes to the original map are reflected. Supports null as key and as values.
      */
     @Test
     void testJdkCollectionsUnmodifiableMap() {

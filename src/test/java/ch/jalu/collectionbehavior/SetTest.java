@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class SetTest {
 
     /**
-     * {@link HashSet}: standard mutable Set. Fully supports null. Does not keep insertion order.
+     * {@link HashSet}: standard modifiable Set. Fully supports null. Does not keep insertion order.
      * Elements already added to it are silently ignored.
      */
     @Test
@@ -38,7 +38,7 @@ public class SetTest {
     }
 
     /**
-     * {@link LinkedHashSet}: mutable Set that keeps insertion order. Fully supports null.
+     * {@link LinkedHashSet}: modifiable Set that keeps insertion order. Fully supports null.
      * Elements already added to it are silently ignored.
      */
     @Test
@@ -53,7 +53,7 @@ public class SetTest {
     }
 
     /**
-     * {@link Set#of} produces a fully immutable Set. Does not support null (not even for {@link Set#contains} etc.).
+     * {@link Set#of} produces an immutable Set. Does not support null (not even for {@link Set#contains} etc.).
      * Throws an exception if any element is passed in twice. Random iteration order.
      */
     @Test
@@ -74,9 +74,9 @@ public class SetTest {
     }
 
     /**
-     * {@link Set#copyOf} produces a fully immutable Set. Does not support null (not even for {@link Set#contains} etc.).
-     * Duplicate elements in the original collection are ignored. The collection passed in is copied.
-     * Random iteration order.
+     * {@link Set#copyOf} produces an immutable Set. Does not support null (not even for {@link Set#contains} etc.).
+     * Duplicate elements in the original collection are ignored. Random iteration order. Recognizes instances of the
+     * same class and avoids unnecessary copying.
      */
     @Test
     void testJdkSetCopyOf() {
@@ -98,16 +98,13 @@ public class SetTest {
     }
 
     /**
-     * {@link ImmutableSet#of} produces a fully immutable Set. Does not support null as elements.
+     * {@link ImmutableSet#of} produces an immutable Set. Does not support null as elements.
      * Insertion order is kept. Can be instantiated with duplicates
      * (also when using the builder {@link ImmutableSet#builder()}).
      */
     @Test
     void testGuavaImmutableSet() {
-        Integer[] elements = { 1, 4, 9, 16, 9 };
-        Set<Integer> set = ImmutableSet.copyOf(elements);
-
-        elements[2] = -999;
+        Set<Integer> set = ImmutableSet.of(1, 4, 9, 16, 9);
         assertThat(set, contains(1, 4, 9, 16));
 
         assertThrows(UnsupportedOperationException.class, () -> set.add(777));
@@ -126,7 +123,7 @@ public class SetTest {
     }
 
     /**
-     * {@link ImmutableSet#copyOf} produces a fully immutable Set. Null as element is not supported but can be used
+     * {@link ImmutableSet#copyOf} produces an immutable Set. Null as element is not supported but can be used
      * in {@link Set#contains} etc. Elements are copied. Retains iteration order of the original collection.
      * Recognizes its own instances and avoids unnecessary copies.
      */
@@ -165,7 +162,7 @@ public class SetTest {
     }
 
     /**
-     * {@link Collections#unmodifiableSet} wraps a Set into an immutable Set facade. Changes to the backing
+     * {@link Collections#unmodifiableSet} wraps a Set into an unmodifiable Set facade. Changes to the backing
      * collection are reflected. Supports null as elements. Iteration order kept from underlying collection.
      */
     @Test

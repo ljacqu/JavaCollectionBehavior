@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ListTest {
 
     /**
-     * ArrayList: standard mutable List implementation. Fully supports null.
+     * ArrayList: standard modifiable List implementation. Fully supports null.
      */
     @Test
     void testJdkArrayList() {
@@ -41,8 +41,8 @@ class ListTest {
     }
 
     /**
-     * {@link List#of} produces a fully immutable list that does not support null,
-     * even when null is called on {@link List#contains}. Copies the incoming array.
+     * {@link List#of} produces an immutable list that does not support null,
+     * even when null is called on {@link List#contains}.
      */
     @Test
     void testJdkListOf() {
@@ -62,7 +62,7 @@ class ListTest {
     }
 
     /**
-     * {@link List#copyOf} copies the incoming collection and returns a fully immutable List;
+     * {@link List#copyOf} copies the incoming collection and returns an immutable List;
      * recognizes lists of its own class and returns the same instance instead of unnecessarily copying.
      * Does not support null (not even as argument passed into things like {@link List#contains}).
      */
@@ -112,8 +112,8 @@ class ListTest {
     }
 
     /**
-     * {@link ImmutableList#copyOf} returns a fully immutable list. Does not support null as element but
-     * null can be passed as argument into methods like {@link List#contains}. Copies the incoming array.
+     * {@link ImmutableList#copyOf} returns an immutable list. Does not support null as element but
+     * null can be passed as argument into methods like {@link List#contains}.
      * Prefer {@link ImmutableList#of} if you are not starting from an array (unlike this test case).
      */
     @Test
@@ -134,7 +134,7 @@ class ListTest {
     }
 
     /**
-     * {@link ImmutableList#copyOf(Iterable)} copies the incoming collection and produces a fully immutable
+     * {@link ImmutableList#copyOf(Iterable)} copies the incoming collection and produces an immutable
      * List. Recognizes instances of the same class and avoids unnecessary copies. Does not support null as
      * element but accepts null passed as argument into {@link List#contains} etc.
      */
@@ -177,7 +177,7 @@ class ListTest {
     }
 
     /**
-     * {@link Collections#unmodifiableList} wraps a List and does not copy its elements. Changes to the
+     * {@link Collections#unmodifiableList} wraps a List into an unmodifiable List, i.e. changes to the
      * original List are propagated but cannot be modified via the returned list itself. Fully supports null
      * as elements or method parameter.
      * Implements RandomAccess only if the underlying List implements it.
@@ -203,7 +203,7 @@ class ListTest {
     }
 
     /**
-     * {@link Collections#singletonList} provides a list with a single given element. Fully immutable. Supports null.
+     * {@link Collections#singletonList} provides a list with a single given element. Immutable. Supports null.
      */
     @Test
     void testJdkCollectionsSingletonList() {
@@ -227,10 +227,12 @@ class ListTest {
      * the behavior is then undefined; ArrayList throws a ConcurrentModificationException).
      */
     @Test
-    void testJdkSublist() {
+    void testArrayListSubList() {
         List<String> list = newArrayList("a", "b", "c", "d");
 
         List<String> subList = list.subList(1, 3);
+        assertThat(subList, instanceOf(RandomAccess.class));
+
         assertThat(subList, contains("b", "c"));
         subList.set(0, "B");
         assertThat(subList, contains("B", "c"));
