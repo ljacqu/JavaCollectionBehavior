@@ -191,7 +191,8 @@ class ListTest {
         assertThat(list, contains("a", "b", "changed", "d"));
         assertThat(list, instanceOf(RandomAccess.class)); // Because wrapped list is RandomAccess, too.
 
-        assertThat(Collections.unmodifiableList(list), not(sameInstance(list)));
+        // Same instance is returned in JDK  17, whereas in JDK 11 it always created a new instance
+        assertThat(Collections.unmodifiableList(list), sameInstance(list));
 
         assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
         assertThrows(UnsupportedOperationException.class, () -> list.remove(3));

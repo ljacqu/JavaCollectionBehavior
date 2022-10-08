@@ -173,7 +173,8 @@ public class SetTest {
         elements.remove(4);
         assertThat(set, contains(1, 9, 16));
 
-        assertThat(Collections.unmodifiableSet(set), not(sameInstance(set)));
+        // Same instance returned in JDK 17, whereas in JDK 11 it always returned a new instance
+        assertThat(Collections.unmodifiableSet(set), sameInstance(set));
 
         assertThrows(UnsupportedOperationException.class, () -> set.add(777));
         assertThrows(UnsupportedOperationException.class, () -> set.remove(1));

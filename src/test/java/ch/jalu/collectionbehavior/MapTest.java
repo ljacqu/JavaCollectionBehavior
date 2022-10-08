@@ -26,9 +26,9 @@ class MapTest {
     @Test
     void testJdkHashMap() {
         Map<Character, Integer> map = new HashMap<>();
-        map.put('A', 65);
         map.put('0', 48);
         map.put('z', 122);
+        map.put('A', 65);
 
         assertContainsEntriesNotInOrder(map);
 
@@ -54,11 +54,11 @@ class MapTest {
     @Test
     void testJdkLinkedHashMap() {
         Map<Character, Integer> map = new LinkedHashMap<>();
-        map.put('A', 65);
         map.put('0', 48);
         map.put('z', 122);
+        map.put('A', 65);
 
-        assertThat(map.keySet(), contains('A', '0', 'z'));
+        assertThat(map.keySet(), contains('0', 'z', 'A'));
 
         assertThat(map.containsValue(null), equalTo(false));
         assertThat(map.containsKey(null), equalTo(false));
@@ -82,7 +82,7 @@ class MapTest {
      */
     @Test
     void testJdkMapOf() {
-        Map<Character, Integer> map = Map.of('A', 65, '0', 48, 'z', 122);
+        Map<Character, Integer> map = Map.of('0', 48, 'z', 122, 'A', 65);
 
         assertContainsEntriesNotInOrder(map);
 
@@ -107,7 +107,7 @@ class MapTest {
      */
     @Test
     void testJdkMapCopyOf() {
-        Map<Character, Integer> elements = newLinkedHashMap('A', 65, '0', 48, 'z', 122);
+        Map<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         Map<Character, Integer> map = Map.copyOf(elements);
 
         elements.put('f', 999);
@@ -135,9 +135,9 @@ class MapTest {
      */
     @Test
     void testGuavaImmutableMapOf() {
-        Map<Character, Integer> map = ImmutableMap.of('A', 65, '0', 48, 'z', 122);
+        Map<Character, Integer> map = ImmutableMap.of('0', 48, 'z', 122, 'A', 65);
 
-        assertThat(map.keySet(), contains('A', '0', 'z'));
+        assertThat(map.keySet(), contains('0', 'z', 'A'));
 
         assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
         assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
@@ -162,11 +162,11 @@ class MapTest {
      */
     @Test
     void testGuavaImmutableMapCopyOf() {
-        Map<Character, Integer> elements = newLinkedHashMap('A', 65, '0', 48, 'z', 122);
+        Map<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         Map<Character, Integer> map = ImmutableMap.copyOf(elements);
 
         elements.put('f', 999);
-        assertThat(map.keySet(), contains('A', '0', 'z'));
+        assertThat(map.keySet(), contains('0', 'z', 'A'));
 
         assertThat(ImmutableMap.copyOf(map), sameInstance(map));
 
@@ -189,13 +189,14 @@ class MapTest {
      */
     @Test
     void testJdkCollectionsUnmodifiableMap() {
-        Map<Character, Integer> elements = newLinkedHashMap('A', 65, '0', 48, 'z', 122);
+        Map<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         Map<Character, Integer> map = Collections.unmodifiableMap(elements);
 
         elements.put('f', 999);
-        assertThat(map.keySet(), contains('A', '0', 'z', 'f'));
+        assertThat(map.keySet(), contains('0', 'z', 'A', 'f'));
 
-        assertThat(Collections.unmodifiableMap(map), not(sameInstance(map)));
+        // Same instance returned in JDK 17, whereas in JDK 11 it always returned a new instance
+        assertThat(Collections.unmodifiableMap(map), sameInstance(map));
 
         assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
         assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
@@ -233,12 +234,12 @@ class MapTest {
     }
 
     private static void assertContainsEntriesNotInOrder(Map<Character, Integer> map) {
-        assertThat(map.keySet(), containsInAnyOrder('A', '0', 'z'));
-        assertThat(map.keySet(), not(contains('A', '0', 'z')));
+        assertThat(map.keySet(), containsInAnyOrder('0', 'z', 'A'));
+        assertThat(map.keySet(), not(contains('0', 'z', 'A')));
 
-        assertThat(map.get('A'), equalTo(65));
         assertThat(map.get('0'), equalTo(48));
         assertThat(map.get('z'), equalTo(122));
+        assertThat(map.get('A'), equalTo(65));
     }
 
     private static void assertKeyAndValuesAndEntrySetImmutable(Map<?, ?> map) {
