@@ -9,6 +9,8 @@ import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.RandomAccess;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -244,5 +246,70 @@ class ListTest {
 
         list.add("c");
         assertThrows(ConcurrentModificationException.class, () -> subList.get(0));
+    }
+
+    /**
+     * {@link Collectors#toList} produces an ArrayList, although it makes no guarantees about the returned type,
+     * nor about the mutability of the return value.
+     * As it returns an ArrayList (for now), null values are supported.
+     */
+    @Test
+    void testJdkCollectorsToList() {
+        List<String> list = Stream.of("a", "b", "c")
+            .collect(Collectors.toList());
+
+        assertThat(list, instanceOf(ArrayList.class));
+
+        list.add("f");
+        assertThat(list, contains("a", "b", "c", "f"));
+        list.remove("c");
+        assertThat(list, contains("a", "b", "f"));
+        
+        assertThat(list.contains(null), equalTo(false)); // no exception
+
+        List<String> listWithNull = Stream.of("a", null, "c")
+            .collect(Collectors.toList());
+        assertThat(listWithNull, contains("a", null, "c"));
+    }
+
+    /**
+     * {@link Collectors#toUnmodifiableList} produces an unmodifiable list. It throws an exception if null is
+     * passed to it or to any of its methods.
+     */
+    @Test
+    void testJdkCollectorsToUnmodifiableList() {
+        List<String> list = Stream.of("a", "b", "c")
+            .collect(Collectors.toUnmodifiableList());
+
+        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
+        assertThrows(UnsupportedOperationException.class, () -> list.remove(0));
+        assertThrows(UnsupportedOperationException.class, () -> list.set(0, "foo"));
+        assertThat(list, contains("a", "b", "c"));
+
+        assertThrows(NullPointerException.class, () -> list.contains(null));
+        assertThrows(NullPointerException.class, () -> list.indexOf(null));
+
+        assertThrows(NullPointerException.class, () -> Stream.of("a", null, "c")
+            .collect(Collectors.toUnmodifiableList()));
+    }
+
+    /**
+     * {@link Stream#toList} produces an unmodifiable list that supports nulls.
+     */
+    @Test
+    void testJdkStreamToList() {
+        List<String> list = Stream.of("a", "b", "c").toList();
+
+        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
+        assertThrows(UnsupportedOperationException.class, () -> list.remove(0));
+        assertThrows(UnsupportedOperationException.class, () -> list.set(0, "foo"));
+        assertThat(list, contains("a", "b", "c"));
+
+        assertThat(list.contains(null), equalTo(false));
+        assertThat(list.indexOf(null), equalTo(-1));
+
+        List<String> listWithNull = Stream.of("a", null, "c")
+            .toList();
+        assertThat(listWithNull, contains("a", null, "c"));
     }
 }
