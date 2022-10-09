@@ -7,6 +7,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -231,6 +234,64 @@ class MapTest {
         assertThat(map1.keySet().remove('C'), equalTo(false));
         map1.values().clear();
         map1.putAll(Collections.emptyMap());
+    }
+
+    /**
+     * {@link Collectors#toMap(Function, Function)} makes no guarantees on mutability of the Map, though at the moment
+     * it creates a HashMap. As such, order is not kept. The map may not have null values, but null as key is supported.
+     * Throws for duplicate keys.
+     */
+    @Test
+    void testJdkCollectorsToMap() {
+        Map<Character, Integer> map = Stream.of('0', 'z', 'A')
+            .collect(Collectors.toMap(Function.identity(), chr -> (int) chr));
+        assertContainsEntriesNotInOrder(map);
+        assertThat(map.getClass(), equalTo(HashMap.class));
+
+        assertThat(map.containsKey(null), equalTo(false));
+        assertThat(map.containsValue(null), equalTo(false));
+
+        map.put('f', -3);
+        map.remove('z');
+        assertThat(map.keySet(), containsInAnyOrder('0', 'A', 'f'));
+
+        assertThrows(NullPointerException.class, () -> Stream.of(3, null, 5)
+            .collect(Collectors.toMap(String::valueOf, Function.identity())));
+
+        Map<Integer, String> mapWithNullKey = Stream.of(3, null, 5)
+            .collect(Collectors.toMap(Function.identity(), String::valueOf));
+        assertThat(mapWithNullKey.keySet(), containsInAnyOrder(3, null, 5));
+
+        IllegalStateException duplicateKeyEx = assertThrows(IllegalStateException.class, () -> Stream.of(3, 4, -3)
+            .collect(Collectors.toMap(i -> i * i, i -> Integer.toString(i))));
+        assertThat(duplicateKeyEx.getMessage(), equalTo("Duplicate key 9 (attempted merging values 3 and -3)"));
+    }
+
+    /**
+     * {@link Collectors#toUnmodifiableMap(Function, Function)} produces an unmodifiable map that rejects null values:
+     * keys and values may not be null; methods like {@link Map#containsKey} may not be called with null as argument.
+     * Order of keys is random.
+     */
+    @Test
+    void testJdkCollectorsToUnmodifiableMap() {
+        Map<Character, Integer> map = Stream.of('0', 'z', 'A')
+            .collect(Collectors.toUnmodifiableMap(Function.identity(), chr -> (int) chr));
+        assertContainsEntriesNotInOrder(map);
+        assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
+        assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
+
+        assertThrows(NullPointerException.class, () -> map.containsKey(null));
+        assertThrows(NullPointerException.class, () -> map.containsValue(null));
+
+        assertThrows(NullPointerException.class, () -> Stream.of(3, null, 5)
+            .collect(Collectors.toUnmodifiableMap(String::valueOf, Function.identity())));
+
+        assertThrows(NullPointerException.class, () -> Stream.of(3, null, 5)
+            .collect(Collectors.toUnmodifiableMap(Function.identity(), String::valueOf)));
+
+        IllegalStateException duplicateKeyEx = assertThrows(IllegalStateException.class, () -> Stream.of(3, 4, -3)
+            .collect(Collectors.toUnmodifiableMap(i -> i * i, i -> Integer.toString(i))));
+        assertThat(duplicateKeyEx.getMessage(), equalTo("Duplicate key 9 (attempted merging values 3 and -3)"));
     }
 
     private static void assertContainsEntriesNotInOrder(Map<Character, Integer> map) {

@@ -18,7 +18,6 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -258,7 +257,7 @@ class ListTest {
         List<String> list = Stream.of("a", "b", "c")
             .collect(Collectors.toList());
 
-        assertThat(list, instanceOf(ArrayList.class));
+        assertThat(list.getClass(), equalTo(ArrayList.class));
 
         list.add("f");
         assertThat(list, contains("a", "b", "c", "f"));
@@ -266,6 +265,7 @@ class ListTest {
         assertThat(list, contains("a", "b", "f"));
         
         assertThat(list.contains(null), equalTo(false)); // no exception
+        assertThat(list.indexOf(null), equalTo(-1)); // no exception
 
         List<String> listWithNull = Stream.of("a", null, "c")
             .collect(Collectors.toList());

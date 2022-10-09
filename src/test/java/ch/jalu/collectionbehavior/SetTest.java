@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
@@ -198,6 +200,41 @@ public class SetTest {
 
         assertThat(Collections.singleton(null), contains((Object) null));
         assertThat(set.contains(null), equalTo(false));
+    }
+
+    /**
+     * {@link Collectors#toSet} makes no guarantees about the returned type or its mutability. For now, it
+     * returns a HashSet and therefore also supports null values.
+     */
+    @Test
+    void testJdkCollectorsToSet() {
+        Set<Integer> set = Stream.of(1, 4, 9, 16).collect(Collectors.toSet());
+        assertContainsButNotInOrder(set, 1, 4, 9, 16);
+        assertThat(set.getClass(), equalTo(HashSet.class));
+
+        assertThat(set.contains(null), equalTo(false));
+        set.add(null);
+        assertThat(set.contains(null), equalTo(true));
+    }
+
+    /**
+     * {@link Collectors#toUnmodifiableSet} produces an immutable Set. Null as element is not supported and may not be
+     * used as argument in methods like {@link Set#contains}.
+     */
+    @Test
+    void testJdkCollectorsToUnmodifiableSet() {
+        Set<Integer> set = Stream.of(1, 4, 9, 16)
+            .collect(Collectors.toUnmodifiableSet());
+        assertContainsButNotInOrder(set, 1, 4, 9, 16);
+
+        assertThrows(UnsupportedOperationException.class, () -> set.add(22));
+        assertThrows(UnsupportedOperationException.class, () -> set.remove(0));
+        assertThat(set, containsInAnyOrder(1, 4, 9, 16));
+
+        assertThrows(NullPointerException.class, () -> set.contains(null));
+
+        assertThrows(NullPointerException.class, () -> Stream.of(1, null, 16)
+            .collect(Collectors.toUnmodifiableSet()));
     }
 
     private static void assertContainsButNotInOrder(Set<Integer> set, Integer... values) {
