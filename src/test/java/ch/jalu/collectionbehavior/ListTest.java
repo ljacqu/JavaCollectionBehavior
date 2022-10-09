@@ -203,7 +203,7 @@ class ListTest {
     void testJdkCollectionsEmptyList() {
         // Is immutable
         List<String> list = Collections.emptyList();
-        verifyThrowsOnlyIfListWouldBeModified(list);
+        verifyThrowsOnlyIfListWouldBeModified(list, UnmodifiableListExceptionBehavior.COLLECTIONS_EMPTYLIST);
 
         // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
@@ -251,8 +251,8 @@ class ListTest {
     @Test
     void testJdkCollectionsSingletonList() {
         // Is immutable
-        List<String> list = Collections.singletonList("test");
-        verifyThrowsOnlyIfListWouldBeModified(list);
+        List<String> list = Collections.singletonList("a");
+        verifyThrowsOnlyIfListWouldBeModified(list, UnmodifiableListExceptionBehavior.COLLECTIONS_SINGLETONLIST);
 
         // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));

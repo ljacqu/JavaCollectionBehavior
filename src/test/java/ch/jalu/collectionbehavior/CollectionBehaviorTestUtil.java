@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -97,8 +98,8 @@ public final class CollectionBehaviorTestUtil {
         originModifier.run();
         assertThat(abcdImmutableList, contains("a", "b", "c", "d"));
 
-        verifyCannotBeModifiedDirectly(abcdImmutableList);
-        verifyCannotBeModifiedDirectly(abcdImmutableList.subList(0, 3));
+        verifyListExceptionBehavior(abcdImmutableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, false);
+        verifyListExceptionBehavior(abcdImmutableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, true);
         verifyCannotBeModifiedByIterator(abcdImmutableList);
     }
 
@@ -107,28 +108,9 @@ public final class CollectionBehaviorTestUtil {
         originModifier.run();
         assertThat(abcdUnmodifiableList, contains("a", "b", "changed", "d"));
 
-        verifyCannotBeModifiedDirectly(abcdUnmodifiableList);
-        verifyCannotBeModifiedDirectly(abcdUnmodifiableList.subList(0, 3));
+        verifyListExceptionBehavior(abcdUnmodifiableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, false);
+        verifyListExceptionBehavior(abcdUnmodifiableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, true);
         verifyCannotBeModifiedByIterator(abcdUnmodifiableList);
-    }
-
-    private static void verifyCannotBeModifiedDirectly(List<String> list) {
-        List<String> copy = new ArrayList<>(list);
-
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.add(1, "foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.addAll(List.of("foo", "bar")));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove("a"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-        assertThrows(UnsupportedOperationException.class, () -> list.removeAll(Set.of("f", "b")));
-        assertThrows(UnsupportedOperationException.class, () -> list.removeIf(str -> str.equals("f")));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.retainAll(Set.of("x")));
-        assertThrows(UnsupportedOperationException.class, () -> list.replaceAll(String::toUpperCase));
-        assertThrows(UnsupportedOperationException.class, () -> list.sort(Comparator.comparing(Function.identity())));
-        assertThrows(UnsupportedOperationException.class, list::clear);
-
-        assertThat(list, equalTo(copy));
     }
 
     private static void verifyCannotBeModifiedByIterator(List<String> list) {
@@ -139,65 +121,64 @@ public final class CollectionBehaviorTestUtil {
         assertThrows(UnsupportedOperationException.class, iterator::remove);
     }
 
-    public static void verifyThrowsOnlyIfListWouldBeModified(List<String> list) {
-        if (list.getClass() != Collections.emptyList().getClass()) {
-            assertThat(list, contains("test")); // Validate method contract
-
-            assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-            assertThrows(UnsupportedOperationException.class, () -> list.add(1, "foo"));
-            assertThrows(UnsupportedOperationException.class, () -> list.addAll(List.of("foo", "bar")));
-            list.remove("a");
-            assertThrows(UnsupportedOperationException.class, () -> list.remove("test"));
-            assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-            list.removeAll(Set.of("f", "b"));
-            // Note the exception on List#removeIf here: it WOULD not change anything, but it is still just instantly rejected
-            assertThrows(UnsupportedOperationException.class, () -> list.removeIf(str -> str.equals("f")));
-
-            assertThrows(UnsupportedOperationException.class, () -> list.removeAll(Set.of("f", "test")));
-            assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-            list.retainAll(Set.of("test"));
-            assertThrows(UnsupportedOperationException.class, () -> list.retainAll(Set.of("qq")));
-            assertThrows(UnsupportedOperationException.class, () -> list.replaceAll(s -> s));
-            list.sort(Comparator.comparing(Function.identity()));
-            assertThrows(UnsupportedOperationException.class, list::clear);
-
-            assertThat(list, contains("test"));
-            verifySubListOfSingletonList(list.subList(0, 1));
-            verifyCannotBeModifiedByIterator(list);
-        } else {
-            assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-            assertThrows(UnsupportedOperationException.class, () -> list.add(1, "foo"));
-            assertThrows(UnsupportedOperationException.class, () -> list.addAll(List.of("foo", "bar")));
-            list.remove("a");
-            assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-            list.removeAll(Set.of("f", "b"));
-            list.removeIf(str -> str.equals("f"));
-            assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-            list.retainAll(Set.of("p"));
-            list.replaceAll(String::toUpperCase);
-            list.sort(Comparator.comparing(Function.identity()));
-            list.clear();
+    public static void verifyThrowsOnlyIfListWouldBeModified(List<String> list,
+                                                             UnmodifiableListExceptionBehavior exceptionBehavior) {
+        if (list != Collections.<String>emptyList()) {
+            assertThat(list, contains("a")); // Validate method contract
         }
+        List<String> copy = new ArrayList<>(list);
+
+        verifyListExceptionBehavior(list, exceptionBehavior, false);
+        assertThat(list, equalTo(copy));
+
+        verifyListExceptionBehavior(list.subList(0, list.size()), exceptionBehavior, true);
+        assertThat(list, equalTo(copy));
     }
 
-    private static void verifySubListOfSingletonList(List<String> subList) {
-        assertThrows(UnsupportedOperationException.class, () -> subList.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> subList.add(1, "foo"));
-        assertThrows(UnsupportedOperationException.class, () -> subList.addAll(List.of("foo", "bar")));
-        subList.remove("a");
-        assertThrows(UnsupportedOperationException.class, () -> subList.remove("test"));
-        assertThrows(UnsupportedOperationException.class, () -> subList.remove(0)); // throws IndexOutOfBounds if appropriate
-        subList.removeAll(Set.of("f", "b"));
-        subList.removeIf(str -> str.equals("f")); // Different from singletonList
-        assertThrows(UnsupportedOperationException.class, () -> subList.removeIf(str -> str.equals("test")));
+    private static void verifyListExceptionBehavior(List<String> listToVerify,
+                                                    UnmodifiableListExceptionBehavior exceptionBehavior,
+                                                    boolean isSubList) {
+        Class<? extends Exception> removeIfExOverride = null;
+        Class<? extends Exception> replaceAllExOverride = null;
+        Class<? extends Exception> sortExOverride = null;
+        if (!isSubList) {
+            removeIfExOverride = exceptionBehavior.getNonModifyingRemoveIfExceptionOverride();
+            replaceAllExOverride = exceptionBehavior.getNonModifyingReplaceAllExceptionOverride();
+        } else {
+            replaceAllExOverride = exceptionBehavior.getNonModifyingReplaceAllSubListExOverride();
+            sortExOverride = exceptionBehavior.getSortSubListExOverride();
+        }
 
-        assertThrows(UnsupportedOperationException.class, () -> subList.removeAll(Set.of("f", "test")));
-        assertThrows(UnsupportedOperationException.class, () -> subList.set(0, "foo")); // throws IndexOutOfBounds when appropriate
-        subList.retainAll(Set.of("test"));
-        assertThrows(UnsupportedOperationException.class, () -> subList.retainAll(Set.of("qq")));
-        assertThrows(UnsupportedOperationException.class, () -> subList.replaceAll(s -> s));
-        assertThrows(UnsupportedOperationException.class, () -> subList.sort(Comparator.comparing(Function.identity()))); // different from singletonList
-        assertThrows(UnsupportedOperationException.class, subList::clear);
+        ThrowingBehavior throwingBehavior = switch (exceptionBehavior) {
+            case ALWAYS_THROWS ->
+                ThrowingBehavior.ALWAYS_THROWS;
+            case COLLECTIONS_SINGLETONLIST, COLLECTIONS_EMPTYLIST ->
+                isSubList
+                    ? ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
+                    : ThrowingBehavior.THROW_ONLY_IF_CHANGE;
+        };
+
+        new ListVerifier(listToVerify, throwingBehavior)
+            .test(list -> list.add("foo"))
+            .test(list -> list.add(1, "foo"))
+            .test(list -> list.add(3, "foo"))
+            .test(list -> list.addAll(List.of("foo", "bar")))
+            .test(list -> list.remove("zzz"))
+            .test(list -> list.remove("a"))
+            .test(list -> list.remove(0))
+            .test(list -> list.remove(3))
+            .test(list -> list.removeIf(str -> str.equals("zzz")), removeIfExOverride)
+            .test(list -> list.removeIf(str -> str.equals("a")), removeIfExOverride)
+            .test(list -> list.removeAll(Set.of("fff", "xxx")))
+            .test(list -> list.removeAll(Set.of("fff", "a")))
+            .test(list -> list.set(0, "foo"))
+            .test(list -> list.set(3, "foo"))
+            .test(list -> list.retainAll(Set.of("a")))
+            .test(list -> list.retainAll(Set.of("qqq")))
+            .test(list -> list.replaceAll(s -> s), replaceAllExOverride)
+            .test(list -> list.replaceAll(String::toUpperCase))
+            .test(list -> list.sort(Comparator.comparing(Function.identity())), sortExOverride)
+            .test(list -> list.clear());
     }
 
     // --------------------------
@@ -222,5 +203,65 @@ public final class CollectionBehaviorTestUtil {
         assertThrows(NullPointerException.class, () -> list.containsAll(listWithNull));
         // todo: interesting to note that Arrays.asList("test", null); will not produce an NPE because "test" was
         // already evaluated to false -> should document this in the future
+    }
+
+    // --------------------------
+    // Helpers
+    // --------------------------
+
+
+    private static final class ListVerifier {
+
+        private final List<String> originalList;
+        private final ThrowingBehavior throwingBehavior;
+
+        private ListVerifier(List<String> originalList, ThrowingBehavior throwingBehavior) {
+            this.originalList = originalList;
+            this.throwingBehavior = throwingBehavior;
+        }
+
+        ListVerifier test(Consumer<List<String>> action) {
+            return test(action, null);
+        }
+
+        ListVerifier test(Consumer<List<String>> action, Class<? extends Exception> expectedExceptionType) {
+            Class<? extends Exception> expectedException = expectedExceptionType;
+            if (expectedException == null) {
+                expectedException = getExpectedExceptionType(action);
+            }
+
+            if (expectedException != null) {
+                assertThrows(expectedException, () -> action.accept(originalList));
+            } else {
+                action.accept(originalList);
+            }
+            return this;
+        }
+
+        private Class<? extends Exception> getExpectedExceptionType(Consumer<List<String>> action) {
+            if (this.throwingBehavior == ThrowingBehavior.ALWAYS_THROWS) {
+                return UnsupportedOperationException.class;
+            }
+
+            List<String> copy = new ArrayList<>(originalList);
+            try {
+                action.accept(copy);
+            } catch (IndexOutOfBoundsException indexOutOfBoundsException) {
+                return throwingBehavior == ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
+                    ? IndexOutOfBoundsException.class
+                    : UnsupportedOperationException.class;
+            }
+            return copy.equals(originalList) ? null : UnsupportedOperationException.class;
+        }
+    }
+
+    private enum ThrowingBehavior {
+
+        ALWAYS_THROWS,
+
+        THROW_ONLY_IF_CHANGE,
+
+        THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
+
     }
 }
