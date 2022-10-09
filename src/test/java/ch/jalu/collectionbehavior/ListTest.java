@@ -7,17 +7,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.RandomAccess;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsImmutable;
+import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsMutable;
+import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsUnmodifiable;
+import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
+import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -28,17 +35,18 @@ class ListTest {
      */
     @Test
     void testJdkArrayList() {
-        List<String> list = new ArrayList<>();
-        list.add("a");
-        list.add("b");
-        list.add("c");
+        // Is mutable
+        verifyIsMutable(new ArrayList<>());
 
-        assertThat(list, contains("a", "b", "c"));
-        assertThat(list, instanceOf(RandomAccess.class));
+        // Implements RandomAccess
+        assertThat(new ArrayList<>(), instanceOf(RandomAccess.class));
 
-        assertThat(list.contains(null), equalTo(false));
-        list.add(null);
-        assertThat(list.contains(null), equalTo(true));
+        // May contain null
+        List<String> listWithNull = new ArrayList<>();
+        listWithNull.add(null); // no exception
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(new ArrayList<>());
     }
 
     /**
@@ -47,19 +55,19 @@ class ListTest {
      */
     @Test
     void testJdkListOf() {
+        // Is immutable
         String[] elements = { "a", "b", "c", "d" };
         List<String> list = List.of(elements);
+        verifyIsImmutable(list, () -> elements[2] = "changed");
 
-        elements[2] = "changed";
-        assertThat(list, contains("a", "b", "c", "d"));
+        // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
 
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-
+        // May not contain null
         assertThrows(NullPointerException.class, () -> List.of("a", null, "c"));
-        assertThrows(NullPointerException.class, () -> list.contains(null));
+
+        // No null support in methods
+        verifyRejectsNullArgInMethods(list);
     }
 
     /**
@@ -69,22 +77,23 @@ class ListTest {
      */
     @Test
     void testJdkListCopyOf() {
+        // Is immutable
         List<String> elements = new ArrayList<>(Arrays.asList("a", "b", "c", "d"));
         List<String> list = List.copyOf(elements);
+        verifyIsImmutable(list, () -> elements.set(2, "changed"));
 
-        elements.set(2, "changed");
-        assertThat(list, contains("a", "b", "c", "d"));
+        // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
 
-        assertThat(List.copyOf(list), sameInstance(list));
-
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-
+        // May not contain null
         List<String> listWithNull = Arrays.asList("a", null, "c");
         assertThrows(NullPointerException.class, () -> List.copyOf(listWithNull));
-        assertThrows(NullPointerException.class, () -> list.contains(null));
+
+        // No null support in methods
+        verifyRejectsNullArgInMethods(list);
+
+        // Does not create new instances if not needed
+        assertThat(List.copyOf(list), sameInstance(list));
     }
 
     /**
@@ -95,21 +104,28 @@ class ListTest {
      */
     @Test
     void testJdkArraysAsList() {
+        // Is partially modifiable: basically just delegates to the wrapped array, so anything that can be done on
+        // the array (changing an existing value, but not adding a new value) is supported
         String[] elements = { "a", "b", "c", "d" };
         List<String> list = Arrays.asList(elements);
 
         elements[2] = "changed";
         assertThat(list, contains("a", "b", "changed", "d"));
-        assertThat(list, instanceOf(RandomAccess.class));
-
         assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
         assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
+
         list.set(2, "foo");
         assertThat(list, contains("a", "b", "foo", "d"));
         assertThat(elements, arrayContaining("a", "b", "foo", "d")); // backing array changed via list
 
+        // Implements RandomAccess
+        assertThat(list, instanceOf(RandomAccess.class));
+
+        // May contain null
         assertThat(Arrays.asList("a", null, "c"), contains("a", null, "c"));
-        assertThat(list.contains(null), equalTo(false));
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(Arrays.asList("a", "z"));
     }
 
     /**
@@ -119,19 +135,19 @@ class ListTest {
      */
     @Test
     void testGuavaImmutableList() {
+        // Is immutable
         String[] elements = { "a", "b", "c", "d" };
         List<String> list = ImmutableList.copyOf(elements);
+        verifyIsImmutable(list, () -> elements[2] = "changed");
 
-        elements[2] = "changed";
-        assertThat(list, contains("a", "b", "c", "d"));
+        // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
 
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-
+        // May not contain null
         assertThrows(NullPointerException.class, () -> ImmutableList.of("a", null, "c"));
-        assertThat(list.contains(null), equalTo(false));
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(Arrays.asList("a", "z"));
     }
 
     /**
@@ -141,22 +157,23 @@ class ListTest {
      */
     @Test
     void testGuavaImmutableListCopy() {
+        // Is immutable
         List<String> elements = newArrayList("a", "b", "c", "d");
         List<String> list = ImmutableList.copyOf(elements);
+        verifyIsImmutable(list, () -> elements.set(2, "changed"));
 
-        elements.set(2, "changed");
-        assertThat(list, contains("a", "b", "c", "d"));
+        // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
 
-        assertThat(ImmutableList.copyOf(list), sameInstance(list));
-
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-
+        // May not contain null
         List<String> elementsWithNull = newArrayList("a", null, "c");
         assertThrows(NullPointerException.class, () -> ImmutableList.copyOf(elementsWithNull));
-        assertThat(list.contains(null), equalTo(false));
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(list);
+
+        // Does not create new instances if not needed
+        assertThat(ImmutableList.copyOf(list), sameInstance(list));
     }
 
     /**
@@ -165,16 +182,19 @@ class ListTest {
      */
     @Test
     void testJdkCollectionsEmptyList() {
+        // Is immutable
         List<String> list1 = Collections.emptyList();
-        List<Integer> list2 = Collections.emptyList();
+        // todo verifyCannotBeModifiedDirectly(list1);
 
-        assertThat(list1, sameInstance(list2));
+        // Implements RandomAccess
         assertThat(list1, instanceOf(RandomAccess.class));
 
-        assertThat(list1.contains("foo"), equalTo(false));
-        assertThat(list1.contains(null), equalTo(false));
+        // Null support in methods
+        verifySupportsNullArgInMethods(list1);
 
-        assertThrows(UnsupportedOperationException.class, () -> list1.add("f"));
+        // Is always the same instance
+        List<Integer> list2 = Collections.emptyList();
+        assertThat(list1, sameInstance(list2));
     }
 
     /**
@@ -185,23 +205,25 @@ class ListTest {
      */
     @Test
     void testJdkCollectionsUnmodifiableList() {
+        // Is unmodifiable
         List<String> elements = newArrayList("a", "b", "c", "d");
         List<String> list = Collections.unmodifiableList(elements);
+        verifyIsUnmodifiable(list, () -> elements.set(2, "changed"));
 
-        elements.set(2, "changed");
-        assertThat(list, contains("a", "b", "changed", "d"));
+        // Implements RandomAccess if underlying List implements it
         assertThat(list, instanceOf(RandomAccess.class)); // Because wrapped list is RandomAccess, too.
+        assertThat(new LinkedList<>(), not(instanceOf(RandomAccess.class))); // validate assumption
+        assertThat(Collections.unmodifiableList(new LinkedList<>()), not(instanceOf(RandomAccess.class)));
+
+        // May contain null
+        List<String> listWithNull = Arrays.asList("a", null, "c");
+        assertThat(Collections.unmodifiableList(listWithNull), contains("a", null, "c"));
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(list);
 
         // Same instance is returned in JDK  17, whereas in JDK 11 it always created a new instance
         assertThat(Collections.unmodifiableList(list), sameInstance(list));
-
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(3));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(3, "foo"));
-
-        List<String> listWithNull = Arrays.asList("a", null, "c");
-        assertThat(Collections.unmodifiableList(listWithNull), contains("a", null, "c"));
-        assertThat(list.contains(null), equalTo(false));
     }
 
     /**
@@ -209,17 +231,18 @@ class ListTest {
      */
     @Test
     void testJdkCollectionsSingletonList() {
+        // Is immutable
         List<String> list = Collections.singletonList("test");
+        // todo: verifyCannotBeModifiedDirectly(list);
 
-        assertThat(list, contains("test"));
+        // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
 
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(0));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(0, "foo"));
-
+        // May contain null
         assertThat(Collections.singletonList(null), contains((Object) null));
-        assertThat(list.contains(null), equalTo(false));
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(list);
     }
 
     /**
@@ -229,7 +252,7 @@ class ListTest {
      * the behavior is then undefined; ArrayList throws a ConcurrentModificationException).
      */
     @Test
-    void testArrayListSubList() {
+    void testArrayListSubList() { // todo: as separate method or part of each implementation?
         List<String> list = newArrayList("a", "b", "c", "d");
 
         List<String> subList = list.subList(1, 3);
@@ -254,22 +277,23 @@ class ListTest {
      */
     @Test
     void testJdkCollectorsToList() {
-        List<String> list = Stream.of("a", "b", "c")
+        // Is mutable (but Javadoc makes no guarantees)
+        List<String> list = Stream.of("a", "b", "c", "d")
+            .filter(str -> false)
             .collect(Collectors.toList());
-
         assertThat(list.getClass(), equalTo(ArrayList.class));
+        verifyIsMutable(list);
 
-        list.add("f");
-        assertThat(list, contains("a", "b", "c", "f"));
-        list.remove("c");
-        assertThat(list, contains("a", "b", "f"));
-        
-        assertThat(list.contains(null), equalTo(false)); // no exception
-        assertThat(list.indexOf(null), equalTo(-1)); // no exception
+        // Implements RandomAccess (but Javadoc makes no guarantees)
+        assertThat(list, instanceOf(RandomAccess.class));
 
+        // May contain null
         List<String> listWithNull = Stream.of("a", null, "c")
             .collect(Collectors.toList());
         assertThat(listWithNull, contains("a", null, "c"));
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(list);
     }
 
     /**
@@ -278,19 +302,20 @@ class ListTest {
      */
     @Test
     void testJdkCollectorsToUnmodifiableList() {
-        List<String> list = Stream.of("a", "b", "c")
+        // Is immutable
+        List<String> list = Stream.of("a", "b", "c", "d")
             .collect(Collectors.toUnmodifiableList());
+        verifyIsImmutable(list, () -> { /* noop */ });
 
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(0));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(0, "foo"));
-        assertThat(list, contains("a", "b", "c"));
+        // Implements RandomAccess (but Javadoc makes no guarantees)
+        assertThat(list, instanceOf(RandomAccess.class));
 
-        assertThrows(NullPointerException.class, () -> list.contains(null));
-        assertThrows(NullPointerException.class, () -> list.indexOf(null));
-
+        // May not contain null
         assertThrows(NullPointerException.class, () -> Stream.of("a", null, "c")
             .collect(Collectors.toUnmodifiableList()));
+
+        // No null support in methods
+        verifyRejectsNullArgInMethods(list);
     }
 
     /**
@@ -298,18 +323,19 @@ class ListTest {
      */
     @Test
     void testJdkStreamToList() {
-        List<String> list = Stream.of("a", "b", "c").toList();
+        // Is immutable
+        List<String> list = Stream.of("a", "b", "c", "d").toList();
+        verifyIsImmutable(list, () -> { /* noop */ });
 
-        assertThrows(UnsupportedOperationException.class, () -> list.add("foo"));
-        assertThrows(UnsupportedOperationException.class, () -> list.remove(0));
-        assertThrows(UnsupportedOperationException.class, () -> list.set(0, "foo"));
-        assertThat(list, contains("a", "b", "c"));
+        // Implements RandomAccess (but Javadoc makes no guarantees)
+        assertThat(list, instanceOf(RandomAccess.class));
 
-        assertThat(list.contains(null), equalTo(false));
-        assertThat(list.indexOf(null), equalTo(-1));
-
+        // May contain null
         List<String> listWithNull = Stream.of("a", null, "c")
             .toList();
         assertThat(listWithNull, contains("a", null, "c"));
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(list);
     }
 }
