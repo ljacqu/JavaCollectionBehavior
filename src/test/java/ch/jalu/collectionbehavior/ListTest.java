@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.RandomAccess;
@@ -18,6 +17,7 @@ import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsMuta
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsUnmodifiable;
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
+import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyThrowsOnlyIfListWouldBeModified;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
@@ -47,6 +47,25 @@ class ListTest {
 
         // Null support in methods
         verifySupportsNullArgInMethods(new ArrayList<>());
+    }
+
+    /**
+     * LinkedList: mutable, fully supports null.
+     */
+    @Test
+    void testJdkLinkedList() {
+        // Is mutable
+        verifyIsMutable(new LinkedList<>());
+
+        // Implements RandomAccess
+        assertThat(new LinkedList<>(), not(instanceOf(RandomAccess.class)));
+
+        // May contain null
+        List<String> listWithNull = new LinkedList<>();
+        listWithNull.add(null); // no exception
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(new LinkedList<>());
     }
 
     /**
@@ -183,18 +202,18 @@ class ListTest {
     @Test
     void testJdkCollectionsEmptyList() {
         // Is immutable
-        List<String> list1 = Collections.emptyList();
-        // todo verifyCannotBeModifiedDirectly(list1);
+        List<String> list = Collections.emptyList();
+        verifyThrowsOnlyIfListWouldBeModified(list);
 
         // Implements RandomAccess
-        assertThat(list1, instanceOf(RandomAccess.class));
+        assertThat(list, instanceOf(RandomAccess.class));
 
         // Null support in methods
-        verifySupportsNullArgInMethods(list1);
+        verifySupportsNullArgInMethods(list);
 
         // Is always the same instance
         List<Integer> list2 = Collections.emptyList();
-        assertThat(list1, sameInstance(list2));
+        assertThat(list, sameInstance(list2));
     }
 
     /**
@@ -233,7 +252,7 @@ class ListTest {
     void testJdkCollectionsSingletonList() {
         // Is immutable
         List<String> list = Collections.singletonList("test");
-        // todo: verifyCannotBeModifiedDirectly(list);
+        verifyThrowsOnlyIfListWouldBeModified(list);
 
         // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
@@ -243,31 +262,6 @@ class ListTest {
 
         // Null support in methods
         verifySupportsNullArgInMethods(list);
-    }
-
-    /**
-     * {@link List#subList} returns a view of the provided range. The interface defines all operations supported by the
-     * "original" List have to be supported by the sublist. Modifying the sublist results in the original list being
-     * modified, though this is only permitted as long as the original list itself is not modified (the interface says
-     * the behavior is then undefined; ArrayList throws a ConcurrentModificationException).
-     */
-    @Test
-    void testArrayListSubList() { // todo: as separate method or part of each implementation?
-        List<String> list = newArrayList("a", "b", "c", "d");
-
-        List<String> subList = list.subList(1, 3);
-        assertThat(subList, instanceOf(RandomAccess.class));
-
-        assertThat(subList, contains("b", "c"));
-        subList.set(0, "B");
-        assertThat(subList, contains("B", "c"));
-        assertThat(list, contains("a", "B", "c", "d"));
-
-        subList.add("¢");
-        assertThat(list, contains("a", "B", "c", "¢", "d"));
-
-        list.add("c");
-        assertThrows(ConcurrentModificationException.class, () -> subList.get(0));
     }
 
     /**
