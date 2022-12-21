@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -90,7 +91,10 @@ public final class CollectionBehaviorTestUtil {
             iterator.remove();
         }
 
-        assertThat(list, empty());
+        ListIterator<String> listIterator = list.listIterator();
+        listIterator.add("foo");
+
+        assertThat(list, contains("foo"));
     }
 
     public static void verifyIsImmutable(List<String> abcdImmutableList, Runnable originModifier) {
@@ -101,6 +105,7 @@ public final class CollectionBehaviorTestUtil {
         verifyListExceptionBehavior(abcdImmutableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, false);
         verifyListExceptionBehavior(abcdImmutableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, true);
         verifyCannotBeModifiedByIterator(abcdImmutableList);
+        verifyCannotBeModifiedByListIterator(abcdImmutableList);
     }
 
     public static void verifyIsUnmodifiable(List<String> abcdUnmodifiableList, Runnable originModifier) {
@@ -111,6 +116,7 @@ public final class CollectionBehaviorTestUtil {
         verifyListExceptionBehavior(abcdUnmodifiableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, false);
         verifyListExceptionBehavior(abcdUnmodifiableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, true);
         verifyCannotBeModifiedByIterator(abcdUnmodifiableList);
+        verifyCannotBeModifiedByListIterator(abcdUnmodifiableList);
     }
 
     private static void verifyCannotBeModifiedByIterator(List<String> list) {
@@ -121,9 +127,17 @@ public final class CollectionBehaviorTestUtil {
         assertThrows(UnsupportedOperationException.class, iterator::remove);
     }
 
+    private static void verifyCannotBeModifiedByListIterator(List<String> list) {
+        assertThat(list.size(), greaterThanOrEqualTo(1));
+
+        ListIterator<String> listIterator = list.listIterator();
+        assertThrows(UnsupportedOperationException.class, () -> listIterator.set("test"));
+        assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
+    }
+
     public static void verifyThrowsOnlyIfListWouldBeModified(List<String> list,
                                                              UnmodifiableListExceptionBehavior exceptionBehavior) {
-        if (list != Collections.<String>emptyList()) {
+        if (Collections.<String>emptyList() != list) {
             assertThat(list, contains("a")); // Validate method contract
         }
         List<String> copy = new ArrayList<>(list);
@@ -168,7 +182,7 @@ public final class CollectionBehaviorTestUtil {
             .test(list -> list.remove(0))
             .test(list -> list.remove(3))
             .test(list -> list.removeIf(str -> str.equals("zzz")), removeIfExOverride)
-            .test(list -> list.removeIf(str -> str.equals("a")), removeIfExOverride)
+            .test(list -> list.removeIf(str -> str.equals("a")))
             .test(list -> list.removeAll(Set.of("fff", "xxx")))
             .test(list -> list.removeAll(Set.of("fff", "a")))
             .test(list -> list.set(0, "foo"))

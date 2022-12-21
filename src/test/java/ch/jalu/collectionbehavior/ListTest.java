@@ -57,7 +57,7 @@ class ListTest {
         // Is mutable
         verifyIsMutable(new LinkedList<>());
 
-        // Implements RandomAccess
+        // Does not implement RandomAccess
         assertThat(new LinkedList<>(), not(instanceOf(RandomAccess.class)));
 
         // May contain null
