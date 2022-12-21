@@ -1,6 +1,7 @@
 package ch.jalu.collectionbehavior;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -20,6 +21,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Util for verifying collection behavior, such as immutability and null support.
+ */
 public final class CollectionBehaviorTestUtil {
 
     private CollectionBehaviorTestUtil() {
@@ -29,6 +33,12 @@ public final class CollectionBehaviorTestUtil {
     // Mutability
     // --------------------------
 
+    /**
+     * Verifies that the given List is mutable (incl. verification that it can be modified via sublist, iterator and
+     * list iterator).
+     *
+     * @param emptyList an empty List instance of the type to test
+     */
     public static void verifyIsMutable(List<String> emptyList) {
         assertThat(emptyList, empty()); // Validate method contract
         List<String> list = emptyList;
@@ -68,6 +78,11 @@ public final class CollectionBehaviorTestUtil {
         verifyIsMutableBySubListAndIterator(list);
     }
 
+    /**
+     * Verifies that the given Set is mutable (incl. verification that it can be modified via iterator).
+     *
+     * @param emptySet an empty Set instance of the type to test
+     */
     public static void verifyIsMutable(Set<String> emptySet) {
         assertThat(emptySet, empty()); // Validate method contract
         Set<String> set = emptySet;
@@ -92,7 +107,7 @@ public final class CollectionBehaviorTestUtil {
         set.clear();
         assertThat(set, empty());
 
-        verifyIsMutableBySubListAndIterator(set);
+        verifyIsMutableByIterator(set);
     }
 
     private static void verifyIsMutableBySubListAndIterator(List<String> list) {
@@ -126,7 +141,7 @@ public final class CollectionBehaviorTestUtil {
         assertThat(list, contains("foo"));
     }
 
-    private static void verifyIsMutableBySubListAndIterator(Set<String> set) {
+    private static void verifyIsMutableByIterator(Set<String> set) {
         set.add("north");
         set.add("east");
         set.add("south");
@@ -141,6 +156,13 @@ public final class CollectionBehaviorTestUtil {
         assertThat(set, empty());
     }
 
+    /**
+     * Verifies that the given List (with elements "a", "b", "c", "d") is immutable (incl. iterator,
+     * list iterator and sublist).
+     *
+     * @param abcdImmutableList the immutable List to verify
+     * @param originModifier callback to modify the originating structure (as to ensure that the list does not change)
+     */
     public static void verifyIsImmutable(List<String> abcdImmutableList, Runnable originModifier) {
         assertThat(abcdImmutableList, contains("a", "b", "c", "d")); // Validate method contract
         originModifier.run();
@@ -152,6 +174,12 @@ public final class CollectionBehaviorTestUtil {
         verifyCannotBeModifiedByListIterator(abcdImmutableList);
     }
 
+    /**
+     * Verifies that the given Set is immutable (incl. iterator).
+     *
+     * @param immutableSet the immutable Set to verify
+     * @param originModifier callback to modify the originating structure (as to ensure that the set does not change)
+     */
     public static void verifyIsImmutable(Set<Integer> immutableSet, Runnable originModifier) {
         assertThat(immutableSet, containsInAnyOrder(1, 4, 9, 16)); // Validate method contract
         originModifier.run();
@@ -161,6 +189,13 @@ public final class CollectionBehaviorTestUtil {
         verifyCannotBeModifiedByIterator(immutableSet);
     }
 
+    /**
+     * Verifies that the given List is unmodifiable: it cannot be modified directly but changes to the underlying
+     * structure (triggered by the given {@code originModifier}) are reflected.
+     *
+     * @param abcdUnmodifiableList the list to verify (with entries "a", "b", "c", "d")
+     * @param originModifier callback that changes the origin by replacing "c" to "changed"
+     */
     public static void verifyIsUnmodifiable(List<String> abcdUnmodifiableList, Runnable originModifier) {
         assertThat(abcdUnmodifiableList, contains("a", "b", "c", "d")); // Validate method contract
         originModifier.run();
@@ -172,6 +207,12 @@ public final class CollectionBehaviorTestUtil {
         verifyCannotBeModifiedByListIterator(abcdUnmodifiableList);
     }
 
+    /**
+     * Verifies that the given Set is unmodifiable in similar fashion to {@link #verifyIsUnmodifiable(List, Runnable)}.
+     *
+     * @param unmodifiableSet the set to verify (with entries 1, 4, 9, 16)
+     * @param originModifier callback that the changes the origin by removing 9
+     */
     public static void verifyIsUnmodifiable(Set<Integer> unmodifiableSet, Runnable originModifier) {
         assertThat(unmodifiableSet, containsInAnyOrder(1, 4, 9, 16)); // Validate method contract
         originModifier.run();
@@ -197,6 +238,14 @@ public final class CollectionBehaviorTestUtil {
         assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
     }
 
+    /**
+     * Verifies that the given list is unmodifiable; however, an exception is generally only expected if the
+     * structure would be modified by the call. This behavior is not fully consistent and exceptions to the
+     * expected behavior are derived from the given {@code exceptionBehavior}.
+     *
+     * @param list the list to verify
+     * @param exceptionBehavior the exception behavior that is expected
+     */
     public static void verifyThrowsOnlyIfListWouldBeModified(List<String> list,
                                                              UnmodifiableListExceptionBehavior exceptionBehavior) {
         if (Collections.<String>emptyList() != list) {
@@ -211,6 +260,14 @@ public final class CollectionBehaviorTestUtil {
         assertThat(list, equalTo(copy));
     }
 
+    /**
+     * Verifies that the given set is unmodifiable; however, an exception is generally only expected if the
+     * structure would be modified by the call. This behavior is not fully consistent and exceptions to the
+     * expected behavior are derived from the given {@code exceptionBehavior}.
+     *
+     * @param set the set to verify
+     * @param exceptionBehavior the exception behavior that is expected
+     */
     public static void verifyThrowsOnlyIfSetWouldBeModified(Set<Integer> set,
                                                             UnmodifiableSetExceptionBehavior exceptionBehavior) {
         if (Collections.<Integer>emptySet() != set) {
@@ -298,6 +355,11 @@ public final class CollectionBehaviorTestUtil {
     // Null support
     // --------------------------
 
+    /**
+     * Verifies that null can be supplied as argument to all methods that do not modify the collection.
+     *
+     * @param list the list to test (may not contain null as entry)
+     */
     public static void verifySupportsNullArgInMethods(List<String> list) {
         assertThat(list.contains(null), equalTo(false));
         assertThat(list.indexOf(null), equalTo(-1));
@@ -307,6 +369,11 @@ public final class CollectionBehaviorTestUtil {
         assertThat(list.containsAll(listWithNull), equalTo(false));
     }
 
+    /**
+     * Verifies that null can be supplied as argument to all methods that do not modify the collection.
+     *
+     * @param set the set to test (may not contain null as entry)
+     */
     public static void verifySupportsNullArgInMethods(Set<Integer> set) {
         assertThat(set.contains(null), equalTo(false));
 
@@ -314,6 +381,12 @@ public final class CollectionBehaviorTestUtil {
         assertThat(set.containsAll(listWithNull), equalTo(false));
     }
 
+    /**
+     * Verifies that a NullPointerException is thrown by all methods that don't modify the collection
+     * if null is supplied as argument.
+     *
+     * @param list the list to test
+     */
     public static void verifyRejectsNullArgInMethods(List<String> list) {
         assertThrows(NullPointerException.class, () -> list.contains(null));
         assertThrows(NullPointerException.class, () -> list.indexOf(null));
@@ -321,17 +394,27 @@ public final class CollectionBehaviorTestUtil {
 
         List<String> listWithNull = Collections.singletonList(null);
         assertThrows(NullPointerException.class, () -> list.containsAll(listWithNull));
-        // todo: interesting to note that Arrays.asList("test", null); will not produce an NPE because "test" was
-        // already evaluated to false -> should document this in the future
+
+        // Exception: if the collection knows it doesn't contain everything due to an element preceding null,
+        // no exception will be thrown
+        assertThat(list.containsAll(Arrays.asList("qqqq", null)), equalTo(false));
     }
 
+    /**
+     * Verifies that a NullPointerException is thrown by all methods that don't modify the collection
+     * if null is supplied as argument.
+     *
+     * @param set the set to test
+     */
     public static void verifyRejectsNullArgInMethods(Set<Integer> set) {
         assertThrows(NullPointerException.class, () -> set.contains(null));
 
         List<String> listWithNull = Collections.singletonList(null);
         assertThrows(NullPointerException.class, () -> set.containsAll(listWithNull));
-        // todo: interesting to note that Arrays.asList("test", null); will not produce an NPE because "test" was
-        // already evaluated to false -> should document this in the future
+
+        // Exception: if the collection knows it doesn't contain everything due to an element preceding null,
+        // no exception will be thrown
+        assertThat(set.containsAll(Arrays.asList(-555, null)), equalTo(false));
     }
 
     // --------------------------
@@ -339,6 +422,9 @@ public final class CollectionBehaviorTestUtil {
     // --------------------------
 
 
+    /**
+     * Helper class to verify that a List is not modifiable.
+     */
     private static final class ListVerifier {
 
         private final List<String> originalList;
@@ -384,6 +470,9 @@ public final class CollectionBehaviorTestUtil {
         }
     }
 
+    /**
+     * Helper class to verify that a Set is not modifiable.
+     */
     private static final class SetVerifier {
 
         private final Set<Integer> originalSet;
@@ -415,26 +504,29 @@ public final class CollectionBehaviorTestUtil {
         private Class<? extends Exception> getExpectedExceptionType(Consumer<Set<Integer>> action) {
             if (this.throwingBehavior == ThrowingBehavior.ALWAYS_THROWS) {
                 return UnsupportedOperationException.class;
+            } else if (this.throwingBehavior == ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE) {
+                throw new UnsupportedOperationException("Unsupported throwing behavior for sets: "
+                    + ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE);
             }
 
             Set<Integer> copy = new HashSet<>(originalSet);
-            try {
-                action.accept(copy);
-            } catch (IndexOutOfBoundsException indexOutOfBoundsException) {
-                return throwingBehavior == ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
-                    ? IndexOutOfBoundsException.class
-                    : UnsupportedOperationException.class;
-            }
+            action.accept(copy);
             return copy.equals(originalSet) ? null : UnsupportedOperationException.class;
         }
     }
 
     private enum ThrowingBehavior {
 
+        /** Always throws an UnsupportedOperationException. */
         ALWAYS_THROWS,
 
+        /** Throws an UnsupportedOperationException only if the collection would be modified by the call. */
         THROW_ONLY_IF_CHANGE,
 
+        /**
+         * Throws an IndexOutOfBoundsException if the index is invalid; otherwise throws an
+         * UnsupportedOperationException if the collection would be modified by the call.
+         */
         THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
 
     }

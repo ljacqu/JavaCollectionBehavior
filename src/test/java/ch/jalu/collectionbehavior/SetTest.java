@@ -120,8 +120,8 @@ public class SetTest {
 
     /**
      * {@link ImmutableSet#of} produces an immutable Set. Does not support null as elements.
-     * Insertion order is kept. Can be instantiated with duplicates
-     * (also when using the builder {@link ImmutableSet#builder()}). // TODO: do newer Guava versions not have two build methods?
+     * Insertion order is kept. Can be instantiated with duplicates (also when using the builder,
+     * {@link ImmutableSet#builder()}).
      */
     @Test
     void testGuavaImmutableSet() {
@@ -138,7 +138,7 @@ public class SetTest {
         // Null support in methods
         verifySupportsNullArgInMethods(set);
 
-        // Builder also supports duplicates
+        // Builder also accepts duplicates
         assertThat(ImmutableSet.builder()
             .add(14)
             .add(15, 15)
