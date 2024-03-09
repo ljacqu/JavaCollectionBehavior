@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -15,6 +16,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
@@ -34,6 +36,7 @@ class MapTest {
         map.put('A', 65);
 
         assertContainsEntriesNotInOrder(map);
+        assertThat(map, not(instanceOf(SequencedMap.class)));
 
         assertThat(map.containsValue(null), equalTo(false));
         assertThat(map.containsKey(null), equalTo(false));
@@ -62,6 +65,7 @@ class MapTest {
         map.put('A', 65);
 
         assertThat(map.keySet(), contains('0', 'z', 'A'));
+        assertThat(map, instanceOf(SequencedMap.class));
 
         assertThat(map.containsValue(null), equalTo(false));
         assertThat(map.containsKey(null), equalTo(false));
@@ -88,6 +92,7 @@ class MapTest {
         Map<Character, Integer> map = Map.of('0', 48, 'z', 122, 'A', 65);
 
         assertContainsEntriesNotInOrder(map);
+        assertThat(map, not(instanceOf(SequencedMap.class)));
 
         assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
         assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
@@ -115,6 +120,7 @@ class MapTest {
 
         elements.put('f', 999);
         assertContainsEntriesNotInOrder(map);
+        assertThat(map, not(instanceOf(SequencedMap.class)));
 
         assertThat(Map.copyOf(map), sameInstance(map));
 
@@ -141,6 +147,7 @@ class MapTest {
         Map<Character, Integer> map = ImmutableMap.of('0', 48, 'z', 122, 'A', 65);
 
         assertThat(map.keySet(), contains('0', 'z', 'A'));
+        assertThat(map, not(instanceOf(SequencedMap.class))); // Not SequencedMap to support older JDKs
 
         assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
         assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
@@ -170,6 +177,7 @@ class MapTest {
 
         elements.put('f', 999);
         assertThat(map.keySet(), contains('0', 'z', 'A'));
+        assertThat(map, not(instanceOf(SequencedMap.class))); // Not SequencedMap to support older JDKs
 
         assertThat(ImmutableMap.copyOf(map), sameInstance(map));
 
@@ -192,11 +200,12 @@ class MapTest {
      */
     @Test
     void testJdkCollectionsUnmodifiableMap() {
-        Map<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
+        SequencedMap<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         Map<Character, Integer> map = Collections.unmodifiableMap(elements);
 
         elements.put('f', 999);
         assertThat(map.keySet(), contains('0', 'z', 'A', 'f'));
+        assertThat(map, not(instanceOf(SequencedMap.class))); // Not SequencedMap despite preserving order
 
         // Same instance returned in JDK 17, whereas in JDK 11 it always returned a new instance
         assertThat(Collections.unmodifiableMap(map), sameInstance(map));
@@ -212,6 +221,33 @@ class MapTest {
     }
 
     /**
+     * {@link Collections#unmodifiableSequencedMap(SequencedMap)} wraps the original SequencedMap into an unmodifiable
+     * SequencedMap facade, i.e. changes to the original map are reflected. Supports null as key and as values.
+     */
+    @Test
+    void testJdkCollectionsSequencedMap() {
+        SequencedMap<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
+        SequencedMap<Character, Integer> map = Collections.unmodifiableSequencedMap(elements);
+
+        elements.put('f', 999);
+        assertThat(map.keySet(), contains('0', 'z', 'A', 'f'));
+        // is SequencedMap (as seen in type declaration)
+
+        // Same instance returned, but not by Collections#unmodifiable
+        assertThat(Collections.unmodifiableSequencedMap(map), sameInstance(map));
+        assertThat(Collections.unmodifiableMap(map), not(sameInstance(map)));
+
+        assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
+        assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
+        assertKeyAndValuesAndEntrySetImmutable(map);
+
+        SequencedMap<Character, Integer> mapWithNullValue = newLinkedHashMap('A', 65, 'z', null, '?', 120);
+        assertThat(Collections.unmodifiableSequencedMap(mapWithNullValue), equalTo(mapWithNullValue));
+        SequencedMap<Character, Integer> mapWithNullKey = newLinkedHashMap('A', 65, null, -1, 'z', 122);
+        assertThat(Collections.unmodifiableSequencedMap(mapWithNullKey), equalTo(mapWithNullKey));
+    }
+
+    /**
      * {@link Collections#emptyMap()} provides an immutable empty map. Always the same instance.
      * Curiously, certain methods do not provoke an exception if they don't cause any change to the map
      * (e.g. {@code map.putAll(emptyMap)}).
@@ -223,13 +259,16 @@ class MapTest {
 
         assertThat(map1, sameInstance(map2));
 
+        // Not SequencedMap because there's no point
+        assertThat(map1, not(instanceOf(SequencedMap.class)));
+
         assertThat(map1.containsKey(null), equalTo(false));
         assertThat(map1.containsValue(null), equalTo(false));
 
         assertThrows(UnsupportedOperationException.class, () -> map2.put("A", 5));
         assertThrows(UnsupportedOperationException.class, () -> map2.remove("f", 3));
 
-        // Bugs??? (in theory)
+        // Some unexpected behavior
         assertThat(map2.remove("0"), nullValue());
         assertThat(map1.keySet().remove('C'), equalTo(false));
         map1.values().clear();
@@ -277,6 +316,8 @@ class MapTest {
         Map<Character, Integer> map = Stream.of('0', 'z', 'A')
             .collect(Collectors.toUnmodifiableMap(Function.identity(), chr -> (int) chr));
         assertContainsEntriesNotInOrder(map);
+        assertThat(map, not(instanceOf(SequencedMap.class)));
+
         assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
         assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
 
