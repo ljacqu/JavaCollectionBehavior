@@ -225,7 +225,7 @@ class MapTest {
      * SequencedMap facade, i.e. changes to the original map are reflected. Supports null as key and as values.
      */
     @Test
-    void testJdkCollectionsSequencedMap() {
+    void testJdkCollectionsUnmodifiableSequencedMap() {
         SequencedMap<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         SequencedMap<Character, Integer> map = Collections.unmodifiableSequencedMap(elements);
 

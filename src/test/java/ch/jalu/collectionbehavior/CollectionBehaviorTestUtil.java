@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.SequencedCollection;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -19,6 +21,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -76,6 +79,7 @@ public final class CollectionBehaviorTestUtil {
         assertThat(list, empty());
 
         verifyIsMutableBySubListAndIterator(list);
+        verifyIsMutableBySequencedCollectionMethods(list);
     }
 
     /**
@@ -108,6 +112,9 @@ public final class CollectionBehaviorTestUtil {
         assertThat(set, empty());
 
         verifyIsMutableByIterator(set);
+        if (set instanceof SequencedSet<String> seqColl) {
+            verifyIsMutableBySequencedCollectionMethods(seqColl);
+        }
     }
 
     private static void verifyIsMutableBySubListAndIterator(List<String> list) {
@@ -139,6 +146,7 @@ public final class CollectionBehaviorTestUtil {
         listIterator.add("foo");
 
         assertThat(list, contains("foo"));
+        list.clear();
     }
 
     private static void verifyIsMutableByIterator(Set<String> set) {
@@ -156,6 +164,26 @@ public final class CollectionBehaviorTestUtil {
         assertThat(set, empty());
     }
 
+    private static void verifyIsMutableBySequencedCollectionMethods(SequencedCollection<String> seqColl) {
+        seqColl.add("b");
+        seqColl.addFirst("a");
+        seqColl.addLast("c");
+        assertThat(seqColl, contains("a", "b", "c"));
+
+        seqColl.removeFirst();
+        seqColl.removeLast();
+        assertThat(seqColl, contains("b"));
+
+        SequencedCollection<String> reversedCollection = seqColl.reversed();
+        reversedCollection.add("f");
+        if (seqColl instanceof List) {
+            assertThat(seqColl, contains("f", "b"));
+        } else {
+            assertThat(seqColl, contains("b", "f"));
+        }
+        reversedCollection.clear();
+    }
+
     /**
      * Verifies that the given List (with elements "a", "b", "c", "d") is immutable (incl. iterator,
      * list iterator and sublist).
@@ -168,10 +196,11 @@ public final class CollectionBehaviorTestUtil {
         originModifier.run();
         assertThat(abcdImmutableList, contains("a", "b", "c", "d"));
 
-        verifyListExceptionBehavior(abcdImmutableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, false);
-        verifyListExceptionBehavior(abcdImmutableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, true);
+        verifyListExceptionBehavior(abcdImmutableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, ListContext.MAIN_TYPE);
+        verifyListExceptionBehavior(abcdImmutableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, ListContext.SUBLIST);
         verifyCannotBeModifiedByIterator(abcdImmutableList);
         verifyCannotBeModifiedByListIterator(abcdImmutableList);
+        verifyCannotBeModifiedBySequencedCollectionMethods(abcdImmutableList);
     }
 
     /**
@@ -187,6 +216,9 @@ public final class CollectionBehaviorTestUtil {
 
         verifySetExceptionBehavior(immutableSet, UnmodifiableSetExceptionBehavior.ALWAYS_THROWS);
         verifyCannotBeModifiedByIterator(immutableSet);
+        if (immutableSet instanceof SequencedSet<Integer> seqColl) {
+            verifyCannotBeModifiedBySequencedCollectionMethods(seqColl);
+        }
     }
 
     /**
@@ -201,10 +233,11 @@ public final class CollectionBehaviorTestUtil {
         originModifier.run();
         assertThat(abcdUnmodifiableList, contains("a", "b", "changed", "d"));
 
-        verifyListExceptionBehavior(abcdUnmodifiableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, false);
-        verifyListExceptionBehavior(abcdUnmodifiableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, true);
+        verifyListExceptionBehavior(abcdUnmodifiableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, ListContext.MAIN_TYPE);
+        verifyListExceptionBehavior(abcdUnmodifiableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, ListContext.SUBLIST);
         verifyCannotBeModifiedByIterator(abcdUnmodifiableList);
         verifyCannotBeModifiedByListIterator(abcdUnmodifiableList);
+        verifyCannotBeModifiedBySequencedCollectionMethods(abcdUnmodifiableList);
     }
 
     /**
@@ -220,6 +253,9 @@ public final class CollectionBehaviorTestUtil {
 
         verifySetExceptionBehavior(unmodifiableSet, UnmodifiableSetExceptionBehavior.ALWAYS_THROWS);
         verifyCannotBeModifiedByIterator(unmodifiableSet);
+        if (unmodifiableSet instanceof SequencedSet<Integer> seqColl) {
+            verifyCannotBeModifiedBySequencedCollectionMethods(seqColl);
+        }
     }
 
     private static void verifyCannotBeModifiedByIterator(Collection<?> set) {
@@ -238,6 +274,21 @@ public final class CollectionBehaviorTestUtil {
         assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
     }
 
+    private static <T> void verifyCannotBeModifiedBySequencedCollectionMethods(SequencedCollection<T> seqColl) {
+        T entry = seqColl.getFirst();
+
+        assertThrows(UnsupportedOperationException.class, () -> seqColl.addFirst(entry));
+        assertThrows(UnsupportedOperationException.class, () -> seqColl.addLast(entry));
+        assertThrows(UnsupportedOperationException.class, seqColl::removeFirst);
+        assertThrows(UnsupportedOperationException.class, seqColl::removeLast);
+
+        SequencedCollection<T> reversedCollection = seqColl.reversed();
+        assertThrows(UnsupportedOperationException.class, () -> reversedCollection.addFirst(entry));
+        assertThrows(UnsupportedOperationException.class, () -> reversedCollection.addLast(entry));
+        assertThrows(UnsupportedOperationException.class, reversedCollection::removeFirst);
+        assertThrows(UnsupportedOperationException.class, reversedCollection::removeLast);
+    }
+
     /**
      * Verifies that the given list is unmodifiable; however, an exception is generally only expected if the
      * structure would be modified by the call. This behavior is not fully consistent and exceptions to the
@@ -253,10 +304,12 @@ public final class CollectionBehaviorTestUtil {
         }
         List<String> copy = new ArrayList<>(list);
 
-        verifyListExceptionBehavior(list, exceptionBehavior, false);
+        verifyListExceptionBehavior(list, exceptionBehavior, ListContext.MAIN_TYPE);
         assertThat(list, equalTo(copy));
 
-        verifyListExceptionBehavior(list.subList(0, list.size()), exceptionBehavior, true);
+        verifyListExceptionBehavior(list.subList(0, list.size()), exceptionBehavior, ListContext.SUBLIST);
+        assertThat(list, equalTo(copy));
+        verifyListExceptionBehavior(list.reversed(), exceptionBehavior, ListContext.REVERSED);
         assertThat(list, equalTo(copy));
     }
 
@@ -277,27 +330,27 @@ public final class CollectionBehaviorTestUtil {
 
         verifySetExceptionBehavior(set, exceptionBehavior);
         assertThat(set, equalTo(copy));
+        if (set instanceof SequencedCollection<?>) {
+            // This method is only used for sets that aren't sequenced, so we don't bother with assertions for now
+            throw new IllegalStateException("Unexpected SequencedCollection: " + set.getClass().getName());
+        }
     }
 
     private static void verifyListExceptionBehavior(List<String> listToVerify,
                                                     UnmodifiableListExceptionBehavior exceptionBehavior,
-                                                    boolean isSubList) {
-        Class<? extends Exception> removeIfExOverride = null;
-        Class<? extends Exception> replaceAllExOverride = null;
-        Class<? extends Exception> sortExOverride = null;
-        if (!isSubList) {
-            removeIfExOverride = exceptionBehavior.getNonModifyingRemoveIfExceptionOverride();
-            replaceAllExOverride = exceptionBehavior.getNonModifyingReplaceAllExceptionOverride();
-        } else {
-            replaceAllExOverride = exceptionBehavior.getNonModifyingReplaceAllSubListExOverride();
-            sortExOverride = exceptionBehavior.getSortSubListExOverride();
-        }
+                                                    ListContext listContext) {
+        Class<? extends Exception> removeIfExOverride =
+            exceptionBehavior.getNonModifyingRemoveIfExceptionOverride(listContext);
+        Class<? extends Exception> replaceAllExOverride =
+            exceptionBehavior.getNonModifyingReplaceAllExceptionOverride(listContext);
+        Class<? extends Exception> sortExOverride =
+            exceptionBehavior.getSortExceptionOverride(listContext);
 
         ThrowingBehavior throwingBehavior = switch (exceptionBehavior) {
             case ALWAYS_THROWS ->
                 ThrowingBehavior.ALWAYS_THROWS;
             case COLLECTIONS_SINGLETONLIST, COLLECTIONS_EMPTYLIST ->
-                isSubList
+                listContext != ListContext.MAIN_TYPE
                     ? ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
                     : ThrowingBehavior.THROW_ONLY_IF_CHANGE;
         };
@@ -448,7 +501,7 @@ public final class CollectionBehaviorTestUtil {
             if (expectedException != null) {
                 assertThrows(expectedException, () -> action.accept(originalList));
             } else {
-                action.accept(originalList);
+                assertDoesNotThrow(() -> action.accept(originalList));
             }
             return this;
         }
@@ -502,16 +555,19 @@ public final class CollectionBehaviorTestUtil {
         }
 
         private Class<? extends Exception> getExpectedExceptionType(Consumer<Set<Integer>> action) {
-            if (this.throwingBehavior == ThrowingBehavior.ALWAYS_THROWS) {
-                return UnsupportedOperationException.class;
-            } else if (this.throwingBehavior == ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE) {
-                throw new UnsupportedOperationException("Unsupported throwing behavior for sets: "
-                    + ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE);
-            }
+            return switch (this.throwingBehavior) {
+                case ALWAYS_THROWS -> UnsupportedOperationException.class;
 
-            Set<Integer> copy = new HashSet<>(originalSet);
-            action.accept(copy);
-            return copy.equals(originalSet) ? null : UnsupportedOperationException.class;
+                case THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE ->
+                    throw new UnsupportedOperationException("Unsupported throwing behavior for sets: "
+                        + ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE);
+
+                case THROW_ONLY_IF_CHANGE -> {
+                    Set<Integer> copy = new HashSet<>(originalSet);
+                    action.accept(copy);
+                    yield copy.equals(originalSet) ? null : UnsupportedOperationException.class;
+                }
+            };
         }
     }
 
