@@ -186,21 +186,34 @@ public final class CollectionBehaviorTestUtil {
 
     /**
      * Verifies that the given List (with elements "a", "b", "c", "d") is immutable (incl. iterator,
-     * list iterator and sublist).
+     * list iterator, sublist and reversed list).
      *
      * @param abcdImmutableList the immutable List to verify
      * @param originModifier callback to modify the originating structure (as to ensure that the list does not change)
      */
     public static void verifyIsImmutable(List<String> abcdImmutableList, Runnable originModifier) {
+        verifyIsImmutable(abcdImmutableList, originModifier, UnmodifiableListExceptionBehavior.ALWAYS_THROWS);
+    }
+
+    /**
+     * Verifies that the given List (with elements "a", "b", "c", "d") is immutable (incl. iterator,
+     * list iterator, sublist and reversed list).
+     *
+     * @param abcdImmutableList the immutable List to verify
+     * @param originModifier callback to modify the originating structure (as to ensure that the list does not change)
+     * @param exceptionBehavior expected exception behavior
+     */
+    public static void verifyIsImmutable(List<String> abcdImmutableList, Runnable originModifier,
+                                         UnmodifiableListExceptionBehavior exceptionBehavior) {
         assertThat(abcdImmutableList, contains("a", "b", "c", "d")); // Validate method contract
         originModifier.run();
         assertThat(abcdImmutableList, contains("a", "b", "c", "d"));
 
-        verifyListExceptionBehavior(abcdImmutableList, UnmodifiableListExceptionBehavior.ALWAYS_THROWS, ListContext.MAIN_TYPE);
-        verifyListExceptionBehavior(abcdImmutableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, ListContext.SUBLIST);
+        verifyListExceptionBehavior(abcdImmutableList, exceptionBehavior, ListContext.MAIN_TYPE);
+        verifyListExceptionBehavior(abcdImmutableList.subList(0, 3), exceptionBehavior, ListContext.SUBLIST);
+        verifyListExceptionBehavior(abcdImmutableList.reversed(), exceptionBehavior, ListContext.REVERSED);
         verifyCannotBeModifiedByIterator(abcdImmutableList);
         verifyCannotBeModifiedByListIterator(abcdImmutableList);
-        verifyCannotBeModifiedBySequencedCollectionMethods(abcdImmutableList);
     }
 
     /**
@@ -218,6 +231,7 @@ public final class CollectionBehaviorTestUtil {
         verifyCannotBeModifiedByIterator(immutableSet);
         if (immutableSet instanceof SequencedSet<Integer> seqColl) {
             verifyCannotBeModifiedBySequencedCollectionMethods(seqColl);
+            verifyCannotBeModifiedBySequencedCollectionMethods(seqColl.reversed());
         }
     }
 
@@ -237,7 +251,6 @@ public final class CollectionBehaviorTestUtil {
         verifyListExceptionBehavior(abcdUnmodifiableList.subList(0, 3), UnmodifiableListExceptionBehavior.ALWAYS_THROWS, ListContext.SUBLIST);
         verifyCannotBeModifiedByIterator(abcdUnmodifiableList);
         verifyCannotBeModifiedByListIterator(abcdUnmodifiableList);
-        verifyCannotBeModifiedBySequencedCollectionMethods(abcdUnmodifiableList);
     }
 
     /**
@@ -272,6 +285,7 @@ public final class CollectionBehaviorTestUtil {
         ListIterator<String> listIterator = list.listIterator();
         assertThrows(UnsupportedOperationException.class, () -> listIterator.set("test"));
         assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
+        assertThrows(UnsupportedOperationException.class, () -> listIterator.remove());
     }
 
     private static <T> void verifyCannotBeModifiedBySequencedCollectionMethods(SequencedCollection<T> seqColl) {
@@ -345,6 +359,8 @@ public final class CollectionBehaviorTestUtil {
             exceptionBehavior.getNonModifyingReplaceAllExceptionOverride(listContext);
         Class<? extends Exception> sortExOverride =
             exceptionBehavior.getSortExceptionOverride(listContext);
+        Class<? extends Exception> removeFirstLastExOverride =
+            exceptionBehavior.getRemoveFirstLastExceptionOverride();
 
         ThrowingBehavior throwingBehavior = switch (exceptionBehavior) {
             case ALWAYS_THROWS ->
@@ -353,6 +369,10 @@ public final class CollectionBehaviorTestUtil {
                 listContext != ListContext.MAIN_TYPE
                     ? ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
                     : ThrowingBehavior.THROW_ONLY_IF_CHANGE;
+            case GUAVA_IMMUTABLE_LIST ->
+                listContext == ListContext.REVERSED
+                    ? ThrowingBehavior.THROW_ONLY_IF_CHANGE
+                    : ThrowingBehavior.ALWAYS_THROWS;
         };
 
         new ListVerifier(listToVerify, throwingBehavior)
@@ -360,6 +380,8 @@ public final class CollectionBehaviorTestUtil {
             .test(list -> list.add(1, "foo"))
             .test(list -> list.add(3, "foo"))
             .test(list -> list.addAll(List.of("foo", "bar")))
+            .test(list -> list.addFirst("foo"))
+            .test(list -> list.addLast("foo"))
             .test(list -> list.remove("zzz"))
             .test(list -> list.remove("a"))
             .test(list -> list.remove(0))
@@ -368,6 +390,8 @@ public final class CollectionBehaviorTestUtil {
             .test(list -> list.removeIf(str -> str.equals("a")))
             .test(list -> list.removeAll(Set.of("fff", "xxx")))
             .test(list -> list.removeAll(Set.of("fff", "a")))
+            .test(list -> list.removeFirst(), removeFirstLastExOverride)
+            .test(list -> list.removeLast(), removeFirstLastExOverride)
             .test(list -> list.set(0, "foo"))
             .test(list -> list.set(3, "foo"))
             .test(list -> list.retainAll(Set.of("a")))

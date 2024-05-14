@@ -164,7 +164,7 @@ class ListTest {
         // Is immutable
         String[] elements = { "a", "b", "c", "d" };
         List<String> list = ImmutableList.copyOf(elements);
-        verifyIsImmutable(list, () -> elements[2] = "changed");
+        verifyIsImmutable(list, () -> elements[2] = "changed", UnmodifiableListExceptionBehavior.GUAVA_IMMUTABLE_LIST);
 
         // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
@@ -186,7 +186,7 @@ class ListTest {
         // Is immutable
         List<String> elements = newArrayList("a", "b", "c", "d");
         List<String> list = ImmutableList.copyOf(elements);
-        verifyIsImmutable(list, () -> elements.set(2, "changed"));
+        verifyIsImmutable(list, () -> elements.set(2, "changed"), UnmodifiableListExceptionBehavior.GUAVA_IMMUTABLE_LIST);
 
         // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
