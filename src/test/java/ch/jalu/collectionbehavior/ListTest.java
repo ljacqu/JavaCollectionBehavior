@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ListTest {
 
     @Test
-    void testListSupertypeIsSequencedCollection() {
+    void assertListSupertypeIsSequencedCollection() {
         // Since List implements SequencedCollection, every List implementation is a SequencedCollection
         assertThat(SequencedCollection.class.isAssignableFrom(List.class), equalTo(true));
     }
@@ -41,7 +41,7 @@ class ListTest {
      * ArrayList: standard modifiable List implementation. Fully supports null.
      */
     @Test
-    void testJdkArrayList() {
+    void jdkArrayList() {
         // Is mutable
         verifyIsMutable(new ArrayList<>());
 
@@ -60,7 +60,7 @@ class ListTest {
      * LinkedList: mutable, fully supports null.
      */
     @Test
-    void testJdkLinkedList() {
+    void jdkLinkedList() {
         // Is mutable
         verifyIsMutable(new LinkedList<>());
 
@@ -80,7 +80,7 @@ class ListTest {
      * even when null is called on {@link List#contains}.
      */
     @Test
-    void testJdkListOf() {
+    void jdkListOf() {
         // Is immutable
         String[] elements = { "a", "b", "c", "d" };
         List<String> list = List.of(elements);
@@ -102,7 +102,7 @@ class ListTest {
      * Does not support null (not even as argument passed into things like {@link List#contains}).
      */
     @Test
-    void testJdkListCopyOf() {
+    void jdkListCopyOf() {
         // Is immutable
         List<String> elements = new ArrayList<>(Arrays.asList("a", "b", "c", "d"));
         List<String> list = List.copyOf(elements);
@@ -129,7 +129,7 @@ class ListTest {
      * vice versa (changing an entry in the List actually changes the backing array).
      */
     @Test
-    void testJdkArraysAsList() {
+    void jdkArraysAsList() {
         // Is partially modifiable: basically just delegates to the wrapped array, so anything that can be done on
         // the array (changing an existing value, but not adding a new value) is supported
         String[] elements = { "a", "b", "c", "d" };
@@ -160,7 +160,7 @@ class ListTest {
      * Prefer {@link ImmutableList#of} if you are not starting from an array (unlike this test case).
      */
     @Test
-    void testGuavaImmutableList() {
+    void guavaImmutableList() {
         // Is immutable
         String[] elements = { "a", "b", "c", "d" };
         List<String> list = ImmutableList.copyOf(elements);
@@ -182,7 +182,7 @@ class ListTest {
      * element but accepts null passed as argument into {@link List#contains} etc.
      */
     @Test
-    void testGuavaImmutableListCopy() {
+    void guavaImmutableListCopyOf() {
         // Is immutable
         List<String> elements = newArrayList("a", "b", "c", "d");
         List<String> list = ImmutableList.copyOf(elements);
@@ -207,7 +207,7 @@ class ListTest {
      * Nice readable name for when an empty list is desired to be returned.
      */
     @Test
-    void testJdkCollectionsEmptyList() {
+    void jdkCollectionsEmptyList() {
         // Is immutable
         List<String> list = Collections.emptyList();
         verifyThrowsOnlyIfListWouldBeModified(list, UnmodifiableListExceptionBehavior.COLLECTIONS_EMPTYLIST);
@@ -230,7 +230,7 @@ class ListTest {
      * Implements RandomAccess only if the underlying List implements it.
      */
     @Test
-    void testJdkCollectionsUnmodifiableList() {
+    void jdkCollectionsUnmodifiableList() {
         // Is unmodifiable
         List<String> elements = newArrayList("a", "b", "c", "d");
         List<String> list = Collections.unmodifiableList(elements);
@@ -256,7 +256,7 @@ class ListTest {
      * {@link Collections#singletonList} provides a list with a single given element. Immutable. Supports null.
      */
     @Test
-    void testJdkCollectionsSingletonList() {
+    void jdkCollectionsSingletonList() {
         // Is immutable
         List<String> list = Collections.singletonList("a");
         verifyThrowsOnlyIfListWouldBeModified(list, UnmodifiableListExceptionBehavior.COLLECTIONS_SINGLETONLIST);
@@ -277,7 +277,7 @@ class ListTest {
      * As it returns an ArrayList (for now), null values are supported.
      */
     @Test
-    void testJdkCollectorsToList() {
+    void jdkCollectorsToList() {
         // Is mutable (but Javadoc makes no guarantees)
         List<String> list = Stream.of("a", "b", "c", "d")
             .filter(str -> false)
@@ -302,7 +302,7 @@ class ListTest {
      * passed to it or to any of its methods.
      */
     @Test
-    void testJdkCollectorsToUnmodifiableList() {
+    void jdkCollectorsToUnmodifiableList() {
         // Is immutable
         List<String> list = Stream.of("a", "b", "c", "d")
             .collect(Collectors.toUnmodifiableList());
@@ -323,7 +323,7 @@ class ListTest {
      * {@link Stream#toList} produces an unmodifiable list that supports nulls.
      */
     @Test
-    void testJdkStreamToList() {
+    void jdkStreamToList() {
         // Is immutable
         List<String> list = Stream.of("a", "b", "c", "d").toList();
         verifyIsImmutable(list, () -> { /* noop */ });

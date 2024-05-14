@@ -29,7 +29,7 @@ class MapTest {
      * Removal of entries from the key set, values set or entry set is reflected to the actual Map.
      */
     @Test
-    void testJdkHashMap() {
+    void jdkHashMap() {
         Map<Character, Integer> map = new HashMap<>();
         map.put('0', 48);
         map.put('z', 122);
@@ -58,7 +58,7 @@ class MapTest {
      * Removal of entries from the key set, values set or entry set is reflected to the actual Map.
      */
     @Test
-    void testJdkLinkedHashMap() {
+    void jdkLinkedHashMap() {
         Map<Character, Integer> map = new LinkedHashMap<>();
         map.put('0', 48);
         map.put('z', 122);
@@ -88,7 +88,7 @@ class MapTest {
      * the Map is being created. Random iteration order.
      */
     @Test
-    void testJdkMapOf() {
+    void jdkMapOf() {
         Map<Character, Integer> map = Map.of('0', 48, 'z', 122, 'A', 65);
 
         assertContainsEntriesNotInOrder(map);
@@ -114,7 +114,7 @@ class MapTest {
      * similar. Recognizes maps of its own class and avoids unnecessary copies.
      */
     @Test
-    void testJdkMapCopyOf() {
+    void jdkMapCopyOf() {
         Map<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         Map<Character, Integer> map = Map.copyOf(elements);
 
@@ -143,7 +143,7 @@ class MapTest {
      * Throws if the same key is provided twice on creation.
      */
     @Test
-    void testGuavaImmutableMapOf() {
+    void guavaImmutableMapOf() {
         Map<Character, Integer> map = ImmutableMap.of('0', 48, 'z', 122, 'A', 65);
 
         assertThat(map.keySet(), contains('0', 'z', 'A'));
@@ -171,7 +171,7 @@ class MapTest {
      * Does not support null as key or values but accepts null in methods such as {@link Map#containsKey}.
      */
     @Test
-    void testGuavaImmutableMapCopyOf() {
+    void guavaImmutableMapCopyOf() {
         Map<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         Map<Character, Integer> map = ImmutableMap.copyOf(elements);
 
@@ -199,7 +199,7 @@ class MapTest {
      * changes to the original map are reflected. Supports null as key and as values.
      */
     @Test
-    void testJdkCollectionsUnmodifiableMap() {
+    void jdkCollectionsUnmodifiableMap() {
         SequencedMap<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         Map<Character, Integer> map = Collections.unmodifiableMap(elements);
 
@@ -225,7 +225,7 @@ class MapTest {
      * SequencedMap facade, i.e. changes to the original map are reflected. Supports null as key and as values.
      */
     @Test
-    void testJdkCollectionsUnmodifiableSequencedMap() {
+    void jdkCollectionsUnmodifiableSequencedMap() {
         SequencedMap<Character, Integer> elements = newLinkedHashMap('0', 48, 'z', 122, 'A', 65);
         SequencedMap<Character, Integer> map = Collections.unmodifiableSequencedMap(elements);
 
@@ -253,7 +253,7 @@ class MapTest {
      * (e.g. {@code map.putAll(emptyMap)}).
      */
     @Test
-    void testJdkCollectionsEmptyMap() {
+    void jdkCollectionsEmptyMap() {
         Map<Character, Short> map1 = Collections.emptyMap();
         Map<String, Integer> map2 = Collections.emptyMap();
 
@@ -281,7 +281,7 @@ class MapTest {
      * Throws for duplicate keys.
      */
     @Test
-    void testJdkCollectorsToMap() {
+    void jdkCollectorsToMap() {
         Map<Character, Integer> map = Stream.of('0', 'z', 'A')
             .collect(Collectors.toMap(Function.identity(), chr -> (int) chr));
         assertContainsEntriesNotInOrder(map);
@@ -312,7 +312,7 @@ class MapTest {
      * Order of keys is random.
      */
     @Test
-    void testJdkCollectorsToUnmodifiableMap() {
+    void jdkCollectorsToUnmodifiableMap() {
         Map<Character, Integer> map = Stream.of('0', 'z', 'A')
             .collect(Collectors.toUnmodifiableMap(Function.identity(), chr -> (int) chr));
         assertContainsEntriesNotInOrder(map);

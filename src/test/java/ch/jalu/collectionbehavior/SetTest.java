@@ -37,7 +37,7 @@ public class SetTest {
      * Elements already added to it are silently ignored.
      */
     @Test
-    void testJdkHashSet() {
+    void jdkHashSet() {
         // Is mutable
         verifyIsMutable(new HashSet<>());
 
@@ -59,7 +59,7 @@ public class SetTest {
      * Elements already added to it are silently ignored.
      */
     @Test
-    void testJdkLinkedHashSet() {
+    void jdkLinkedHashSet() {
         // Is mutable
         verifyIsMutable(new LinkedHashSet<>());
 
@@ -81,7 +81,7 @@ public class SetTest {
      * Throws an exception if any element is passed in twice. Random iteration order.
      */
     @Test
-    void testJdkSetOf() {
+    void jdkSetOf() {
         // Is immutable
         Integer[] elements = { 1, 4, 9, 16 };
         Set<Integer> set = Set.of(elements);
@@ -104,7 +104,7 @@ public class SetTest {
      * same class and avoids unnecessary copying.
      */
     @Test
-    void testJdkSetCopyOf() {
+    void jdkSetCopyOf() {
         // Is immutable
         List<Integer> elements = newArrayList(1, 4, 9, 16, 9);
         Set<Integer> set = Set.copyOf(elements);
@@ -131,7 +131,7 @@ public class SetTest {
      * {@link ImmutableSet#builder()}).
      */
     @Test
-    void testGuavaImmutableSet() {
+    void guavaImmutableSet() {
         // Is immutable
         Set<Integer> set = ImmutableSet.of(1, 4, 9, 16, 9);
         verifyIsImmutable(set, () -> { /* Noop */ });
@@ -161,7 +161,7 @@ public class SetTest {
      * Recognizes its own instances and avoids unnecessary copies.
      */
     @Test
-    void testGuavaImmutableSetCopy() {
+    void guavaImmutableSetCopy() {
         // Is immutable
         List<Integer> elements = newArrayList(1, 4, 9, 16, 9);
         Set<Integer> set = ImmutableSet.copyOf(elements);
@@ -186,7 +186,7 @@ public class SetTest {
      * {@link Collections#emptySet()} always returns the same instance: immutable empty Set.
      */
     @Test
-    void testJdkCollectionsEmptySet() {
+    void jdkCollectionsEmptySet() {
         // Is immutable
         Set<Integer> set1 = Collections.emptySet();
         verifyThrowsOnlyIfSetWouldBeModified(set1, UnmodifiableSetExceptionBehavior.COLLECTIONS_EMPTYSET);
@@ -207,7 +207,7 @@ public class SetTest {
      * collection are reflected. Supports null as elements. Iteration order kept from underlying collection.
      */
     @Test
-    void testJdkCollectionsUnmodifiableSet() {
+    void jdkCollectionsUnmodifiableSet() {
         // Is unmodifiable
         SequencedSet<Integer> elements = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16));
         Set<Integer> set = Collections.unmodifiableSet(elements);
@@ -233,7 +233,7 @@ public class SetTest {
      * Changes to the backing collection are reflected. Supports null as elements.
      */
     @Test
-    void testJdkCollectionsUnmodifiableSequencedSet() {
+    void jdkCollectionsUnmodifiableSequencedSet() {
         // Is unmodifiable
         SequencedSet<Integer> elements = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16));
         SequencedSet<Integer> set = Collections.unmodifiableSequencedSet(elements);
@@ -260,7 +260,7 @@ public class SetTest {
      * {@link Collections#singleton} produces an immutable Set with a single element. Supports null.
      */
     @Test
-    void testJdkCollectionsSingleton() {
+    void jdkCollectionsSingleton() {
         // Is immutable
         Set<Integer> set = Collections.singleton(4);
         verifyThrowsOnlyIfSetWouldBeModified(set, UnmodifiableSetExceptionBehavior.COLLECTIONS_SINGLETON);
@@ -281,7 +281,7 @@ public class SetTest {
      * returns a HashSet and therefore also supports null values.
      */
     @Test
-    void testJdkCollectorsToSet() {
+    void jdkCollectorsToSet() {
         // Is mutable (but Javadoc makes no guarantee)
         Set<String> emptySet = Stream.of("f", "g")
             .filter(e -> false)
@@ -307,7 +307,7 @@ public class SetTest {
      * used as argument in methods like {@link Set#contains}.
      */
     @Test
-    void testJdkCollectorsToUnmodifiableSet() {
+    void jdkCollectorsToUnmodifiableSet() {
         // Is immutable
         Set<Integer> set = Stream.of(1, 4, 9, 16)
             .collect(Collectors.toUnmodifiableSet());
