@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.RandomAccess;
+import java.util.SequencedCollection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,6 +30,12 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ListTest {
+
+    @Test
+    void testListSupertypeIsSequencedCollection() {
+        // Since List implements SequencedCollection, every List implementation is a SequencedCollection
+        assertThat(SequencedCollection.class.isAssignableFrom(List.class), equalTo(true));
+    }
 
     /**
      * ArrayList: standard modifiable List implementation. Fully supports null.
@@ -157,7 +164,7 @@ class ListTest {
         // Is immutable
         String[] elements = { "a", "b", "c", "d" };
         List<String> list = ImmutableList.copyOf(elements);
-        verifyIsImmutable(list, () -> elements[2] = "changed");
+        verifyIsImmutable(list, () -> elements[2] = "changed", UnmodifiableListExceptionBehavior.GUAVA_IMMUTABLE_LIST);
 
         // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));
@@ -179,7 +186,7 @@ class ListTest {
         // Is immutable
         List<String> elements = newArrayList("a", "b", "c", "d");
         List<String> list = ImmutableList.copyOf(elements);
-        verifyIsImmutable(list, () -> elements.set(2, "changed"));
+        verifyIsImmutable(list, () -> elements.set(2, "changed"), UnmodifiableListExceptionBehavior.GUAVA_IMMUTABLE_LIST);
 
         // Implements RandomAccess
         assertThat(list, instanceOf(RandomAccess.class));

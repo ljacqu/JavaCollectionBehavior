@@ -1,6 +1,8 @@
 package ch.jalu.collectionbehavior;
 
 import java.util.Collections;
+import java.util.NoSuchElementException;
+import java.util.SequencedCollection;
 
 /**
  * Behavior types of unmodifiable lists when methods are called that would modify the collection.
@@ -14,16 +16,22 @@ public enum UnmodifiableListExceptionBehavior {
     COLLECTIONS_SINGLETONLIST,
 
     /** Behavior of {@link Collections#emptyList}. */
-    COLLECTIONS_EMPTYLIST;
+    COLLECTIONS_EMPTYLIST,
+
+    /** Behavior of Guava's ImmutableList. */
+    GUAVA_IMMUTABLE_LIST;
 
     /**
      * Overrides the expected exception (if not null) for a call to {@link java.util.List#replaceAll} that would
      * not modify the collection.
      *
+     * @param listContext list type being tested
      * @return expected exception if not consistent with usual behavior
      */
-    public Class<? extends Exception> getNonModifyingReplaceAllExceptionOverride() {
+    public Class<? extends Exception> getNonModifyingReplaceAllExceptionOverride(ListContext listContext) {
         if (this == COLLECTIONS_SINGLETONLIST) {
+            return UnsupportedOperationException.class;
+        } else if (this == GUAVA_IMMUTABLE_LIST && listContext == ListContext.REVERSED) {
             return UnsupportedOperationException.class;
         }
         return null;
@@ -33,23 +41,13 @@ public enum UnmodifiableListExceptionBehavior {
      * Overrides the expected exception (if not null) for a call to {@link java.util.List#removeIf} that would
      * not modify the collection.
      *
+     * @param listContext list type being tested
      * @return expected exception if not consistent with usual behavior
      */
-    public Class<? extends Exception> getNonModifyingRemoveIfExceptionOverride() {
-        if (this == COLLECTIONS_SINGLETONLIST) {
+    public Class<? extends Exception> getNonModifyingRemoveIfExceptionOverride(ListContext listContext) {
+        if (this == COLLECTIONS_SINGLETONLIST && listContext != ListContext.SUBLIST) {
             return UnsupportedOperationException.class;
-        }
-        return null;
-    }
-
-    /**
-     * Overrides the expected exception (if not null) for a call to {@link java.util.List#replaceAll} on a list's
-     * sublist that would not modify the collection.
-     *
-     * @return expected exception if not consistent with usual behavior
-     */
-    public Class<? extends Exception> getNonModifyingReplaceAllSubListExOverride() {
-        if (this == COLLECTIONS_SINGLETONLIST) {
+        } else if (this == GUAVA_IMMUTABLE_LIST && listContext == ListContext.REVERSED) {
             return UnsupportedOperationException.class;
         }
         return null;
@@ -58,11 +56,25 @@ public enum UnmodifiableListExceptionBehavior {
     /**
      * Overrides the expected exception (if not null) for a call to {@link java.util.List#sort} on a list's sublist.
      *
+     * @param listContext list type being tested
      * @return expected exception if not consistent with usual behavior
      */
-    public Class<? extends Exception> getSortSubListExOverride() {
-        if (this == COLLECTIONS_SINGLETONLIST) {
+    public Class<? extends Exception> getSortExceptionOverride(ListContext listContext) {
+        if (this == COLLECTIONS_SINGLETONLIST && listContext == ListContext.SUBLIST) {
             return UnsupportedOperationException.class;
+        }
+        return null;
+    }
+
+    /**
+     * Overrides the expected exception (if not null) when {@link SequencedCollection#removeFirst()} and
+     * {@link SequencedCollection#removeLast()} are called.
+     *
+     * @return expected exception if not consistent with usual behavior
+     */
+    public Class<? extends Exception> getRemoveFirstLastExceptionOverride() {
+        if (this == COLLECTIONS_EMPTYLIST) {
+            return NoSuchElementException.class;
         }
         return null;
     }

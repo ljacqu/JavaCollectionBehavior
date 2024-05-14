@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,6 +25,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,6 +44,7 @@ public class SetTest {
         // Has random order
         Set<Integer> set = new HashSet<>(Arrays.asList(1, 4, 9, 16));
         assertContainsButNotInOrder(set, 1, 4, 9, 16);
+        assertThat(set, not(instanceOf(SequencedCollection.class)));
 
         // May contain null
         Set<Long> setWithNull = new HashSet<>();
@@ -62,6 +66,7 @@ public class SetTest {
         // Keeps insertion order
         Set<Integer> set = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16, 9));
         assertThat(set, contains(1, 4, 9, 16));
+        assertThat(set, instanceOf(SequencedSet.class));
 
         // May contain null
         Set<Long> setWithNull = new LinkedHashSet<>();
@@ -84,6 +89,7 @@ public class SetTest {
 
         // Has random order
         assertContainsButNotInOrder(set, 1, 4, 9, 16);
+        assertThat(set, not(instanceOf(SequencedCollection.class)));
 
         // May not contain null
         assertThrows(NullPointerException.class, () -> Set.of(14, null, 16));
@@ -106,6 +112,7 @@ public class SetTest {
 
         // Has random order
         assertContainsButNotInOrder(set, 1, 4, 9, 16);
+        assertThat(set, not(instanceOf(SequencedCollection.class)));
 
         // May not contain null
         List<Integer> elementsWithNull = Arrays.asList(1, 4, null, 16);
@@ -129,8 +136,9 @@ public class SetTest {
         Set<Integer> set = ImmutableSet.of(1, 4, 9, 16, 9);
         verifyIsImmutable(set, () -> { /* Noop */ });
 
-        // Keeps insertion order
+        // Keeps insertion order, but is not SequencedCollection (https://github.com/google/guava/issues/6903)
         assertThat(set, contains(1, 4, 9, 16));
+        assertThat(set, not(instanceOf(SequencedCollection.class))); // Because Guava supports older JDK versions
 
         // May not contain null
         assertThrows(NullPointerException.class, () -> ImmutableSet.of(14, null, 16));
@@ -159,8 +167,9 @@ public class SetTest {
         Set<Integer> set = ImmutableSet.copyOf(elements);
         verifyIsImmutable(set, () -> elements.set(2, -999));
 
-        // Keeps insertion order
+        // Keeps insertion order, but is not SequencedCollection (https://github.com/google/guava/issues/6903)
         assertThat(set, contains(1, 4, 9, 16));
+        assertThat(set, not(instanceOf(SequencedCollection.class))); // Because Guava supports older JDK versions
 
         // May not contain null
         List<Integer> elementsWithNull = newArrayList(1, null, 9);
@@ -185,6 +194,9 @@ public class SetTest {
         // Null support in methods
         verifySupportsNullArgInMethods(set1);
 
+        // Not a sequenced collection. Could probably implement it in theory, but there's no point to it?
+        assertThat(set1, not(instanceOf(SequencedCollection.class)));
+
         // Always returns the same instance
         Set<String> set2 = Collections.emptySet();
         assertThat(set1, sameInstance(set2));
@@ -197,12 +209,13 @@ public class SetTest {
     @Test
     void testJdkCollectionsUnmodifiableSet() {
         // Is unmodifiable
-        Set<Integer> elements = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16));
+        SequencedSet<Integer> elements = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16));
         Set<Integer> set = Collections.unmodifiableSet(elements);
         verifyIsUnmodifiable(set, () -> elements.remove(9));
 
-        // Has same order as backing set
+        // Has same order as backing set, never SequencedCollection (even if backing set is)
         assertThat(set, contains(1, 4, 16));
+        assertThat(set, not(instanceOf(SequencedCollection.class)));
 
         // May contain null
         Set<Integer> setWithNull = new HashSet<>(Arrays.asList(2, null));
@@ -213,6 +226,34 @@ public class SetTest {
 
         // Same instance returned in JDK 17, whereas in JDK 11 it always returned a new instance
         assertThat(Collections.unmodifiableSet(set), sameInstance(set));
+    }
+
+    /**
+     * {@link Collections#unmodifiableSequencedSet} wraps a sequenced set into an unmodifiable sequenced set facade.
+     * Changes to the backing collection are reflected. Supports null as elements.
+     */
+    @Test
+    void testJdkCollectionsUnmodifiableSequencedSet() {
+        // Is unmodifiable
+        SequencedSet<Integer> elements = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16));
+        SequencedSet<Integer> set = Collections.unmodifiableSequencedSet(elements);
+        verifyIsUnmodifiable(set, () -> elements.remove(9));
+
+        // Has same order as backing set and is a SequencedSet (no check as `set` is already declared as such)
+        assertThat(set, contains(1, 4, 16));
+
+        // May contain null
+        SequencedSet<Integer> setWithNull = new LinkedHashSet<>(Arrays.asList(2, null));
+        Collections.unmodifiableSequencedSet(setWithNull); // No exception
+
+        // Null support in methods
+        verifySupportsNullArgInMethods(set);
+
+        // Same instance returned
+        assertThat(Collections.unmodifiableSequencedSet(set), sameInstance(set));
+
+        // Same instance not returned with Collections#unmodifiableSet
+        assertThat(Collections.unmodifiableSet(set), not(sameInstance(set)));
     }
 
     /**
@@ -227,6 +268,9 @@ public class SetTest {
         // May contain null
         Set<Integer> singletonWithNull = Collections.singleton(null);
         assertThat(singletonWithNull.contains(null), equalTo(true));
+
+        // Not a sequenced collection. Could probably implement it in theory, but there's no point to it?
+        assertThat(set, not(instanceOf(SequencedCollection.class)));
 
         // Null support in methods
         verifySupportsNullArgInMethods(set);
@@ -271,6 +315,7 @@ public class SetTest {
 
         // Has random order
         assertContainsButNotInOrder(set, 1, 4, 9, 16);
+        assertThat(set, not(instanceOf(SequencedCollection.class)));
 
         // May not contain null
         assertThrows(NullPointerException.class, () -> Stream.of(1, null, 16)

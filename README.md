@@ -17,12 +17,12 @@ List<Integer> list3 = Stream.of(1, 2, 3)
 ```
 
 Is there any difference?
-- Collectors#toList currently returns an ArrayList, but the Javadoc actually does not guarantee what implementation is
-  returned—not even whether the list can be modified further! Prefer the more verbose 
+- **Collectors#toList** currently returns an ArrayList, but the Javadoc actually does not guarantee what implementation is
+  returned—not even if the list can be modified further! Prefer the more verbose 
   `Collectors.toCollection(ArrayList::new)` if you need to make more changes to a List created by a Stream.
-- Collectors#toUnmodifiableList does not support nulls. Also in read-only methods like `list2.contains(null)`, an
-  exception will be thrown.
-- Collectors#toList supports nulls, and calling something like `list3.contains(null)` is fine.
+- **Collectors#toUnmodifiableList** does not support nulls. Also in read-only methods like `list2.contains(null)`, an
+  exception will be thrown by the list.
+- **Stream#toList** supports nulls, and calling something like `list3.contains(null)` is fine.
 
 ## Difference between Collections#unmodifiableSet, Set#copyOf and Guava's ImmutableSet#copyOf
 ```java
