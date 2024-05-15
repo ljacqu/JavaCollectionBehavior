@@ -3,7 +3,7 @@ package ch.jalu.collectionbehavior;
 import java.util.List;
 import java.util.SequencedCollection;
 
-public enum ListContext {
+public enum ListDerivedType {
 
     /** Actual list type being described. */
     MAIN_TYPE,

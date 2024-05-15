@@ -25,13 +25,13 @@ public enum UnmodifiableListExceptionBehavior {
      * Overrides the expected exception (if not null) for a call to {@link java.util.List#replaceAll} that would
      * not modify the collection.
      *
-     * @param listContext list type being tested
+     * @param listDerivedType list type being tested
      * @return expected exception if not consistent with usual behavior
      */
-    public Class<? extends Exception> getNonModifyingReplaceAllExceptionOverride(ListContext listContext) {
+    public Class<? extends Exception> getNonModifyingReplaceAllExceptionOverride(ListDerivedType listDerivedType) {
         if (this == COLLECTIONS_SINGLETONLIST) {
             return UnsupportedOperationException.class;
-        } else if (this == GUAVA_IMMUTABLE_LIST && listContext == ListContext.REVERSED) {
+        } else if (this == GUAVA_IMMUTABLE_LIST && listDerivedType == ListDerivedType.REVERSED) {
             return UnsupportedOperationException.class;
         }
         return null;
@@ -41,13 +41,13 @@ public enum UnmodifiableListExceptionBehavior {
      * Overrides the expected exception (if not null) for a call to {@link java.util.List#removeIf} that would
      * not modify the collection.
      *
-     * @param listContext list type being tested
+     * @param listDerivedType list type being tested
      * @return expected exception if not consistent with usual behavior
      */
-    public Class<? extends Exception> getNonModifyingRemoveIfExceptionOverride(ListContext listContext) {
-        if (this == COLLECTIONS_SINGLETONLIST && listContext != ListContext.SUBLIST) {
+    public Class<? extends Exception> getNonModifyingRemoveIfExceptionOverride(ListDerivedType listDerivedType) {
+        if (this == COLLECTIONS_SINGLETONLIST && listDerivedType != ListDerivedType.SUBLIST) {
             return UnsupportedOperationException.class;
-        } else if (this == GUAVA_IMMUTABLE_LIST && listContext == ListContext.REVERSED) {
+        } else if (this == GUAVA_IMMUTABLE_LIST && listDerivedType == ListDerivedType.REVERSED) {
             return UnsupportedOperationException.class;
         }
         return null;
@@ -56,11 +56,11 @@ public enum UnmodifiableListExceptionBehavior {
     /**
      * Overrides the expected exception (if not null) for a call to {@link java.util.List#sort} on a list's sublist.
      *
-     * @param listContext list type being tested
+     * @param listDerivedType list type being tested
      * @return expected exception if not consistent with usual behavior
      */
-    public Class<? extends Exception> getSortExceptionOverride(ListContext listContext) {
-        if (this == COLLECTIONS_SINGLETONLIST && listContext == ListContext.SUBLIST) {
+    public Class<? extends Exception> getSortExceptionOverride(ListDerivedType listDerivedType) {
+        if (this == COLLECTIONS_SINGLETONLIST && listDerivedType == ListDerivedType.SUBLIST) {
             return UnsupportedOperationException.class;
         }
         return null;
