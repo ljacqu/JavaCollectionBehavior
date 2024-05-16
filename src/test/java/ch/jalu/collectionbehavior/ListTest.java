@@ -2,6 +2,7 @@ package ch.jalu.collectionbehavior;
 
 import ch.jalu.collectionbehavior.model.ListBehaviorType;
 import ch.jalu.collectionbehavior.model.ListCreator;
+import ch.jalu.collectionbehavior.model.ListCreator.CopyBasedListCreator;
 import ch.jalu.collectionbehavior.model.MutabilityType;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +34,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 class ListTest {
 
@@ -45,13 +47,12 @@ class ListTest {
     static class TestsGenerator {
 
         private MutabilityType mutabilityType;
-        private Boolean isRandomAccess;
+        private boolean isRandomAccess;
         private NullSupport nullSupport;
 
         private ListCreator listCreator;
-        private ListBehaviorType listBehaviorType;
-        private List<String> listCopy;
-        private Runnable backingStructureModifier;
+        private boolean skipsWrappingForOwnClass;
+        private ListBehaviorType listBehaviorType = ListBehaviorType.DEFAULT;
 
         static TestsGenerator forProperties(MutabilityType mutabilityType,
                                             boolean isRandomAccess,
@@ -63,16 +64,13 @@ class ListTest {
             return generator;
         }
 
-        TestsGenerator withListProducer(ListCreator producer) {
-            this.listCreator = producer;
+        TestsGenerator withListCreator(ListCreator listCreator) {
+            this.listCreator = listCreator;
             return this;
         }
 
-        // TODO: Think of other ideas; this is a bit weird
-        TestsGenerator addListCopyAndBackingElementsModifier(List<String> listCopy,
-                                                             Runnable backingStructureModifier) {
-            this.listCopy = listCopy;
-            this.backingStructureModifier = backingStructureModifier;
+        TestsGenerator skipsWrappingForOwnClass() {
+            this.skipsWrappingForOwnClass = true;
             return this;
         }
 
@@ -85,55 +83,73 @@ class ListTest {
             List<DynamicTest> tests = new ArrayList<>();
             tests.addAll(createTestsForMutability());
             tests.add(createTestForRandomAccess());
+            tests.addAll(createTestForSkipsWrappingOwnClassIfApplicable());
             tests.addAll(createTestsForNullSupport());
             return tests;
         }
 
         public DynamicTest createTestForRandomAccess() {
             if (isRandomAccess) {
-                return DynamicTest.dynamicTest("randomAccess",
-                    () -> assertThat(listCreator.apply(), instanceOf(RandomAccess.class)));
+                return dynamicTest("randomAccess",
+                    () -> assertThat(listCreator.createList(), instanceOf(RandomAccess.class)));
             } else {
-                return DynamicTest.dynamicTest("noRandomAccess",
-                    () -> assertThat(listCreator.apply(), not(instanceOf(RandomAccess.class))));
+                return dynamicTest("noRandomAccess",
+                    () -> assertThat(listCreator.createList(), not(instanceOf(RandomAccess.class))));
             }
+        }
+
+        public List<DynamicTest> createTestForSkipsWrappingOwnClassIfApplicable() {
+            if (skipsWrappingForOwnClass) {
+                CopyBasedListCreator listCopyCreator = (CopyBasedListCreator) listCreator;
+                DynamicTest test = dynamicTest("skipsWrappingForOwnClass", () -> {
+                    List<String> list1 = listCopyCreator.newList(Arrays.asList("a", "b"));
+                    List<String> list2 = listCopyCreator.newList(list1);
+                    assertThat(list1, sameInstance(list2));
+                });
+                return List.of(test);
+            }
+            return Collections.emptyList();
         }
 
         private List<DynamicTest> createTestsForMutability() {
             return switch (mutabilityType) {
                 case MODIFIABLE -> CollectionMutabilityVerifier.createTestsForMutableAssertions(listCreator);
 
-                case UNMODIFIABLE -> null; // todo
+                case UNMODIFIABLE ->
+                    CollectionMutabilityVerifier.createTestsForUnmodifiableAssertions(listCreator, listBehaviorType);
 
                 case FIXED_SIZE -> null;
 
-                case IMMUTABLE -> {
-                    ListBehaviorType behaviorType = listBehaviorType == null ? ListBehaviorType.DEFAULT : listBehaviorType;
-                    yield CollectionMutabilityVerifier.createTestsForImmutableAssertions(listCreator, behaviorType);
-                }
+                case IMMUTABLE ->
+                    CollectionMutabilityVerifier.createTestsForImmutableAssertions(listCreator, listBehaviorType);
             };
         }
 
         private List<DynamicTest> createTestsForNullSupport() {
-            return switch (nullSupport) {
+            List<DynamicTest> tests = switch (nullSupport) {
                 case FULL -> List.of(
-                    DynamicTest.dynamicTest("supportsNullElements",
-                        () -> listCreator.apply((String) null)),
-                    DynamicTest.dynamicTest("supportsNullMethodArgs",
-                        () -> verifySupportsNullArgInMethods(listCreator.apply())));
+                    dynamicTest("supportsNullElements",
+                        () -> listCreator.listWithNull()),
+                    dynamicTest("supportsNullMethodArgs",
+                        () -> verifySupportsNullArgInMethods(listCreator.createList())));
 
                 case ARGUMENTS -> List.of(
-                    DynamicTest.dynamicTest("mayNotContainNull",
-                        () -> assertThrows(NullPointerException.class, () -> listCreator.apply("a", null, "c"))),
-                    DynamicTest.dynamicTest("supportsNullMethodArgs",
-                        () -> verifySupportsNullArgInMethods(listCreator.apply())));
+                    dynamicTest("mayNotContainNull",
+                        () -> assertThrows(NullPointerException.class, () -> listCreator.listWithNull())),
+                    dynamicTest("supportsNullMethodArgs",
+                        () -> verifySupportsNullArgInMethods(listCreator.createList())));
 
                 case REJECT -> List.of(
-                    DynamicTest.dynamicTest("mayNotContainNull",
-                        () -> assertThrows(NullPointerException.class, () -> listCreator.apply("a", null, "c"))),
-                    DynamicTest.dynamicTest("rejectsNullMethodArgs",
-                        () -> verifyRejectsNullArgInMethods(listCreator.apply())));
+                    dynamicTest("mayNotContainNull",
+                        () -> assertThrows(NullPointerException.class, () -> listCreator.listWithNull())),
+                    dynamicTest("rejectsNullMethodArgs",
+                        () -> verifyRejectsNullArgInMethods(listCreator.createList())));
             };
+
+            if (listBehaviorType == ListBehaviorType.COLLECTIONS_EMPTYLIST) {
+                return tests.subList(1, tests.size());
+            }
+            return tests;
         }
     }
 
@@ -143,7 +159,7 @@ class ListTest {
     @TestFactory
     List<DynamicTest> jdk_ArrayList() {
         return TestsGenerator.forProperties(MutabilityType.MODIFIABLE, true, NullSupport.FULL)
-            .withListProducer(ListCreator.fromSupplier(ArrayList::new))
+            .withListCreator(ListCreator.forMutableType(ArrayList::new))
             .createTests();
     }
 
@@ -153,7 +169,7 @@ class ListTest {
     @TestFactory
     List<DynamicTest> jdk_LinkedList() {
         return TestsGenerator.forProperties(MutabilityType.MODIFIABLE, false, NullSupport.FULL)
-            .withListProducer(ListCreator.fromSupplier(LinkedList::new))
+            .withListCreator(ListCreator.forMutableType(LinkedList::new))
             .createTests();
     }
 
@@ -163,11 +179,8 @@ class ListTest {
      */
     @TestFactory
     List<DynamicTest> jdk_List_of() {
-        String[] elements = { "a", "b", "c", "d" };
-
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
-            .withListProducer(ListCreator.fromMethod(List::of))
-            .addListCopyAndBackingElementsModifier(List.of(elements), () -> elements[2] = "changed")
+            .withListCreator(ListCreator.forArrayBasedType(List::of))
             .createTests();
     }
 
@@ -178,29 +191,17 @@ class ListTest {
      */
     @TestFactory
     List<DynamicTest> jdk_List_copyOf() {
-        List<String> elements = new ArrayList<>(List.of("a", "b", "c", "d"));
-
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
-            .withListProducer(ListCreator.fromCopyMethod(List::copyOf))
-            .addListCopyAndBackingElementsModifier(List.copyOf(elements), () -> elements.set(2, "changed"))
+            .withListCreator(ListCreator.forListBasedType(List::copyOf))
+            .skipsWrappingForOwnClass()
             .createTests();
-    }
-
-
-    @Test
-    void jdkListCopyOf() {
-        // TODO MIGRATE
-        List<String> elements = new ArrayList<>(Arrays.asList("a", "b", "c", "d"));
-        List<String> list = List.copyOf(elements);
-
-        // Does not create new instances if not needed
-        assertThat(List.copyOf(list), sameInstance(list));
     }
 
     @TestFactory
     List<DynamicTest> jdk_Arrays_asList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListProducer(ListCreator.fromMethod(Arrays::asList))
+        // TODO: MutabilityType should be FIXED_SIZE
+        return TestsGenerator.forProperties(MutabilityType.UNMODIFIABLE, true, NullSupport.FULL)
+            .withListCreator(ListCreator.forArrayBasedType(Arrays::asList))
             .setListBehaviorType(ListBehaviorType.ARRAYS_ASLIST)
             .createTests();
     }
@@ -230,12 +231,9 @@ class ListTest {
 
     @TestFactory
     List<DynamicTest> guava_ImmutableList() {
-        String[] elements = { "a", "b", "c", "d" };
-
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.ARGUMENTS)
-            .withListProducer(ListCreator.fromMethod(ImmutableList::copyOf))
+            .withListCreator(ListCreator.forArrayBasedType(ImmutableList::copyOf))
             .setListBehaviorType(ListBehaviorType.GUAVA_IMMUTABLE_LIST)
-            .addListCopyAndBackingElementsModifier(ImmutableList.copyOf(elements), () -> elements[2] = "changed")
             .createTests();
     }
 
@@ -290,7 +288,7 @@ class ListTest {
     @TestFactory
     List<DynamicTest> jdk_Collections_emptyList() {
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListProducer(ListCreator.fromMethod(args -> Collections.emptyList()))
+            .withListCreator(ListCreator.forEmptyList(Collections::emptyList))
             .setListBehaviorType(ListBehaviorType.COLLECTIONS_EMPTYLIST)
             .createTests();
     }
@@ -309,8 +307,12 @@ class ListTest {
 
     @TestFactory
     List<DynamicTest> jdk_Collections_unmodifiableList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListProducer(ListCreator.fromCopyMethod(Collections::unmodifiableList))
+        // Collections#unmodifiableList returns the same instance in JDK 17 if the list to wrap was created by this
+        // method, whereas in JDK 11 it always created a new instance
+
+        return TestsGenerator.forProperties(MutabilityType.UNMODIFIABLE, true, NullSupport.FULL)
+            .withListCreator(ListCreator.forListBasedType(Collections::unmodifiableList))
+            .skipsWrappingForOwnClass()
             .createTests();
     }
 
@@ -331,16 +333,12 @@ class ListTest {
         assertThat(list, instanceOf(RandomAccess.class)); // Because wrapped list is RandomAccess, too.
         assertThat(new LinkedList<>(), not(instanceOf(RandomAccess.class))); // validate assumption
         assertThat(Collections.unmodifiableList(new LinkedList<>()), not(instanceOf(RandomAccess.class)));
-
-        // Same instance is returned in JDK  17, whereas in JDK 11 it always created a new instance
-        assertThat(Collections.unmodifiableList(list), sameInstance(list));
     }
 
     @TestFactory
     List<DynamicTest> jdk_Collections_singletonList() {
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListProducer(ListCreator.fromMethod(
-                args -> args.length == 0 ? Collections.singletonList("a") : Collections.singletonList(args[0])))
+            .withListCreator(ListCreator.forSingleElement(Collections::singletonList))
             .setListBehaviorType(ListBehaviorType.COLLECTIONS_SINGLETONLIST)
             .createTests();
     }
@@ -382,42 +380,21 @@ class ListTest {
      * {@link Collectors#toUnmodifiableList} produces an unmodifiable list. It throws an exception if null is
      * passed to it or to any of its methods.
      */
-    @Test
-    void jdkCollectorsToUnmodifiableList() {
-        // Is immutable
-        List<String> list = Stream.of("a", "b", "c", "d")
-            .collect(Collectors.toUnmodifiableList());
-        verifyIsImmutable(list, () -> { /* noop */ });
-
+    @TestFactory
+    List<DynamicTest> jdk_Collectors_toUnmodifiableList() {
         // Implements RandomAccess (but Javadoc makes no guarantees)
-        assertThat(list, instanceOf(RandomAccess.class));
-
-        // May not contain null
-        assertThrows(NullPointerException.class, () -> Stream.of("a", null, "c")
-            .collect(Collectors.toUnmodifiableList()));
-
-        // No null support in methods
-        verifyRejectsNullArgInMethods(list);
+        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
+            .withListCreator(ListCreator.fromStream(str -> str.collect(Collectors.toUnmodifiableList())))
+            .createTests();
     }
 
     /**
      * {@link Stream#toList} produces an unmodifiable list that supports nulls.
      */
-    @Test
-    void jdkStreamToList() {
-        // Is immutable
-        List<String> list = Stream.of("a", "b", "c", "d").toList();
-        verifyIsImmutable(list, () -> { /* noop */ });
-
-        // Implements RandomAccess (but Javadoc makes no guarantees)
-        assertThat(list, instanceOf(RandomAccess.class));
-
-        // May contain null
-        List<String> listWithNull = Stream.of("a", null, "c")
-            .toList();
-        assertThat(listWithNull, contains("a", null, "c"));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(list);
+    @TestFactory
+    List<DynamicTest> jdk_Stream_toList() {
+        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
+            .withListCreator(ListCreator.fromStream(Stream::toList))
+            .createTests();
     }
 }
