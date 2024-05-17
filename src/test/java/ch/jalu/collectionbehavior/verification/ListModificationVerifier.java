@@ -27,8 +27,8 @@ final class ListModificationVerifier {
 
     void testMethods() {
         test(ListMethod.ADD, list -> list.add("foo"));
-        test(ListMethod.ADD, list -> list.add(1, "foo"));
-        test(ListMethod.ADD, list -> list.add(3, "foo"));
+        test(ListMethod.ADD_WITH_INDEX, list -> list.add(1, "foo"));
+        test(ListMethod.ADD_WITH_INDEX, list -> list.add(3, "foo"));
         test(ListMethod.ADD_ALL, list -> list.addAll(List.of("foo", "bar")));
         test(ListMethod.ADD_FIRST, list -> list.addFirst("foo"));
         test(ListMethod.ADD_LAST, list -> list.addLast("foo"));

@@ -10,6 +10,9 @@ public enum ListMethod {
     /** {@link List#add(Object)} */
     ADD,
 
+    /** {@link List#add(int, Object)} */
+    ADD_WITH_INDEX,
+
     /** {@link List#addAll(java.util.Collection)} */
     ADD_ALL,
 

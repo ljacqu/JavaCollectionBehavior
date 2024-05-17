@@ -8,8 +8,6 @@ public enum ThrowingBehavior {
     /** Throws an UnsupportedOperationException only if the collection would be modified by the call. */
     THROW_ONLY_IF_CHANGE,
 
-    THROW_FOR_SIZE_CHANGE,
-
     /**
      * Throws an IndexOutOfBoundsException if the index is invalid; otherwise throws an
      * UnsupportedOperationException if the collection would be modified by the call.

@@ -22,8 +22,20 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
+/**
+ * Verifies the mutability of collections.
+ */
 public final class CollectionMutabilityVerifier {
 
+    private CollectionMutabilityVerifier() {
+    }
+
+    /**
+     * Returns tests to run for a list creator whose type should be fully modifiable.
+     *
+     * @param listCreator list creator for a modifiable type
+     * @return tests to run
+     */
     public static List<DynamicTest> createTestsForMutableAssertions(ListCreator listCreator) {
         List<String> emptyList = listCreator.createList();
         return List.of(
@@ -108,6 +120,16 @@ public final class CollectionMutabilityVerifier {
         list.clear();
     }
 
+    /**
+     * Returns tests to run to verify that the list type of the list creator is unmodifiable (and immutable,
+     * if specified by the expected {@code mutability}).
+     *
+     * @param listCreator list creator whose list type should be tested
+     * @param mutability expected mutability behavior of the list
+     * @param mutabilitySubList expected mutability behavior of the list's subList type
+     * @param mutabilityReversed expected mutability behavior of the list's reversed type
+     * @return tests to run to verify the list type is unmodifiable (and immutable, if applicable)
+     */
     public static List<DynamicTest> createTestsForUnmodifiableAssertions(ListCreator listCreator,
                                                                          ListModificationBehavior mutability,
                                                                          ListModificationBehavior mutabilitySubList,
@@ -180,7 +202,7 @@ public final class CollectionMutabilityVerifier {
         assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
 
         if (listCreator.getSizeLimit() > 0) {
-            assertThat(list.size(), greaterThanOrEqualTo(1));
+            assertThat(list.size(), greaterThanOrEqualTo(1)); // Validate method contract
 
             listIterator.next();
             assertThrows(UnsupportedOperationException.class, () -> listIterator.remove());

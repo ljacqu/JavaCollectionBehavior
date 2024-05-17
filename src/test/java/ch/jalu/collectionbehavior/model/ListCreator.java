@@ -23,7 +23,7 @@ public abstract sealed class ListCreator {
         return switch (this) {
             case MutableListCreator mlc -> mlc.newList();
             case ArrayBasedListCreator abc -> abc.newList();
-            case ListBasedListCreator cbc -> cbc.newList(Collections.emptyList());
+            case ListBasedListCreator lbc -> lbc.newList(Collections.emptyList());
             case StreamBasedListCreator sbc -> sbc.newList();
             case EmptyListCreator elc -> elc.newList();
             case SingleElementListCreator sec -> sec.newList("a");
@@ -41,7 +41,7 @@ public abstract sealed class ListCreator {
         return switch (this) {
             case MutableListCreator mlc -> mlc.newList((String) null);
             case ArrayBasedListCreator abc -> abc.newList((String) null);
-            case ListBasedListCreator cbc -> cbc.newList(Collections.singletonList(null));
+            case ListBasedListCreator lbc -> lbc.newList(Collections.singletonList(null));
             case StreamBasedListCreator sbc -> sbc.newList((String) null);
             case EmptyListCreator elc -> throw new UnsupportedOperationException();
             case SingleElementListCreator sec -> sec.newList(null);
@@ -59,7 +59,7 @@ public abstract sealed class ListCreator {
         return switch (this) {
             case MutableListCreator mlc -> mlc.newList(args);
             case ArrayBasedListCreator abc -> abc.newList(args);
-            case ListBasedListCreator cbc -> cbc.newList(Arrays.asList(args));
+            case ListBasedListCreator lbc -> lbc.newList(Arrays.asList(args));
             case StreamBasedListCreator sbc -> sbc.newList(args);
             case EmptyListCreator elc -> elc.newList();
             case SingleElementListCreator sec -> sec.newList(args[0]);
