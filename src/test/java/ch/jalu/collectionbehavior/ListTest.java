@@ -4,9 +4,9 @@ import ch.jalu.collectionbehavior.model.ListCreator;
 import ch.jalu.collectionbehavior.model.ListCreator.ListBasedListCreator;
 import ch.jalu.collectionbehavior.model.ListMethod;
 import ch.jalu.collectionbehavior.model.ListModificationBehavior;
+import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.model.RandomAccessType;
-import ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -18,6 +18,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.RandomAccess;
 import java.util.SequencedCollection;
 import java.util.stream.Collectors;
@@ -25,6 +27,15 @@ import java.util.stream.Stream;
 
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInList;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInList;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByIterator;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByListIterator;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByIteratorAndListIterator;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByReversedList;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySubList;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListExceptionBehavior;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListIsMutable;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
@@ -375,10 +386,9 @@ class ListTest {
 
         private List<DynamicTest> createTestsForMutability() {
             if (modificationBehavior.isMutable()) {
-                return CollectionMutabilityVerifier.createTestsForMutableAssertions(listCreator);
+                return createTestsForMutableAssertions();
             }
-            return CollectionMutabilityVerifier.createTestsForUnmodifiableAssertions(listCreator,
-                modificationBehavior, modificationBehaviorSubList, modificationBehaviorReversed);
+            return createTestsForUnmodifiableAssertions();
         }
 
         private List<DynamicTest> createTestsForNullSupport() {
@@ -401,6 +411,66 @@ class ListTest {
                 return tests.subList(1, tests.size());
             }
             return tests;
+        }
+
+        /**
+         * Returns tests to run for a list creator whose type should be fully modifiable.
+         *
+         * @return tests to run
+         */
+        private List<DynamicTest> createTestsForMutableAssertions() {
+            List<String> emptyList = listCreator.createList();
+            return List.of(
+                dynamicTest("mutable", () -> verifyListIsMutable(emptyList)),
+                dynamicTest("mutable_iterators", () -> verifyIsMutableByIteratorAndListIterator(emptyList)),
+                dynamicTest("mutable_subList", () -> verifyIsMutableBySubList(emptyList)),
+                dynamicTest("mutable_reversed", () -> verifyIsMutableByReversedList(emptyList)));
+        }
+
+        /**
+         * Returns tests to run to verify that the list type of the list creator is unmodifiable (and immutable,
+         * if specified by the expected {@code mutability}).
+         *
+         * @return tests to run to verify the list type is unmodifiable (and immutable, if applicable)
+         */
+        private List<DynamicTest> createTestsForUnmodifiableAssertions() {
+            List<String> list = listCreator.createListWithAbcdOrSubset();
+
+            DynamicTest testForImmutabilityType = createTestForImmutabilityTypeIfApplicable();
+            DynamicTest testForIteratorModification = listCreator.getSizeLimit() == 0
+                ? null
+                : dynamicTest("unmodifiable_iterator", () -> verifyCannotBeModifiedByIterator(list));
+
+            return Stream.of(
+                    testForImmutabilityType,
+                    dynamicTest("unmodifiable",
+                        () -> verifyListExceptionBehavior(list, modificationBehavior)),
+                    dynamicTest("unmodifiable_subList",
+                        () -> verifyListExceptionBehavior(list.subList(0, list.size()), modificationBehaviorSubList)),
+                    dynamicTest("unmodifiable_reversed",
+                        () -> verifyListExceptionBehavior(list.reversed(), modificationBehaviorReversed)),
+                    testForIteratorModification,
+                    dynamicTest("unmodifiable_listIterator",
+                        () -> verifyCannotBeModifiedByListIterator(modificationBehavior, listCreator, list)))
+                .filter(Objects::nonNull)
+                .toList();
+        }
+
+        private DynamicTest createTestForImmutabilityTypeIfApplicable() {
+            Optional<ListWithBackingDataModifier> listWithDataModifier =
+                listCreator.createListWithBackingDataModifier("a", "b", "c", "d");
+
+            if (!modificationBehavior.isImmutable) {
+                // Must be able to create this in order to "claim" that it's not immutable
+                ListWithBackingDataModifier listWithBd = listWithDataModifier.orElseThrow();
+                return dynamicTest("unmodifiable_changeToOriginalStructureReflectedInList",
+                    () -> unmodifiable_changeToOriginalStructureIsReflectedInList(listWithBd));
+            }
+
+            return listWithDataModifier
+                .map(listWithBd -> dynamicTest("immutable_originalStructureDoesNotChangeList",
+                    () -> immutable_changeToOriginalStructureIsNotReflectedInList(listWithBd)))
+                .orElse(null);
         }
     }
 
