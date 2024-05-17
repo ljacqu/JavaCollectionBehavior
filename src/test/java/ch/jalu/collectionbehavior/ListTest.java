@@ -134,7 +134,7 @@ class ListTest {
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
             .mutability(ListModificationBehavior.immutable().alwaysThrows())
             .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .createTests();
     }
@@ -150,7 +150,7 @@ class ListTest {
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
             .mutability(ListModificationBehavior.immutable().alwaysThrows())
             .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .skipsWrappingForOwnClass()
             .createTests();
@@ -185,7 +185,7 @@ class ListTest {
             .expect(NullSupport.FULL, RandomAccessType.PRESERVES)
             .mutability(ListModificationBehavior.unmodifiable().alwaysThrows())
             .mutabilityReversed(ListModificationBehavior.unmodifiable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .skipsWrappingForOwnClass()
             .createTests();

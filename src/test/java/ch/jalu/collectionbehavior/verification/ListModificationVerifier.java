@@ -1,7 +1,7 @@
 package ch.jalu.collectionbehavior.verification;
 
-import ch.jalu.collectionbehavior.model.ListModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListMethod;
+import ch.jalu.collectionbehavior.model.ListModificationBehavior;
 import ch.jalu.collectionbehavior.model.MethodCallEffect;
 
 import java.util.ArrayList;
@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,7 +47,8 @@ final class ListModificationVerifier {
         test(ListMethod.RETAIN_ALL, list -> list.retainAll(Set.of("qqq")));
         test(ListMethod.REPLACE_ALL, list -> list.replaceAll(s -> s));
         test(ListMethod.REPLACE_ALL, list -> list.replaceAll(String::toUpperCase));
-        test(ListMethod.SORT, list -> list.sort(Comparator.comparing(Function.identity())));
+        test(ListMethod.SORT, list -> list.sort(Comparator.naturalOrder()));
+        test(ListMethod.SORT, list -> list.sort(Comparator.<String>naturalOrder().reversed()));
         test(ListMethod.CLEAR, list -> list.clear());
     }
 

@@ -41,25 +41,32 @@ public final class CollectionMutabilityVerifier {
         return List.of(
             dynamicTest("mutable", () -> verifyListIsMutable(emptyList)),
             dynamicTest("mutable_iterators", () -> verifyIsMutableByIteratorAndListIterator(emptyList)),
-            dynamicTest("mutable_subList", () -> verifyIsMutableBySubList(emptyList)));
+            dynamicTest("mutable_subList", () -> verifyIsMutableBySubList(emptyList)),
+            dynamicTest("mutable_reversed", () -> verifyIsMutableByReversedList(emptyList)));
     }
 
     private static void verifyListIsMutable(List<String> list) {
         assertThat(list, empty()); // Validate method contract
 
-        // List#add, List#addAll
+        // List#add, List#addAll, List#addFirst, List#addLast
         list.add("a");
         list.add("b");
         list.add("f");
-        list.add(2, "c"); // a, b, c, f
+        list.add(2, "c");
+        assertThat(list, contains("a", "b", "c", "f"));
         list.addAll(List.of("a", "b", "Y", "X"));
-        assertThat(list, contains("a", "b", "c", "f", "a", "b", "Y", "X"));
+        list.addFirst("e");
+        list.addLast("b");
+        assertThat(list, contains("e", "a", "b", "c", "f", "a", "b", "Y", "X", "b"));
 
-        // List#remove, List#removeAll, List#removeIf
-        list.remove("b");                      // a, c, f, a, b, Y, X
-        list.remove(1);                        // a, f, a, b, Y, X
-        list.removeAll(List.of("a"));          // f, b, Y, X
-        list.removeIf(str -> str.equals("Y")); // f, b, X
+        // List#remove, List#removeAll, List#removeIf, List#removeFirst, List#removeLast
+        list.remove("b");                      // e, a, c, f, a, b, Y, X, b
+        list.remove(2);                        // e, a, f, a, b, Y, X, b
+        list.removeAll(List.of("a"));          // e, f, b, Y, X, b
+        assertThat(list, contains("e", "f", "b", "Y", "X", "b"));
+        list.removeIf(str -> str.equals("Y")); // e, f, b, X, b
+        list.removeFirst(); // f, b, X, b
+        list.removeLast(); // f, b, X
         assertThat(list, contains("f", "b", "X"));
 
         // List#set(int, Object)
@@ -100,6 +107,24 @@ public final class CollectionMutabilityVerifier {
 
         subList.clear();
         assertThat(list, contains("north", "west"));
+        list.clear();
+    }
+
+    private static void verifyIsMutableByReversedList(List<String> list) {
+        assertThat(list, empty()); // Validate method contract
+
+        List<String> reversed = list.reversed();
+        reversed.addAll(List.of("e", "n", "t"));
+        reversed.addFirst("k"); // k, e, n, t
+        assertThat(list, contains("t", "n", "e", "k"));
+
+        reversed.removeLast(); // k, e, n
+        reversed.replaceAll(String::toUpperCase); // K, E, N
+        reversed.sort(Comparator.naturalOrder()); // E, K, N
+        assertThat(list, contains("N", "K", "E"));
+
+        reversed.clear();
+        assertThat(list, empty());
     }
 
     private static void verifyIsMutableByIteratorAndListIterator(List<String> list) {
