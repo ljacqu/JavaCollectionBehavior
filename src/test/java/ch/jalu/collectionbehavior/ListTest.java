@@ -1,17 +1,16 @@
 package ch.jalu.collectionbehavior;
 
-import ch.jalu.collectionbehavior.model.ListBehaviorType;
 import ch.jalu.collectionbehavior.model.ListCreator;
-import ch.jalu.collectionbehavior.model.ListCreator.CopyBasedListCreator;
-import ch.jalu.collectionbehavior.model.ListExpectedBehavior;
+import ch.jalu.collectionbehavior.model.ListCreator.ListBasedListCreator;
+import ch.jalu.collectionbehavior.model.ListModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListMethod;
-import ch.jalu.collectionbehavior.model.MutabilityType;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.TestInfo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,56 +44,51 @@ class ListTest {
         assertThat(SequencedCollection.class.isAssignableFrom(List.class), equalTo(true));
     }
 
-    static class TestsGenerator {
+    private static class TestsGenerator {
 
-        private MutabilityType mutabilityType;
+        private String testName;
+        private ListCreator listCreator;
+
         private boolean isRandomAccess;
         private NullSupport nullSupport;
-
-        private ListCreator listCreator;
         private boolean skipsWrappingForOwnClass;
-        private ListBehaviorType listBehaviorType = ListBehaviorType.DEFAULT; // todo revise this
-        private ListExpectedBehavior unmodifiableBehavior;
-        private ListExpectedBehavior unmodifiableBehaviorSubList;
-        private ListExpectedBehavior unmodifiableBehaviorReversed;
 
-        static TestsGenerator forProperties(MutabilityType mutabilityType,
-                                            boolean isRandomAccess,
-                                            NullSupport nullSupport) {
+        private ListModificationBehavior modificationBehavior;
+        private ListModificationBehavior modificationBehaviorSubList;
+        private ListModificationBehavior modificationBehaviorReversed;
+
+        static TestsGenerator forType(TestInfo testInfo, ListCreator listCreator) {
             TestsGenerator generator = new TestsGenerator();
-            generator.mutabilityType = mutabilityType;
-            generator.isRandomAccess = isRandomAccess;
-            generator.nullSupport = nullSupport;
+            generator.testName = testInfo.getTestMethod().get().getName();
+            generator.listCreator = listCreator;
             return generator;
         }
 
-        TestsGenerator withListCreator(ListCreator listCreator) {
-            this.listCreator = listCreator;
+        TestsGenerator expect(NullSupport nullSupport, boolean isRandomAccess) {
+            this.nullSupport = nullSupport;
+            this.isRandomAccess = isRandomAccess;
+            return this;
+        }
+
+        TestsGenerator mutability(ListModificationBehavior expectedMutabilityBehavior) {
+            this.modificationBehavior = expectedMutabilityBehavior;
+            this.modificationBehaviorSubList = expectedMutabilityBehavior;
+            this.modificationBehaviorReversed = expectedMutabilityBehavior;
+            return this;
+        }
+
+        TestsGenerator mutabilitySubList(ListModificationBehavior unmodifiableBehaviorSubList) {
+            this.modificationBehaviorSubList = unmodifiableBehaviorSubList;
+            return this;
+        }
+
+        TestsGenerator mutabilityReversed(ListModificationBehavior unmodifiableBehaviorReversed) {
+            this.modificationBehaviorReversed = unmodifiableBehaviorReversed;
             return this;
         }
 
         TestsGenerator skipsWrappingForOwnClass() {
             this.skipsWrappingForOwnClass = true;
-            return this;
-        }
-
-        TestsGenerator setListBehaviorType(ListBehaviorType listBehaviorType) {
-            this.listBehaviorType = listBehaviorType;
-            return this;
-        }
-
-        TestsGenerator unmodifiableBehavior(ListExpectedBehavior unmodifiableBehavior) {
-            this.unmodifiableBehavior = unmodifiableBehavior;
-            return this;
-        }
-
-        TestsGenerator unmodifiableBehaviorSubList(ListExpectedBehavior unmodifiableBehaviorSubList) {
-            this.unmodifiableBehaviorSubList = unmodifiableBehaviorSubList;
-            return this;
-        }
-
-        TestsGenerator unmodifiableBehaviorReversed(ListExpectedBehavior unmodifiableBehaviorReversed) {
-            this.unmodifiableBehaviorReversed = unmodifiableBehaviorReversed;
             return this;
         }
 
@@ -119,7 +113,7 @@ class ListTest {
 
         public List<DynamicTest> createTestForSkipsWrappingOwnClassIfApplicable() {
             if (skipsWrappingForOwnClass) {
-                CopyBasedListCreator listCopyCreator = (CopyBasedListCreator) listCreator;
+                ListBasedListCreator listCopyCreator = (ListBasedListCreator) listCreator;
                 DynamicTest test = dynamicTest("skipsWrappingForOwnClass", () -> {
                     List<String> list1 = listCopyCreator.newList(Arrays.asList("a", "b"));
                     List<String> list2 = listCopyCreator.newList(list1);
@@ -131,39 +125,35 @@ class ListTest {
         }
 
         private List<DynamicTest> createTestsForMutability() {
-            return switch (mutabilityType) {
-                case MODIFIABLE -> CollectionMutabilityVerifier.createTestsForMutableAssertions(listCreator);
-
-                case UNMODIFIABLE -> CollectionMutabilityVerifier.createTestsForUnmodifiableAssertions(listCreator,
-                    unmodifiableBehavior, unmodifiableBehaviorSubList, unmodifiableBehaviorReversed);
-
-                case IMMUTABLE -> CollectionMutabilityVerifier.createTestsForImmutableAssertions(listCreator,
-                    unmodifiableBehavior, unmodifiableBehaviorSubList, unmodifiableBehaviorReversed);
-            };
+            if (modificationBehavior.isMutable()) {
+                return CollectionMutabilityVerifier.createTestsForMutableAssertions(listCreator);
+            }
+            return CollectionMutabilityVerifier.createTestsForUnmodifiableAssertions(listCreator,
+                modificationBehavior, modificationBehaviorSubList, modificationBehaviorReversed);
         }
 
         private List<DynamicTest> createTestsForNullSupport() {
             List<DynamicTest> tests = switch (nullSupport) {
                 case FULL -> List.of(
                     dynamicTest("supportsNullElements",
-                        () -> listCreator.listWithNull()),
+                        () -> listCreator.createListWithNull()),
                     dynamicTest("supportsNullMethodArgs",
                         () -> verifySupportsNullArgInMethods(listCreator.createList())));
 
                 case ARGUMENTS -> List.of(
                     dynamicTest("mayNotContainNull",
-                        () -> assertThrows(NullPointerException.class, () -> listCreator.listWithNull())),
+                        () -> assertThrows(NullPointerException.class, () -> listCreator.createListWithNull())),
                     dynamicTest("supportsNullMethodArgs",
                         () -> verifySupportsNullArgInMethods(listCreator.createList())));
 
                 case REJECT -> List.of(
                     dynamicTest("mayNotContainNull",
-                        () -> assertThrows(NullPointerException.class, () -> listCreator.listWithNull())),
+                        () -> assertThrows(NullPointerException.class, () -> listCreator.createListWithNull())),
                     dynamicTest("rejectsNullMethodArgs",
                         () -> verifyRejectsNullArgInMethods(listCreator.createList())));
             };
 
-            if (listBehaviorType == ListBehaviorType.COLLECTIONS_EMPTYLIST) {
+            if (listCreator.getSizeLimit() == 0) {
                 return tests.subList(1, tests.size());
             }
             return tests;
@@ -174,9 +164,10 @@ class ListTest {
      * ArrayList: standard modifiable List implementation. Fully supports null.
      */
     @TestFactory
-    List<DynamicTest> jdk_ArrayList() {
-        return TestsGenerator.forProperties(MutabilityType.MODIFIABLE, true, NullSupport.FULL)
-            .withListCreator(ListCreator.forMutableType(ArrayList::new))
+    List<DynamicTest> jdk_ArrayList(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forMutableType(ArrayList::new))
+            .expect(NullSupport.FULL, true)
+            .mutability(ListModificationBehavior.mutable())
             .createTests();
     }
 
@@ -184,9 +175,10 @@ class ListTest {
      * LinkedList: mutable, fully supports null.
      */
     @TestFactory
-    List<DynamicTest> jdk_LinkedList() {
-        return TestsGenerator.forProperties(MutabilityType.MODIFIABLE, false, NullSupport.FULL)
-            .withListCreator(ListCreator.forMutableType(LinkedList::new))
+    List<DynamicTest> jdk_LinkedList(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forMutableType(LinkedList::new))
+            .expect(NullSupport.FULL, false)
+            .mutability(ListModificationBehavior.mutable())
             .createTests();
     }
 
@@ -195,12 +187,10 @@ class ListTest {
      * even when null is called on {@link List#contains}.
      */
     @TestFactory
-    List<DynamicTest> jdk_List_of() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
-            .withListCreator(ListCreator.forArrayBasedType(List::of))
-            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
+    List<DynamicTest> jdk_List_of(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forArrayBasedType(List::of))
+            .expect(NullSupport.REJECT, true)
+            .mutability(ListModificationBehavior.immutable().alwaysThrows())
             .createTests();
     }
 
@@ -210,12 +200,10 @@ class ListTest {
      * Does not support null (not even as argument passed into things like {@link List#contains}).
      */
     @TestFactory
-    List<DynamicTest> jdk_List_copyOf() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
-            .withListCreator(ListCreator.forListBasedType(List::copyOf))
-            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
+    List<DynamicTest> jdk_List_copyOf(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forListBasedType(List::copyOf))
+            .expect(NullSupport.REJECT, true)
+            .mutability(ListModificationBehavior.immutable().alwaysThrows())
             .skipsWrappingForOwnClass()
             .createTests();
     }
@@ -227,13 +215,10 @@ class ListTest {
      * vice versa (changing an entry in the List actually changes the backing array).
      */
     @TestFactory
-    List<DynamicTest> jdk_Arrays_asList() {
-        return TestsGenerator.forProperties(MutabilityType.UNMODIFIABLE, true, NullSupport.FULL)
-            .withListCreator(ListCreator.forArrayBasedType(Arrays::asList))
-            .unmodifiableBehavior(ListExpectedBehavior.throwsOnSizeModification())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.throwsOnSizeModification())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsOnSizeModification())
-            .setListBehaviorType(ListBehaviorType.ARRAYS_ASLIST)
+    List<DynamicTest> jdk_Arrays_asList(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forArrayBasedType(Arrays::asList))
+            .expect(NullSupport.FULL, true)
+            .mutability(ListModificationBehavior.unmodifiable().throwsOnSizeModification())
             .createTests();
     }
 
@@ -266,15 +251,13 @@ class ListTest {
      * Prefer {@link ImmutableList#of} if you are not starting from an array (unlike this test case).
      */
     @TestFactory
-    List<DynamicTest> guava_ImmutableList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.ARGUMENTS)
-            .withListCreator(ListCreator.forArrayBasedType(ImmutableList::copyOf))
-            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(false)
+    List<DynamicTest> guava_ImmutableList(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forArrayBasedType(ImmutableList::copyOf))
+            .expect(NullSupport.ARGUMENTS, true)
+            .mutability(ListModificationBehavior.immutable().alwaysThrows())
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(false)
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
-            .setListBehaviorType(ListBehaviorType.GUAVA_IMMUTABLE_LIST)
             .createTests();
     }
 
@@ -284,15 +267,13 @@ class ListTest {
      * element but accepts null passed as argument into {@link List#contains} etc.
      */
     @TestFactory
-    List<DynamicTest> guava_ImmutableList_copyOf() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.ARGUMENTS)
-            .withListCreator(ListCreator.forListBasedType(ImmutableList::copyOf))
-            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(false)
+    List<DynamicTest> guava_ImmutableList_copyOf(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forListBasedType(ImmutableList::copyOf))
+            .expect(NullSupport.ARGUMENTS, true)
+            .mutability(ListModificationBehavior.immutable().alwaysThrows())
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(false)
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
-            .setListBehaviorType(ListBehaviorType.GUAVA_IMMUTABLE_LIST)
             .skipsWrappingForOwnClass()
             .createTests();
     }
@@ -302,25 +283,23 @@ class ListTest {
      * Nice readable name for when an empty list is desired to be returned.
      */
     @TestFactory
-    List<DynamicTest> jdk_Collections_emptyList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListCreator(ListCreator.forEmptyList(Collections::emptyList))
-            .unmodifiableBehavior(ListExpectedBehavior.throwsIfWouldBeModified(false))
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.throwsIfWouldBeModified(true))
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(true))
-            .setListBehaviorType(ListBehaviorType.COLLECTIONS_EMPTYLIST)
+    List<DynamicTest> jdk_Collections_emptyList(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forEmptyList(Collections::emptyList))
+            .expect(NullSupport.ARGUMENTS, true)
+            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified(false))
+            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified(true))
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(true))
             .createTests();
     }
 
     @TestFactory
-    List<DynamicTest> jdk_Collections_unmodifiableList() {
+    List<DynamicTest> jdk_Collections_unmodifiableList(TestInfo testInfo) {
         // Collections#unmodifiableList returns the same instance in JDK 17 if the list to wrap was created by this
         // method, whereas in JDK 11 it always created a new instance
-        return TestsGenerator.forProperties(MutabilityType.UNMODIFIABLE, true, NullSupport.FULL)
-            .withListCreator(ListCreator.forListBasedType(Collections::unmodifiableList))
-            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(true)
+        return TestsGenerator.forType(testInfo, ListCreator.forListBasedType(Collections::unmodifiableList))
+            .expect(NullSupport.FULL, true)
+            .mutability(ListModificationBehavior.unmodifiable().alwaysThrows())
+            .mutabilityReversed(ListModificationBehavior.unmodifiable().throwsIfWouldBeModified(true)
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .skipsWrappingForOwnClass()
@@ -350,19 +329,18 @@ class ListTest {
      * {@link Collections#singletonList} provides a list with a single given element. Immutable. Supports null.
      */
     @TestFactory
-    List<DynamicTest> jdk_Collections_singletonList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListCreator(ListCreator.forSingleElement(Collections::singletonList))
-            .unmodifiableBehavior(ListExpectedBehavior.throwsIfWouldBeModified(false)
+    List<DynamicTest> jdk_Collections_singletonList(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.forSingleElement(Collections::singletonList))
+            .expect(NullSupport.FULL, true)
+            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified(false)
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.throwsIfWouldBeModified(true)
+            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified(true)
                 .alwaysThrowsFor(ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(true)
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(true)
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
-            .setListBehaviorType(ListBehaviorType.COLLECTIONS_SINGLETONLIST)
             .createTests();
     }
 
@@ -385,13 +363,11 @@ class ListTest {
      * passed to it or to any of its methods.
      */
     @TestFactory
-    List<DynamicTest> jdk_Collectors_toUnmodifiableList() {
+    List<DynamicTest> jdk_Collectors_toUnmodifiableList(TestInfo testInfo) {
         // Implements RandomAccess (but Javadoc makes no guarantees)
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
-            .withListCreator(ListCreator.fromStream(str -> str.collect(Collectors.toUnmodifiableList())))
-            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
+        return TestsGenerator.forType(testInfo, ListCreator.fromStream(str -> str.collect(Collectors.toUnmodifiableList())))
+            .expect(NullSupport.REJECT, true)
+            .mutability(ListModificationBehavior.immutable().alwaysThrows())
             .createTests();
     }
 
@@ -399,12 +375,10 @@ class ListTest {
      * {@link Stream#toList} produces an unmodifiable list that supports nulls.
      */
     @TestFactory
-    List<DynamicTest> jdk_Stream_toList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListCreator(ListCreator.fromStream(Stream::toList))
-            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
-            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
+    List<DynamicTest> jdk_Stream_toList(TestInfo testInfo) {
+        return TestsGenerator.forType(testInfo, ListCreator.fromStream(Stream::toList))
+            .expect(NullSupport.FULL, true)
+            .mutability(ListModificationBehavior.immutable().alwaysThrows())
             .createTests();
     }
 }

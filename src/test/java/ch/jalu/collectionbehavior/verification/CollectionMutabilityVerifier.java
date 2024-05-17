@@ -1,11 +1,10 @@
 package ch.jalu.collectionbehavior.verification;
 
 import ch.jalu.collectionbehavior.model.ListCreator;
-import ch.jalu.collectionbehavior.model.ListExpectedBehavior;
+import ch.jalu.collectionbehavior.model.ListModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
 import org.junit.jupiter.api.DynamicTest;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -19,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -108,46 +108,28 @@ public final class CollectionMutabilityVerifier {
         list.clear();
     }
 
-    public static List<DynamicTest> createTestsForImmutableAssertions(ListCreator listCreator,
-                                                                      ListExpectedBehavior unmodifiableBehavior,
-                                                                      ListExpectedBehavior unmodifiableBehaviorSubList,
-                                                                      ListExpectedBehavior unmodifiableBehaviorReversed) {
-        List<String> list = listCreator.createListWithAbcdOrSubset();
-
-        return Stream.of(
-            createTestForImmutabilityIfApplicable(listCreator),
-            dynamicTest("immutable",
-                () -> verifyListExceptionBehavior(list, unmodifiableBehavior)),
-            dynamicTest("immutable_subList",
-                () -> verifyListExceptionBehavior(list.subList(0, list.size()), unmodifiableBehaviorSubList)),
-            dynamicTest("immutable_reversed",
-                () -> verifyListExceptionBehavior(list.reversed(), unmodifiableBehaviorReversed)),
-            dynamicTest("immutable_iterator",
-                () -> verifyCannotBeModifiedByIterator(list)),
-            dynamicTest("immutable_listIterator",
-                () -> verifyCannotBeModifiedByListIterator(list)))
-            .filter(Objects::nonNull)
-            .toList();
-    }
-
     public static List<DynamicTest> createTestsForUnmodifiableAssertions(ListCreator listCreator,
-                                                                         ListExpectedBehavior unmodifiableBehavior,
-                                                                         ListExpectedBehavior unmodifiableBehaviorSubList,
-                                                                         ListExpectedBehavior unmodifiableBehaviorReversed) {
-        List<String> list = listCreator.createListWithAbcdOrSubset();
+                                                                         ListModificationBehavior mutability,
+                                                                         ListModificationBehavior mutabilitySubList,
+                                                                         ListModificationBehavior mutabilityReversed) {
+        DynamicTest testForImmutabilityType = mutability.isImmutable
+            ? createTestForImmutabilityIfApplicable(listCreator)
+            : createTestForListModifiableByBackingStructure(listCreator);
 
+        List<String> list = listCreator.createListWithAbcdOrSubset();
         return Stream.of(
-                createTestForListModifiableByBackingStructure(listCreator),
+                testForImmutabilityType,
                 dynamicTest("unmodifiable",
-                    () -> verifyListExceptionBehavior(list, unmodifiableBehavior)),
+                    () -> verifyListExceptionBehavior(list, mutability)),
                 dynamicTest("unmodifiable_subList",
-                    () -> verifyListExceptionBehavior(list.subList(0, list.size()), unmodifiableBehaviorSubList)),
+                    () -> verifyListExceptionBehavior(list.subList(0, list.size()), mutabilitySubList)),
                 dynamicTest("unmodifiable_reversed",
-                    () -> verifyListExceptionBehavior(list.reversed(), unmodifiableBehaviorReversed)),
-                dynamicTest("unmodifiable_iterator",
-                    () -> verifyCannotBeModifiedByIterator(list)),
+                    () -> verifyListExceptionBehavior(list.reversed(), mutabilityReversed)),
+
+                createTestForIteratorModificationIfApplicable(listCreator, list),
+
                 dynamicTest("unmodifiable_listIterator",
-                    () -> verifyCannotBeModifiedByListIterator(list)))
+                    () -> verifyCannotBeModifiedByListIterator(mutability, listCreator, list)))
             .filter(Objects::nonNull)
             .toList();
     }
@@ -179,25 +161,39 @@ public final class CollectionMutabilityVerifier {
         });
     }
 
-    private static void verifyCannotBeModifiedByIterator(Collection<?> set) {
-        assertThat(set.size(), greaterThanOrEqualTo(1));
+    private static DynamicTest createTestForIteratorModificationIfApplicable(ListCreator listCreator,
+                                                                             List<String> list) {
+        if (listCreator.getSizeLimit() == 0) {
+            return null;
+        }
 
-        Iterator<?> iterator = set.iterator();
-        iterator.next();
-        assertThrows(UnsupportedOperationException.class, iterator::remove);
+        return dynamicTest("unmodifiable_iterator", () -> {
+            Iterator<?> iterator = list.iterator();
+            iterator.next();
+            assertThrows(UnsupportedOperationException.class, iterator::remove);
+        });
     }
 
-    private static void verifyCannotBeModifiedByListIterator(List<String> list) {
-        assertThat(list.size(), greaterThanOrEqualTo(1));
-
+    private static void verifyCannotBeModifiedByListIterator(ListModificationBehavior mutability,
+                                                             ListCreator listCreator, List<String> list) {
         ListIterator<String> listIterator = list.listIterator();
-        assertThrows(UnsupportedOperationException.class, () -> listIterator.set("test"));
         assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
-        assertThrows(UnsupportedOperationException.class, () -> listIterator.remove());
+
+        if (listCreator.getSizeLimit() > 0) {
+            assertThat(list.size(), greaterThanOrEqualTo(1));
+
+            listIterator.next();
+            assertThrows(UnsupportedOperationException.class, () -> listIterator.remove());
+            if (mutability.throwsOnModification) {
+                assertThrows(UnsupportedOperationException.class, () -> listIterator.set("test"));
+            } else {
+                assertDoesNotThrow(() -> listIterator.set("test"));
+            }
+        }
     }
 
     private static void verifyListExceptionBehavior(List<String> listToVerify,
-                                                    ListExpectedBehavior expectedBehavior) {
+                                                    ListModificationBehavior expectedBehavior) {
         new ListModificationVerifier(listToVerify, expectedBehavior).testMethods();
     }
 }
