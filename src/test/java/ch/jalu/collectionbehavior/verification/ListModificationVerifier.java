@@ -2,7 +2,7 @@ package ch.jalu.collectionbehavior.verification;
 
 import ch.jalu.collectionbehavior.model.ListModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListMethod;
-import ch.jalu.collectionbehavior.model.MethodCallType;
+import ch.jalu.collectionbehavior.model.MethodCallEffect;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -53,42 +53,42 @@ final class ListModificationVerifier {
     }
 
     private void test(ListMethod method, Consumer<List<String>> action) {
-        MethodCallType callType = determineMethodCallType(action);
-        Class<? extends Exception> expectedException = expectedBehavior.overrideExpectedException(method);
+        MethodCallEffect effect = determineMethodCallEffect(action);
+        Class<? extends Exception> expectedException = expectedBehavior.getExpectedException(method);
         if (expectedException == null) {
-            expectedException = determineExpectedException(callType);
+            expectedException = determineExpectedException(effect);
         }
 
         if (expectedException != null) {
             assertThrows(
                 expectedException, () -> action.accept(originalList),
-                () -> method + " (" + callType + ")");
+                () -> method + " (" + effect + ")");
         } else {
             assertDoesNotThrow(
                 () -> action.accept(originalList),
-                () -> method + " (" + callType + ")");
+                () -> method + " (" + effect + ")");
         }
     }
 
-    private MethodCallType determineMethodCallType(Consumer<List<String>> action) {
+    private MethodCallEffect determineMethodCallEffect(Consumer<List<String>> action) {
         List<String> copy = new ArrayList<>(originalList);
 
         try {
             action.accept(copy);
         } catch (IndexOutOfBoundsException e) {
-            return MethodCallType.OUT_OF_BOUNDS;
+            return MethodCallEffect.INDEX_OUT_OF_BOUNDS;
         } catch (NoSuchElementException e) {
-            return MethodCallType.NO_SUCH_ELEMENT;
+            return MethodCallEffect.NO_SUCH_ELEMENT;
         }
 
         if (copy.size() != originalList.size()) {
-            return MethodCallType.SIZE_ALTERING;
+            return MethodCallEffect.SIZE_ALTERING;
         }
-        return copy.equals(originalList) ? MethodCallType.NON_MODIFYING : MethodCallType.MODIFYING;
+        return copy.equals(originalList) ? MethodCallEffect.NON_MODIFYING : MethodCallEffect.MODIFYING;
     }
 
-    private Class<? extends Exception> determineExpectedException(MethodCallType callType) {
-       return switch (callType) {
+    private Class<? extends Exception> determineExpectedException(MethodCallEffect effect) {
+       return switch (effect) {
             case MODIFYING -> expectedBehavior.throwsOnModification
                 ? UnsupportedOperationException.class
                 : null;
@@ -101,9 +101,9 @@ final class ListModificationVerifier {
                 ? UnsupportedOperationException.class
                 : null;
 
-            case OUT_OF_BOUNDS -> expectedBehavior.throwsIndexOutOfBounds
-                ? IndexOutOfBoundsException.class
-                : UnsupportedOperationException.class;
+            case INDEX_OUT_OF_BOUNDS -> expectedBehavior.throwsUnsupportedOperationExceptionForInvalidIndex
+                ? UnsupportedOperationException.class
+                : IndexOutOfBoundsException.class;
 
            case NO_SUCH_ELEMENT -> NoSuchElementException.class;
         };

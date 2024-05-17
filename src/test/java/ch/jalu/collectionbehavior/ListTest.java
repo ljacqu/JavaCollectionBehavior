@@ -133,7 +133,7 @@ class ListTest {
         return forListType(ListCreator.forArrayBasedType(ImmutableList::copyOf))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
             .mutability(ListModificationBehavior.immutable().alwaysThrows())
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(false)
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .createTests();
@@ -149,7 +149,7 @@ class ListTest {
         return forListType(ListCreator.forListBasedType(ImmutableList::copyOf))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
             .mutability(ListModificationBehavior.immutable().alwaysThrows())
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(false)
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .skipsWrappingForOwnClass()
@@ -164,9 +164,10 @@ class ListTest {
     List<DynamicTest> jdk_Collections_emptyList() {
         return forListType(ListCreator.forEmptyList(Collections::emptyList))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified(false))
-            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified(true))
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(true))
+            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+                .throwsUnsupportedOpForIndexOutOfBounds())
+            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified())
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified())
             .createTests();
     }
 
@@ -183,7 +184,7 @@ class ListTest {
         return forListType(ListCreator.forListBasedType(Collections::unmodifiableList))
             .expect(NullSupport.FULL, RandomAccessType.PRESERVES)
             .mutability(ListModificationBehavior.unmodifiable().alwaysThrows())
-            .mutabilityReversed(ListModificationBehavior.unmodifiable().throwsIfWouldBeModified(true)
+            .mutabilityReversed(ListModificationBehavior.unmodifiable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .skipsWrappingForOwnClass()
@@ -197,13 +198,14 @@ class ListTest {
     List<DynamicTest> jdk_Collections_singletonList() {
         return forListType(ListCreator.forSingleElement(Collections::singletonList))
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified(false)
+            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+                .throwsUnsupportedOpForIndexOutOfBounds()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
-            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified(true)
+            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified(true)
+            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .createTests();
