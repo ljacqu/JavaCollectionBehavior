@@ -3,8 +3,11 @@ package ch.jalu.collectionbehavior;
 import ch.jalu.collectionbehavior.model.ListBehaviorType;
 import ch.jalu.collectionbehavior.model.ListCreator;
 import ch.jalu.collectionbehavior.model.ListCreator.CopyBasedListCreator;
+import ch.jalu.collectionbehavior.model.ListExpectedBehavior;
+import ch.jalu.collectionbehavior.model.ListMethod;
 import ch.jalu.collectionbehavior.model.MutabilityType;
 import ch.jalu.collectionbehavior.model.NullSupport;
+import ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -20,11 +23,9 @@ import java.util.SequencedCollection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsImmutable;
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsUnmodifiable;
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
 import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyThrowsOnlyIfListWouldBeModified;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
@@ -52,7 +53,10 @@ class ListTest {
 
         private ListCreator listCreator;
         private boolean skipsWrappingForOwnClass;
-        private ListBehaviorType listBehaviorType = ListBehaviorType.DEFAULT;
+        private ListBehaviorType listBehaviorType = ListBehaviorType.DEFAULT; // todo revise this
+        private ListExpectedBehavior unmodifiableBehavior;
+        private ListExpectedBehavior unmodifiableBehaviorSubList;
+        private ListExpectedBehavior unmodifiableBehaviorReversed;
 
         static TestsGenerator forProperties(MutabilityType mutabilityType,
                                             boolean isRandomAccess,
@@ -76,6 +80,21 @@ class ListTest {
 
         TestsGenerator setListBehaviorType(ListBehaviorType listBehaviorType) {
             this.listBehaviorType = listBehaviorType;
+            return this;
+        }
+
+        TestsGenerator unmodifiableBehavior(ListExpectedBehavior unmodifiableBehavior) {
+            this.unmodifiableBehavior = unmodifiableBehavior;
+            return this;
+        }
+
+        TestsGenerator unmodifiableBehaviorSubList(ListExpectedBehavior unmodifiableBehaviorSubList) {
+            this.unmodifiableBehaviorSubList = unmodifiableBehaviorSubList;
+            return this;
+        }
+
+        TestsGenerator unmodifiableBehaviorReversed(ListExpectedBehavior unmodifiableBehaviorReversed) {
+            this.unmodifiableBehaviorReversed = unmodifiableBehaviorReversed;
             return this;
         }
 
@@ -115,13 +134,11 @@ class ListTest {
             return switch (mutabilityType) {
                 case MODIFIABLE -> CollectionMutabilityVerifier.createTestsForMutableAssertions(listCreator);
 
-                case UNMODIFIABLE ->
-                    CollectionMutabilityVerifier.createTestsForUnmodifiableAssertions(listCreator, listBehaviorType);
+                case UNMODIFIABLE -> CollectionMutabilityVerifier.createTestsForUnmodifiableAssertions(listCreator,
+                    unmodifiableBehavior, unmodifiableBehaviorSubList, unmodifiableBehaviorReversed);
 
-                case FIXED_SIZE -> null;
-
-                case IMMUTABLE ->
-                    CollectionMutabilityVerifier.createTestsForImmutableAssertions(listCreator, listBehaviorType);
+                case IMMUTABLE -> CollectionMutabilityVerifier.createTestsForImmutableAssertions(listCreator,
+                    unmodifiableBehavior, unmodifiableBehaviorSubList, unmodifiableBehaviorReversed);
             };
         }
 
@@ -181,6 +198,9 @@ class ListTest {
     List<DynamicTest> jdk_List_of() {
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
             .withListCreator(ListCreator.forArrayBasedType(List::of))
+            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
             .createTests();
     }
 
@@ -193,15 +213,26 @@ class ListTest {
     List<DynamicTest> jdk_List_copyOf() {
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
             .withListCreator(ListCreator.forListBasedType(List::copyOf))
+            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
             .skipsWrappingForOwnClass()
             .createTests();
     }
 
+    /**
+     * {@link Arrays#asList} wraps an array into the List interface. Allows to change individual elements
+     * but elements cannot be added or removed. The array passed into it is not copied! Supports null.
+     * Basically wraps an array into a List interface as changes to the array are propagated to the List and
+     * vice versa (changing an entry in the List actually changes the backing array).
+     */
     @TestFactory
     List<DynamicTest> jdk_Arrays_asList() {
-        // TODO: MutabilityType should be FIXED_SIZE
         return TestsGenerator.forProperties(MutabilityType.UNMODIFIABLE, true, NullSupport.FULL)
             .withListCreator(ListCreator.forArrayBasedType(Arrays::asList))
+            .unmodifiableBehavior(ListExpectedBehavior.throwsOnSizeModification())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.throwsOnSizeModification())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsOnSizeModification())
             .setListBehaviorType(ListBehaviorType.ARRAYS_ASLIST)
             .createTests();
     }
@@ -229,34 +260,22 @@ class ListTest {
         assertThat(elements, arrayContaining("a", "b", "foo", "d")); // backing array changed via list
     }
 
-    @TestFactory
-    List<DynamicTest> guava_ImmutableList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.ARGUMENTS)
-            .withListCreator(ListCreator.forArrayBasedType(ImmutableList::copyOf))
-            .setListBehaviorType(ListBehaviorType.GUAVA_IMMUTABLE_LIST)
-            .createTests();
-    }
-
     /**
      * {@link ImmutableList#copyOf} returns an immutable list. Does not support null as element but
      * null can be passed as argument into methods like {@link List#contains}.
      * Prefer {@link ImmutableList#of} if you are not starting from an array (unlike this test case).
      */
-    @Test
-    void guavaImmutableList() {
-        // Is immutable
-        String[] elements = { "a", "b", "c", "d" };
-        List<String> list = ImmutableList.copyOf(elements);
-        verifyIsImmutable(list, () -> elements[2] = "changed", UnmodifiableListExceptionBehavior.GUAVA_IMMUTABLE_LIST);
-
-        // Implements RandomAccess
-        assertThat(list, instanceOf(RandomAccess.class));
-
-        // May not contain null
-        assertThrows(NullPointerException.class, () -> ImmutableList.of("a", null, "c"));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(Arrays.asList("a", "z"));
+    @TestFactory
+    List<DynamicTest> guava_ImmutableList() {
+        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.ARGUMENTS)
+            .withListCreator(ListCreator.forArrayBasedType(ImmutableList::copyOf))
+            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(false)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+            )
+            .setListBehaviorType(ListBehaviorType.GUAVA_IMMUTABLE_LIST)
+            .createTests();
     }
 
     /**
@@ -264,32 +283,17 @@ class ListTest {
      * List. Recognizes instances of the same class and avoids unnecessary copies. Does not support null as
      * element but accepts null passed as argument into {@link List#contains} etc.
      */
-    @Test
-    void guavaImmutableListCopyOf() {
-        // Is immutable
-        List<String> elements = newArrayList("a", "b", "c", "d");
-        List<String> list = ImmutableList.copyOf(elements);
-        verifyIsImmutable(list, () -> elements.set(2, "changed"), UnmodifiableListExceptionBehavior.GUAVA_IMMUTABLE_LIST);
-
-        // Implements RandomAccess
-        assertThat(list, instanceOf(RandomAccess.class));
-
-        // May not contain null
-        List<String> elementsWithNull = newArrayList("a", null, "c");
-        assertThrows(NullPointerException.class, () -> ImmutableList.copyOf(elementsWithNull));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(list);
-
-        // Does not create new instances if not needed
-        assertThat(ImmutableList.copyOf(list), sameInstance(list));
-    }
-
     @TestFactory
-    List<DynamicTest> jdk_Collections_emptyList() {
-        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
-            .withListCreator(ListCreator.forEmptyList(Collections::emptyList))
-            .setListBehaviorType(ListBehaviorType.COLLECTIONS_EMPTYLIST)
+    List<DynamicTest> guava_ImmutableList_copyOf() {
+        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.ARGUMENTS)
+            .withListCreator(ListCreator.forListBasedType(ImmutableList::copyOf))
+            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(false)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+            )
+            .setListBehaviorType(ListBehaviorType.GUAVA_IMMUTABLE_LIST)
+            .skipsWrappingForOwnClass()
             .createTests();
     }
 
@@ -297,21 +301,28 @@ class ListTest {
      * {@link Collections#emptyList()} returns an immutable empty list. Always the same instance.
      * Nice readable name for when an empty list is desired to be returned.
      */
-    @Test
-    void jdkCollectionsEmptyList() {
-        List<String> list = Collections.emptyList();
-        // Is always the same instance
-        List<Integer> list2 = Collections.emptyList();
-        assertThat(list, sameInstance(list2));
+    @TestFactory
+    List<DynamicTest> jdk_Collections_emptyList() {
+        return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
+            .withListCreator(ListCreator.forEmptyList(Collections::emptyList))
+            .unmodifiableBehavior(ListExpectedBehavior.throwsIfWouldBeModified(false))
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.throwsIfWouldBeModified(true))
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(true))
+            .setListBehaviorType(ListBehaviorType.COLLECTIONS_EMPTYLIST)
+            .createTests();
     }
 
     @TestFactory
     List<DynamicTest> jdk_Collections_unmodifiableList() {
         // Collections#unmodifiableList returns the same instance in JDK 17 if the list to wrap was created by this
         // method, whereas in JDK 11 it always created a new instance
-
         return TestsGenerator.forProperties(MutabilityType.UNMODIFIABLE, true, NullSupport.FULL)
             .withListCreator(ListCreator.forListBasedType(Collections::unmodifiableList))
+            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(true)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+            )
             .skipsWrappingForOwnClass()
             .createTests();
     }
@@ -335,31 +346,24 @@ class ListTest {
         assertThat(Collections.unmodifiableList(new LinkedList<>()), not(instanceOf(RandomAccess.class)));
     }
 
+    /**
+     * {@link Collections#singletonList} provides a list with a single given element. Immutable. Supports null.
+     */
     @TestFactory
     List<DynamicTest> jdk_Collections_singletonList() {
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
             .withListCreator(ListCreator.forSingleElement(Collections::singletonList))
+            .unmodifiableBehavior(ListExpectedBehavior.throwsIfWouldBeModified(false)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+            )
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.throwsIfWouldBeModified(true)
+                .alwaysThrowsFor(ListMethod.REPLACE_ALL, ListMethod.SORT)
+            )
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.throwsIfWouldBeModified(true)
+                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+            )
             .setListBehaviorType(ListBehaviorType.COLLECTIONS_SINGLETONLIST)
             .createTests();
-    }
-
-    /**
-     * {@link Collections#singletonList} provides a list with a single given element. Immutable. Supports null.
-     */
-    @Test
-    void jdkCollectionsSingletonList() {
-        // Is immutable
-        List<String> list = Collections.singletonList("a");
-        verifyThrowsOnlyIfListWouldBeModified(list, UnmodifiableListExceptionBehavior.COLLECTIONS_SINGLETONLIST);
-
-        // Implements RandomAccess
-        assertThat(list, instanceOf(RandomAccess.class));
-
-        // May contain null
-        assertThat(Collections.singletonList(null), contains((Object) null));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(list);
     }
 
     /**
@@ -385,6 +389,9 @@ class ListTest {
         // Implements RandomAccess (but Javadoc makes no guarantees)
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.REJECT)
             .withListCreator(ListCreator.fromStream(str -> str.collect(Collectors.toUnmodifiableList())))
+            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
             .createTests();
     }
 
@@ -395,6 +402,9 @@ class ListTest {
     List<DynamicTest> jdk_Stream_toList() {
         return TestsGenerator.forProperties(MutabilityType.IMMUTABLE, true, NullSupport.FULL)
             .withListCreator(ListCreator.fromStream(Stream::toList))
+            .unmodifiableBehavior(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorSubList(ListExpectedBehavior.alwaysThrows())
+            .unmodifiableBehaviorReversed(ListExpectedBehavior.alwaysThrows())
             .createTests();
     }
 }

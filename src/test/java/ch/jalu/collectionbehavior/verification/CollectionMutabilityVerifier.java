@@ -1,12 +1,10 @@
-package ch.jalu.collectionbehavior;
+package ch.jalu.collectionbehavior.verification;
 
-import ch.jalu.collectionbehavior.model.ListBehaviorType;
 import ch.jalu.collectionbehavior.model.ListCreator;
+import ch.jalu.collectionbehavior.model.ListExpectedBehavior;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
-import ch.jalu.collectionbehavior.model.ThrowingBehavior;
 import org.junit.jupiter.api.DynamicTest;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -14,7 +12,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -22,7 +19,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -113,17 +109,19 @@ public final class CollectionMutabilityVerifier {
     }
 
     public static List<DynamicTest> createTestsForImmutableAssertions(ListCreator listCreator,
-                                                                      ListBehaviorType behaviorType) {
+                                                                      ListExpectedBehavior unmodifiableBehavior,
+                                                                      ListExpectedBehavior unmodifiableBehaviorSubList,
+                                                                      ListExpectedBehavior unmodifiableBehaviorReversed) {
         List<String> list = listCreator.createListWithAbcdOrSubset();
 
         return Stream.of(
             createTestForImmutabilityIfApplicable(listCreator),
             dynamicTest("immutable",
-                () -> verifyListExceptionBehavior(list, behaviorType, ListDerivedType.MAIN_TYPE)),
+                () -> verifyListExceptionBehavior(list, unmodifiableBehavior)),
             dynamicTest("immutable_subList",
-                () -> verifyListExceptionBehavior(list.subList(0, list.size()), behaviorType, ListDerivedType.SUBLIST)),
+                () -> verifyListExceptionBehavior(list.subList(0, list.size()), unmodifiableBehaviorSubList)),
             dynamicTest("immutable_reversed",
-                () -> verifyListExceptionBehavior(list.reversed(), behaviorType, ListDerivedType.REVERSED)),
+                () -> verifyListExceptionBehavior(list.reversed(), unmodifiableBehaviorReversed)),
             dynamicTest("immutable_iterator",
                 () -> verifyCannotBeModifiedByIterator(list)),
             dynamicTest("immutable_listIterator",
@@ -133,17 +131,19 @@ public final class CollectionMutabilityVerifier {
     }
 
     public static List<DynamicTest> createTestsForUnmodifiableAssertions(ListCreator listCreator,
-                                                                         ListBehaviorType behaviorType) {
+                                                                         ListExpectedBehavior unmodifiableBehavior,
+                                                                         ListExpectedBehavior unmodifiableBehaviorSubList,
+                                                                         ListExpectedBehavior unmodifiableBehaviorReversed) {
         List<String> list = listCreator.createListWithAbcdOrSubset();
 
         return Stream.of(
                 createTestForListModifiableByBackingStructure(listCreator),
                 dynamicTest("unmodifiable",
-                    () -> verifyListExceptionBehavior(list, behaviorType, ListDerivedType.MAIN_TYPE)),
+                    () -> verifyListExceptionBehavior(list, unmodifiableBehavior)),
                 dynamicTest("unmodifiable_subList",
-                    () -> verifyListExceptionBehavior(list.subList(0, list.size()), behaviorType, ListDerivedType.SUBLIST)),
+                    () -> verifyListExceptionBehavior(list.subList(0, list.size()), unmodifiableBehaviorSubList)),
                 dynamicTest("unmodifiable_reversed",
-                    () -> verifyListExceptionBehavior(list.reversed(), behaviorType, ListDerivedType.REVERSED)),
+                    () -> verifyListExceptionBehavior(list.reversed(), unmodifiableBehaviorReversed)),
                 dynamicTest("unmodifiable_iterator",
                     () -> verifyCannotBeModifiedByIterator(list)),
                 dynamicTest("unmodifiable_listIterator",
@@ -197,98 +197,7 @@ public final class CollectionMutabilityVerifier {
     }
 
     private static void verifyListExceptionBehavior(List<String> listToVerify,
-                                                    ListBehaviorType behaviorType,
-                                                    ListDerivedType listDerivedType) {
-        ThrowingBehavior throwingBehavior = switch (behaviorType) {
-            case DEFAULT ->
-                ThrowingBehavior.ALWAYS_THROWS;
-            case COLLECTIONS_SINGLETONLIST, COLLECTIONS_EMPTYLIST ->
-                listDerivedType != ListDerivedType.MAIN_TYPE
-                    ? ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
-                    : ThrowingBehavior.THROW_ONLY_IF_CHANGE;
-            case GUAVA_IMMUTABLE_LIST ->
-                listDerivedType == ListDerivedType.REVERSED
-                    ? ThrowingBehavior.THROW_ONLY_IF_CHANGE
-                    : ThrowingBehavior.ALWAYS_THROWS;
-            case ARRAYS_ASLIST -> ThrowingBehavior.THROW_FOR_SIZE_CHANGE;
-        };
-
-        new ListVerifier(listToVerify, throwingBehavior)
-            .test(list -> list.add("foo"))
-            .test(list -> list.add(1, "foo"))
-            .test(list -> list.add(3, "foo"))
-            .test(list -> list.addAll(List.of("foo", "bar")))
-            .test(list -> list.addFirst("foo"))
-            .test(list -> list.addLast("foo"))
-            .test(list -> list.remove("zzz"))
-            .test(list -> list.remove("a"))
-            .test(list -> list.remove(0))
-            .test(list -> list.remove(3))
-            .test(list -> list.removeIf(str -> str.equals("zzz")), behaviorType.eoNonModifyingRemoveIf(listDerivedType))
-            .test(list -> list.removeIf(str -> str.equals("a")))
-            .test(list -> list.removeAll(Set.of("fff", "xxx")))
-            .test(list -> list.removeAll(Set.of("fff", "a")))
-            .test(list -> list.removeFirst(), behaviorType.eoRemoveFirstLast())
-            .test(list -> list.removeLast(), behaviorType.eoRemoveFirstLast())
-            .test(list -> list.set(0, "foo"))
-            .test(list -> list.set(3, "foo"))
-            .test(list -> list.retainAll(Set.of("a")))
-            .test(list -> list.retainAll(Set.of("qqq")))
-            .test(list -> list.replaceAll(s -> s), behaviorType.eoNonModifyingReplaceAll(listDerivedType))
-            .test(list -> list.replaceAll(String::toUpperCase))
-            .test(list -> list.sort(Comparator.comparing(Function.identity())), behaviorType.eoSort(listDerivedType))
-            .test(list -> list.clear());
-    }
-
-    /**
-     * Helper class to verify that a List is not modifiable.
-     */
-    private static final class ListVerifier {
-
-        private final List<String> originalList;
-        private final ThrowingBehavior throwingBehavior;
-
-        ListVerifier(List<String> originalList, ThrowingBehavior throwingBehavior) {
-            this.originalList = originalList;
-            this.throwingBehavior = throwingBehavior;
-        }
-
-        ListVerifier test(Consumer<List<String>> action) {
-            return test(action, null);
-        }
-
-        ListVerifier test(Consumer<List<String>> action, Class<? extends Exception> expectedExceptionType) {
-            Class<? extends Exception> expectedException = expectedExceptionType;
-            if (expectedException == null) {
-                expectedException = getExpectedExceptionType(action);
-            }
-
-            if (expectedException != null) {
-                assertThrows(expectedException, () -> action.accept(originalList));
-            } else {
-                assertDoesNotThrow(() -> action.accept(originalList));
-            }
-            return this;
-        }
-
-        private Class<? extends Exception> getExpectedExceptionType(Consumer<List<String>> action) {
-            if (this.throwingBehavior == ThrowingBehavior.ALWAYS_THROWS) {
-                return UnsupportedOperationException.class;
-            }
-
-            List<String> copy = new ArrayList<>(originalList);
-            try {
-                action.accept(copy);
-            } catch (IndexOutOfBoundsException indexOutOfBoundsException) {
-                return throwingBehavior == ThrowingBehavior.THROW_INDEX_OUT_OF_BOUNDS_OR_IF_CHANGE
-                    ? IndexOutOfBoundsException.class
-                    : UnsupportedOperationException.class;
-            }
-
-            if (this.throwingBehavior == ThrowingBehavior.THROW_FOR_SIZE_CHANGE) {
-                return copy.size() == originalList.size() ? null : UnsupportedOperationException.class;
-            }
-            return copy.equals(originalList) ? null : UnsupportedOperationException.class;
-        }
+                                                    ListExpectedBehavior expectedBehavior) {
+        new ListModificationVerifier(listToVerify, expectedBehavior).testMethods();
     }
 }
