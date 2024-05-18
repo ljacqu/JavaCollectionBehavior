@@ -3,7 +3,8 @@ package ch.jalu.collectionbehavior.model;
 import com.google.common.base.Preconditions;
 
 import java.util.Collections;
-import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Defines the expected behavior of a list type with regard to how it can be modified, or which exceptions are
@@ -48,7 +49,7 @@ public final class ListModificationBehavior {
      * actually be modified or not). This acts to document exceptions on types that have false for
      * {@link #throwsOnNonModifyingModificationMethods}.
      */
-    private final EnumSet<ListMethod> methodsAlwaysThrowing = EnumSet.noneOf(ListMethod.class);
+    private final Set<CollectionMethod> methodsAlwaysThrowing = new HashSet<>();
 
     private ListModificationBehavior(boolean isImmutable, boolean throwsOnModification,
                                      boolean throwsOnSizeModification, boolean throwsOnNonModifyingModificationMethods) {
@@ -94,7 +95,7 @@ public final class ListModificationBehavior {
      * @param methods the methods that are expected to always throw
      * @return this instance, for chaining
      */
-    public ListModificationBehavior alwaysThrowsFor(ListMethod... methods) {
+    public ListModificationBehavior alwaysThrowsFor(CollectionMethod... methods) {
         Collections.addAll(methodsAlwaysThrowing, methods);
         return this;
     }
@@ -117,7 +118,7 @@ public final class ListModificationBehavior {
      * @param method the method to check for
      * @return the expected exception if it does not conform to the behavior generally defined, otherwise null
      */
-    public Class<? extends Exception> getExpectedException(ListMethod method) {
+    public Class<? extends Exception> getExpectedException(CollectionMethod method) {
         if (methodsAlwaysThrowing.contains(method)) {
             return UnsupportedOperationException.class;
         }

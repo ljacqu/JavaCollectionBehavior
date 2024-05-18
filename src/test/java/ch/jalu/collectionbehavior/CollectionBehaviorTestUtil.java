@@ -38,7 +38,7 @@ public final class CollectionBehaviorTestUtil {
      *
      * @param emptySet an empty Set instance of the type to test
      */
-    public static void verifyIsMutable(Set<String> emptySet) {
+    public static void verifySetIsMutable(Set<String> emptySet) {
         assertThat(emptySet, empty()); // Validate method contract
         Set<String> set = emptySet;
 
@@ -236,7 +236,7 @@ public final class CollectionBehaviorTestUtil {
      *
      * @param set the set to test (may not contain null as entry)
      */
-    public static void verifySupportsNullArgInMethods(Set<Integer> set) {
+    public static void verifySupportsNullArgInMethods(Set<?> set) { // TODO: Change to Set<String>
         assertThat(set.contains(null), equalTo(false));
 
         List<Integer> listWithNull = Collections.singletonList(null);
@@ -268,7 +268,7 @@ public final class CollectionBehaviorTestUtil {
      *
      * @param set the set to test
      */
-    public static void verifyRejectsNullArgInMethods(Set<Integer> set) {
+    public static void verifyRejectsNullArgInMethods(Set<?> set) { // TODO: Change to Set<String>
         assertThrows(NullPointerException.class, () -> set.contains(null));
 
         List<String> listWithNull = Collections.singletonList(null);
