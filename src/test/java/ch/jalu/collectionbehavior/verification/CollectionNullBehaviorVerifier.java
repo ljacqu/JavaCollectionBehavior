@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior;
+package ch.jalu.collectionbehavior.verification;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -10,16 +10,12 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Util for verifying collection behavior, such as immutability and null support.
+ * Util for verifying a collection's behavior with null elements and null method arguments.
  */
-public final class CollectionBehaviorTestUtil { // todo naming
+public final class CollectionNullBehaviorVerifier {
 
-    private CollectionBehaviorTestUtil() {
+    private CollectionNullBehaviorVerifier() {
     }
-
-    // --------------------------
-    // Null support
-    // --------------------------
 
     /**
      * Verifies that null can be supplied as argument to all methods that do not modify the collection.

@@ -29,14 +29,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInSet;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInSet;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByIterator;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByIterator;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySequencedSetMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifySetExceptionBehavior;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifyRejectsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifySupportsNullArgInMethods;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;

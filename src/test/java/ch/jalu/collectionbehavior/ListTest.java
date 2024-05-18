@@ -3,8 +3,8 @@ package ch.jalu.collectionbehavior;
 import ch.jalu.collectionbehavior.model.ListCreator;
 import ch.jalu.collectionbehavior.model.ListCreator.ListBasedListCreator;
 import ch.jalu.collectionbehavior.model.ListMethod;
-import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.model.RandomAccessType;
 import com.google.common.collect.ImmutableList;
@@ -25,8 +25,6 @@ import java.util.SequencedCollection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInList;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInList;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByIterator;
@@ -36,6 +34,8 @@ import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifi
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySubList;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListExceptionBehavior;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListIsMutable;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifyRejectsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifySupportsNullArgInMethods;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
