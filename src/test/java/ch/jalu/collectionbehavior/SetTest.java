@@ -102,33 +102,19 @@ class SetTest {
     }
 
     /**
-     * {@link ImmutableSet#of} produces an immutable Set. Does not support null as elements.
+     * {@link ImmutableSet#copyOf(Object[])} produces an immutable Set. Does not support null as elements.
      * Insertion order is kept. Can be instantiated with duplicates (also when using the builder,
      * {@link ImmutableSet#builder()}).
      */
-    @Test
-    void guavaImmutableSet() { // TODO: Difficult to take over ImmutableSet#of. Think about dropping this in favor of just #copyOf
-        // Is immutable
-//        Set<Integer> set = ImmutableSet.of(1, 4, 9, 16, 9);
-//        verifyIsImmutable(set, () -> { /* Noop */ });
-//
-//        // Keeps insertion order, but is not SequencedCollection (https://github.com/google/guava/issues/6903)
-//        assertThat(set, contains(1, 4, 9, 16));
-//        assertThat(set, not(instanceOf(SequencedCollection.class))); // Because Guava supports older JDK versions
-//
-//        // May not contain null
-//        assertThrows(NullPointerException.class, () -> ImmutableSet.of(14, null, 16));
-//
-//        // Null support in methods
-//        verifySupportsNullArgInMethods(set);
-//
-//        // Builder also accepts duplicates
-//        assertThat(ImmutableSet.builder()
-//            .add(14)
-//            .add(15, 15)
-//            .add(14)
-//            .add(16)
-//            .build(), contains(14, 15, 16));
+    @TestFactory
+    List<DynamicTest> guava_ImmutableSet() {
+        // Keeps insertion order, but is not SequencedCollection because Guava supports older JDK versions
+        // https://github.com/google/guava/issues/6903
+
+        return forSetType(SetCreator.forArrayBasedType(ImmutableSet::copyOf))
+            .expect(NullSupport.ARGUMENTS, SetOrder.INSERTION_ORDER, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .createTests();
     }
 
     /**
@@ -473,26 +459,26 @@ class SetTest {
 
         DynamicTest hasRandomElementOrder() {
             return dynamicTest("hasRandomElementOrder", () -> {
-                Set<String> set = setCreator.createSetWithFullAlphabet();
+                Set<String> set = setCreator.createSetWithAlphanumericalEntries();
                 // Of course it's still possible that by coincidence the Set has the same order,
                 // but we just have to live with this
-                assertThat(set, containsInAnyOrder(SetCreator.ALPHABET_ELEMENTS_RANDOM));
-                assertThat(set, not(contains(SetCreator.ALPHABET_ELEMENTS_RANDOM)));
-                assertThat(set, not(contains(SetCreator.ALPHABET_ELEMENTS_SORTED)));
+                assertThat(set, containsInAnyOrder(SetCreator.ALPHANUM_ELEMENTS_RANDOM));
+                assertThat(set, not(contains(SetCreator.ALPHANUM_ELEMENTS_RANDOM)));
+                assertThat(set, not(contains(SetCreator.ALPHANUM_ELEMENTS_SORTED)));
             });
         }
 
         DynamicTest keepsElementsSorted() {
             return dynamicTest("keepsElementsSorted", () -> {
-                Set<String> set = setCreator.createSetWithFullAlphabet();
-                assertThat(set, contains(SetCreator.ALPHABET_ELEMENTS_SORTED));
+                Set<String> set = setCreator.createSetWithAlphanumericalEntries();
+                assertThat(set, contains(SetCreator.ALPHANUM_ELEMENTS_SORTED));
             });
         }
 
         DynamicTest keepsElementsByInsertionOrder() {
             return dynamicTest("keepsElementsByInsertionOrder", () -> {
-                Set<String> set = setCreator.createSetWithFullAlphabet();
-                assertThat(set, contains(SetCreator.ALPHABET_ELEMENTS_RANDOM));
+                Set<String> set = setCreator.createSetWithAlphanumericalEntries();
+                assertThat(set, contains(SetCreator.ALPHANUM_ELEMENTS_RANDOM));
             });
         }
 

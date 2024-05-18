@@ -15,18 +15,18 @@ import java.util.stream.Stream;
  */
 public abstract sealed class SetCreator {
 
-    public static final String[] ALPHABET_ELEMENTS_RANDOM = {
-        "r", "X", "J", "l", "B", "i", "c", "y", "K", "M", "d", "q", "e", "Z", "v", "P", "s",
-        "x", "I", "U", "F", "G", "t", "p", "N", "S",
-        "o", "T", "L", "R", "w", "j", "a", "Q", "n", "W", "b", "Y", "k", "f", "h", "V", "A",
-        "m", "C", "D", "H", "z", "u", "E", "g", "O"
+    public static final String[] ALPHANUM_ELEMENTS_RANDOM = {
+        "rA", "Xo", "J1", "lW", "B2", "iK", "c8", "yG", "Kq", "Mf", "dZ", "qv", "eP",
+        "Zv", "vs", "Px", "sI", "xU", "Ia", "Ua", "Fu", "Gt", "tj", "ph", "Ns", "Sc",
+        "om", "Tu", "Lp", "Ra", "wo", "jp", "am", "Qy", "nO", "Wr", "bH", "Yz", "kr",
+        "fT", "hz", "Vr", "Ar", "mt", "Cd", "Dn", "Hr", "zE", "ur", "Eg", "gp", "OK"
     };
 
-    public static final String[] ALPHABET_ELEMENTS_SORTED = {
-        "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q",
-        "r", "s", "t", "u", "v", "w", "x", "y", "z",
-        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
-        "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+    public static final String[] ALPHANUM_ELEMENTS_SORTED = {
+        "Ar", "B2", "Cd", "Dn", "Eg", "Fu", "Gt", "Hr", "Ia", "J1", "Kq", "Lp", "Mf",
+        "Ns", "OK", "Px", "Qy", "Ra", "Sc", "Tu", "Ua", "Vr", "Wr", "Xo", "Yz", "Zv",
+        "am", "bH", "c8", "dZ", "eP", "fT", "gp", "hz", "iK", "jp", "kr", "lW", "mt",
+        "nO", "om", "ph", "qv", "rA", "sI", "tj", "ur", "vs", "wo", "xU", "yG", "zE"
     };
 
     /**
@@ -83,8 +83,16 @@ public abstract sealed class SetCreator {
         };
     }
 
-    public Set<String> createSetWithFullAlphabet() {
-        String[] args = ALPHABET_ELEMENTS_RANDOM;
+    /**
+     * Creates a set with alphanumerical pairs as entries: {@link #ALPHANUM_ELEMENTS_RANDOM}.
+     * Used to determine the order of the set (needs many entries to reduce the chance that a hash set has the
+     * elements in order by coincidence). Set creators that cannot hold as many entries throw an exception
+     * (refer to {@link #getSizeLimit()}).
+     *
+     * @return set with alphanumerical pairs
+     */
+    public Set<String> createSetWithAlphanumericalEntries() {
+        String[] args = ALPHANUM_ELEMENTS_RANDOM;
         return switch (this) {
             case MutableSetCreator msc -> msc.newSet(args);
             case ArrayBasedSetCreator asc -> asc.newSet(args);
@@ -96,6 +104,13 @@ public abstract sealed class SetCreator {
         };
     }
 
+    /**
+     * Initializes a set with "a", "b", "c", including some of these entries multiple times to test the
+     * set's behavior with duplicate elements. This method throws an exception if the instantiation type
+     * cannot encounter sets (see {@link #canEncounterDuplicateArguments()}).
+     *
+     * @return set initialized with "a", "b", "a", "c", "b"
+     */
     public Set<String> createSetWithDuplicateArgs() {
         String[] args = {"a", "b", "a", "c", "b"};
         return switch (this) {
@@ -109,6 +124,13 @@ public abstract sealed class SetCreator {
         };
     }
 
+    /**
+     * Returns whether this set creator instantiates a set in a way that elements can be provided to it
+     * multiple times. For example, duplicate elements cannot be encountered in a set creation method that
+     * copies another set. This method is relevant for {@link #createSetWithDuplicateArgs()}.
+     *
+     * @return true if it can technically encounter duplicate elements in its instantiation, false otherwise
+     */
     public boolean canEncounterDuplicateArguments() {
         return !(this instanceof SetBasedSetCreator) && getSizeLimit() >= 2;
     }
@@ -256,13 +278,14 @@ public abstract sealed class SetCreator {
         }
     }
 
+    /** Common set creator type that creates a set based on another collection or set. */
     public abstract static sealed class FromCollectionSetCreator extends SetCreator {
 
         public abstract Set<String> newSet(Set<String> args);
 
     }
 
-    /** Implementation for set creations based on another set (by wrapping or copying it). */
+    /** Implementation for set creations based on another collection (by wrapping or copying it). */
     private static final class CollectionBasedSetCreator extends FromCollectionSetCreator {
 
         private final Function<Collection<String>, Set<String>> callback;
