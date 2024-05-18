@@ -1,7 +1,7 @@
 package ch.jalu.collectionbehavior.verification;
 
 import ch.jalu.collectionbehavior.model.ListCreator;
-import ch.jalu.collectionbehavior.model.ListModificationBehavior;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
 import ch.jalu.collectionbehavior.model.SetWithBackingDataModifier;
 
@@ -233,7 +233,7 @@ public final class CollectionMutabilityVerifier {
         assertThrows(UnsupportedOperationException.class, iterator::remove);
     }
 
-    public static void verifyCannotBeModifiedByListIterator(ListModificationBehavior mutability,
+    public static void verifyCannotBeModifiedByListIterator(ModificationBehavior mutability,
                                                             ListCreator listCreator, List<String> list) {
         ListIterator<String> listIterator = list.listIterator();
         assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
@@ -252,12 +252,12 @@ public final class CollectionMutabilityVerifier {
     }
 
     public static void verifyListExceptionBehavior(List<String> listToVerify,
-                                                   ListModificationBehavior expectedBehavior) {
+                                                   ModificationBehavior expectedBehavior) {
         new ListModificationVerifier(listToVerify, expectedBehavior).testMethods();
     }
 
     public static void verifySetExceptionBehavior(Set<String> setToVerify,
-                                                  ListModificationBehavior expectedBehavior) {
+                                                  ModificationBehavior expectedBehavior) {
         new SetModificationVerifier(setToVerify, expectedBehavior).testMethods();
     }
 }

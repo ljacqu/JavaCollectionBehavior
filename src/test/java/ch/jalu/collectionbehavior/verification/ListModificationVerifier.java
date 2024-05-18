@@ -1,7 +1,7 @@
 package ch.jalu.collectionbehavior.verification;
 
 import ch.jalu.collectionbehavior.model.ListMethod;
-import ch.jalu.collectionbehavior.model.ListModificationBehavior;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.MethodCallEffect;
 
 import java.util.ArrayList;
@@ -17,9 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 final class ListModificationVerifier {
 
     private final List<String> originalList;
-    private final ListModificationBehavior expectedBehavior;
+    private final ModificationBehavior expectedBehavior;
 
-    ListModificationVerifier(List<String> originalList, ListModificationBehavior expectedBehavior) {
+    ListModificationVerifier(List<String> originalList, ModificationBehavior expectedBehavior) {
         this.originalList = originalList;
         this.expectedBehavior = expectedBehavior;
     }

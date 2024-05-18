@@ -1,6 +1,6 @@
 package ch.jalu.collectionbehavior.verification;
 
-import ch.jalu.collectionbehavior.model.ListModificationBehavior;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.MethodCallEffect;
 import ch.jalu.collectionbehavior.model.SetMethod;
 
@@ -17,9 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 final class SetModificationVerifier {
 
     private final Set<String> originalSet;
-    private final ListModificationBehavior expectedBehavior;
+    private final ModificationBehavior expectedBehavior;
 
-    SetModificationVerifier(Set<String> originalSet, ListModificationBehavior expectedBehavior) {
+    SetModificationVerifier(Set<String> originalSet, ModificationBehavior expectedBehavior) {
         this.originalSet = originalSet;
         this.expectedBehavior = expectedBehavior;
     }
@@ -40,6 +40,7 @@ final class SetModificationVerifier {
         test(SetMethod.CLEAR, set -> set.clear());
 
         if (originalSet instanceof SequencedSet<String>) {
+            // TODO reversed modif checks
             test(SetMethod.ADD_FIRST, set -> ((SequencedSet<String>) set).addFirst("a"));
             test(SetMethod.ADD_FIRST, set -> ((SequencedSet<String>) set).addFirst("foo"));
             test(SetMethod.ADD_LAST, set -> ((SequencedSet<String>) set).addLast("a"));
