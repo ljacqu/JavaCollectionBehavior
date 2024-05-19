@@ -252,6 +252,14 @@ class SetTest {
             this.testLogic = new TestLogic(setCreator);
         }
 
+        /**
+         * Sets some basic expected properties of the set type to this generator.
+         *
+         * @param nullSupport expected null support of the list type
+         * @param elementOrder expected order of the set's elements
+         * @param sequencedSetType whether the set type extends SequencedSet
+         * @return this instance, for chaining
+         */
         TestsGenerator expect(NullSupport nullSupport, SetOrder elementOrder, SequencedSetType sequencedSetType) {
             this.nullSupport = nullSupport;
             this.elementOrder = elementOrder;
@@ -259,11 +267,23 @@ class SetTest {
             return this;
         }
 
+        /**
+         * Registers the expected mutability behavior of the set type that should be tested.
+         *
+         * @param modificationBehavior definition of how the set is expected to behave wrt mutability
+         * @return this instance, for chaining
+         */
         TestsGenerator mutability(ModificationBehavior modificationBehavior) {
             this.modificationBehavior = modificationBehavior;
             return this;
         }
 
+        /**
+         * When the set is created based on another structure that allows duplicates, defines that duplicates in that
+         * input structure will result in an exception.
+         *
+         * @return this instance, for chaining
+         */
         TestsGenerator rejectsDuplicatesOnCreation() {
             this.acceptsDuplicatesOnCreation = false;
             return this;
@@ -363,10 +383,13 @@ class SetTest {
             Set<String> emptyList = setCreator.createSet();
 
             List<DynamicTest> testsToRun = new ArrayList<>();
-            testsToRun.add(dynamicTest("mutable", () -> CollectionMutabilityVerifier.verifySetIsMutable(emptyList)));
-            testsToRun.add(dynamicTest("mutable_iterator", () -> verifyIsMutableByIterator(emptyList)));
-            if (emptyList instanceof SequencedSet<String> seq) {
-                testsToRun.add(dynamicTest("mutable_sequencedSet", () -> verifyIsMutableBySequencedSetMethods(seq)));
+            testsToRun.add(dynamicTest("mutable",
+                () -> CollectionMutabilityVerifier.verifySetIsMutable(emptyList)));
+            testsToRun.add(dynamicTest("mutable_iterator",
+                () -> verifyIsMutableByIterator(emptyList)));
+            if (emptyList instanceof SequencedSet<String> seqSet) {
+                testsToRun.add(dynamicTest("mutable_sequencedSet",
+                    () -> verifyIsMutableBySequencedSetMethods(seqSet)));
             }
             return testsToRun;
         }
@@ -391,6 +414,8 @@ class SetTest {
         private Stream<DynamicTest> createTestForSkipsWrappingOwnClassIfApplicable() {
             if (skipsWrappingForOwnClass) {
                 return Stream.of(testLogic.skipsWrappingForOwnClass());
+            } else if (setCreator instanceof FromCollectionSetCreator) {
+                return Stream.of(testLogic.alwaysWrapsOwnClass());
             }
             return Stream.empty();
         }
@@ -444,6 +469,15 @@ class SetTest {
             });
         }
 
+        DynamicTest alwaysWrapsOwnClass() {
+            FromCollectionSetCreator setCopyCreator = (FromCollectionSetCreator) setCreator;
+            return dynamicTest("alwaysWrapsOwnClass", () -> {
+                Set<String> set1 = setCopyCreator.newSet(Set.of("a", "b"));
+                Set<String> set2 = setCopyCreator.newSet(set1);
+                assertThat(set1, not(sameInstance(set2)));
+            });
+        }
+
         DynamicTest isSequencedSet() {
             return dynamicTest("isSequencedSet",
                 () -> assertThat(setCreator.createSet(), instanceOf(SequencedSet.class)));
@@ -454,14 +488,20 @@ class SetTest {
                 Set<String> set = setCreator.createSet();
                 assertThat(set, not(instanceOf(SequencedSet.class)));
                 assertThat(set, not(instanceOf(SequencedCollection.class)));
+                if (setCreator instanceof FromCollectionSetCreator fcc) {
+                    // Explicitly check that a SequencedSet as base does not yield a SequencedSet, as is done for
+                    // RandomAccess sometimes with methods that wrap lists
+                    SequencedSet<String> sequencedSet = new LinkedHashSet<>(set);
+                    assertThat(fcc.newSet(sequencedSet), not(instanceOf(SequencedSet.class)));
+                }
             });
         }
 
         DynamicTest hasRandomElementOrder() {
             return dynamicTest("hasRandomElementOrder", () -> {
                 Set<String> set = setCreator.createSetWithAlphanumericalEntries();
-                // Of course it's still possible that by coincidence the Set has the same order,
-                // but we just have to live with this
+                // It's still possible that by coincidence the Set has the same order even though it makes
+                // no guarantees. It's improbable to happen because of the number of entries we use.
                 assertThat(set, containsInAnyOrder(SetCreator.ALPHANUM_ELEMENTS_RANDOM));
                 assertThat(set, not(contains(SetCreator.ALPHANUM_ELEMENTS_RANDOM)));
                 assertThat(set, not(contains(SetCreator.ALPHANUM_ELEMENTS_SORTED)));

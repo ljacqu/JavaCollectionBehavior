@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.SequencedCollection;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -175,7 +176,7 @@ public final class CollectionMutabilityVerifier {
         assertThat(set, empty());
     }
 
-    public static void verifyIsMutableBySequencedSetMethods(SequencedCollection<String> seqColl) {
+    public static void verifyIsMutableBySequencedSetMethods(SequencedSet<String> seqColl) {
         seqColl.add("b");
         seqColl.addFirst("a");
         seqColl.addLast("c");
@@ -187,11 +188,8 @@ public final class CollectionMutabilityVerifier {
 
         SequencedCollection<String> reversedCollection = seqColl.reversed();
         reversedCollection.add("f");
-        if (seqColl instanceof List) {
-            assertThat(seqColl, contains("f", "b"));
-        } else {
-            assertThat(seqColl, contains("b", "f"));
-        }
+        // Interestingly, if seqColl were a list, we would expect ("f", "b") here
+        assertThat(seqColl, contains("b", "f"));
         reversedCollection.clear();
     }
 

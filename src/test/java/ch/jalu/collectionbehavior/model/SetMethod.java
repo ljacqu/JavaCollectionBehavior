@@ -3,6 +3,9 @@ package ch.jalu.collectionbehavior.model;
 import java.util.SequencedSet;
 import java.util.Set;
 
+/**
+ * Enum representing various methods available on a {@link Set} and its extensions.
+ */
 public enum SetMethod implements CollectionMethod {
 
     /** {@link Set#add(Object)} */
