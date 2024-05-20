@@ -7,6 +7,7 @@ import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
 import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.model.RandomAccessType;
+import ch.jalu.collectionbehavior.verification.ListModificationVerifier;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,6 @@ import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifi
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByIteratorAndListIterator;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByReversedList;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySubList;
-import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListExceptionBehavior;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListIsMutable;
 import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifyRejectsNullArgInMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifySupportsNullArgInMethods;
@@ -444,11 +444,11 @@ class ListTest {
             return Stream.of(
                     testForImmutabilityType,
                     dynamicTest("unmodifiable",
-                        () -> verifyListExceptionBehavior(list, modificationBehavior)),
+                        () -> ListModificationVerifier.testMethods(list, modificationBehavior)),
                     dynamicTest("unmodifiable_subList",
-                        () -> verifyListExceptionBehavior(list.subList(0, list.size()), modificationBehaviorSubList)),
+                        () -> ListModificationVerifier.testMethods(list.subList(0, list.size()), modificationBehaviorSubList)),
                     dynamicTest("unmodifiable_reversed",
-                        () -> verifyListExceptionBehavior(list.reversed(), modificationBehaviorReversed)),
+                        () -> ListModificationVerifier.testMethods(list.reversed(), modificationBehaviorReversed)),
                     testForIteratorModification,
                     dynamicTest("unmodifiable_listIterator",
                         () -> verifyCannotBeModifiedByListIterator(modificationBehavior, listCreator, list)))

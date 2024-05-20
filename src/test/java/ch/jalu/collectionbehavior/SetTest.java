@@ -35,7 +35,6 @@ import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifi
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByIterator;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByIterator;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySequencedSetMethods;
-import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifySetExceptionBehavior;
 import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifyRejectsNullArgInMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifySupportsNullArgInMethods;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -366,7 +365,7 @@ class SetTest {
             createTestForImmutabilityBehavior().ifPresent(testsToRun::add);
             Set<String> set = setCreator.createSetWithAbcdOrSubset();
             testsToRun.add(dynamicTest("unmodifiable",
-                () -> verifySetExceptionBehavior(set, modificationBehavior)));
+                () -> SetModificationVerifier.testMethods(set, modificationBehavior)));
             if (set instanceof SequencedSet<String> seqSet) {
                 testsToRun.add(dynamicTest("unmodifiable_sequencedSet",
                     () -> SetModificationVerifier.testMethodsForSequencedSet(seqSet, modificationBehavior)));

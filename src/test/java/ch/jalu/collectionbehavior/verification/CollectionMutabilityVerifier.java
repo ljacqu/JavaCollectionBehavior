@@ -252,14 +252,4 @@ public final class CollectionMutabilityVerifier {
             }
         }
     }
-
-    public static void verifyListExceptionBehavior(List<String> listToVerify,
-                                                   ModificationBehavior expectedBehavior) {
-        new ListModificationVerifier(listToVerify, expectedBehavior).testMethods();
-    }
-
-    public static void verifySetExceptionBehavior(Set<String> setToVerify,
-                                                  ModificationBehavior expectedBehavior) {
-        SetModificationVerifier.testMethods(setToVerify, expectedBehavior);
-    }
 }
