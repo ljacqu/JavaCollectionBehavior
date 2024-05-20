@@ -3,10 +3,11 @@ package ch.jalu.collectionbehavior;
 import ch.jalu.collectionbehavior.model.ListCreator;
 import ch.jalu.collectionbehavior.model.ListCreator.ListBasedListCreator;
 import ch.jalu.collectionbehavior.model.ListMethod;
-import ch.jalu.collectionbehavior.model.ListModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.model.RandomAccessType;
+import ch.jalu.collectionbehavior.verification.ListModificationVerifier;
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,6 @@ import java.util.SequencedCollection;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInList;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInList;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByIterator;
@@ -34,8 +33,9 @@ import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifi
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByIteratorAndListIterator;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByReversedList;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySubList;
-import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListExceptionBehavior;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyListIsMutable;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifyRejectsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifySupportsNullArgInMethods;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
@@ -62,7 +62,7 @@ class ListTest {
     List<DynamicTest> jdk_ArrayList() {
         return forListType(ListCreator.forMutableType(ArrayList::new))
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.mutable())
+            .mutability(ModificationBehavior.mutable())
             .createTests();
     }
 
@@ -73,7 +73,7 @@ class ListTest {
     List<DynamicTest> jdk_LinkedList() {
         return forListType(ListCreator.forMutableType(LinkedList::new))
             .expect(NullSupport.FULL, RandomAccessType.DOES_NOT_IMPLEMENT)
-            .mutability(ListModificationBehavior.mutable())
+            .mutability(ModificationBehavior.mutable())
             .createTests();
     }
 
@@ -85,7 +85,7 @@ class ListTest {
     List<DynamicTest> jdk_List_of() {
         return forListType(ListCreator.forArrayBasedType(List::of))
             .expect(NullSupport.REJECT, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
             .createTests();
     }
 
@@ -98,7 +98,7 @@ class ListTest {
     List<DynamicTest> jdk_List_copyOf() {
         return forListType(ListCreator.forListBasedType(List::copyOf))
             .expect(NullSupport.REJECT, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
             .skipsWrappingForOwnClass()
             .createTests();
     }
@@ -113,7 +113,7 @@ class ListTest {
     List<DynamicTest> jdk_Arrays_asList() {
         return forListType(ListCreator.forArrayBasedType(Arrays::asList))
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.unmodifiable().throwsOnSizeModification())
+            .mutability(ModificationBehavior.unmodifiable().throwsOnSizeModification())
             .createTests();
     }
 
@@ -143,8 +143,8 @@ class ListTest {
     List<DynamicTest> guava_ImmutableList() {
         return forListType(ListCreator.forArrayBasedType(ImmutableList::copyOf))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().alwaysThrows())
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutabilityReversed(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .createTests();
@@ -159,8 +159,8 @@ class ListTest {
     List<DynamicTest> guava_ImmutableList_copyOf() {
         return forListType(ListCreator.forListBasedType(ImmutableList::copyOf))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().alwaysThrows())
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutabilityReversed(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .skipsWrappingForOwnClass()
@@ -175,10 +175,10 @@ class ListTest {
     List<DynamicTest> jdk_Collections_emptyList() {
         return forListType(ListCreator.forEmptyList(Collections::emptyList))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+            .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .throwsUnsupportedOpForIndexOutOfBounds())
-            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified())
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified())
+            .mutabilitySubList(ModificationBehavior.immutable().throwsIfWouldBeModified())
+            .mutabilityReversed(ModificationBehavior.immutable().throwsIfWouldBeModified())
             .createTests();
     }
 
@@ -194,8 +194,8 @@ class ListTest {
         // method, whereas in JDK 11 it always created a new instance
         return forListType(ListCreator.forListBasedType(Collections::unmodifiableList))
             .expect(NullSupport.FULL, RandomAccessType.PRESERVES)
-            .mutability(ListModificationBehavior.unmodifiable().alwaysThrows())
-            .mutabilityReversed(ListModificationBehavior.unmodifiable().throwsIfWouldBeModified()
+            .mutability(ModificationBehavior.unmodifiable().alwaysThrows())
+            .mutabilityReversed(ModificationBehavior.unmodifiable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .skipsWrappingForOwnClass()
@@ -209,14 +209,14 @@ class ListTest {
     List<DynamicTest> jdk_Collections_singletonList() {
         return forListType(ListCreator.forSingleElement(Collections::singletonList))
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+            .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .throwsUnsupportedOpForIndexOutOfBounds()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
-            .mutabilitySubList(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+            .mutabilitySubList(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
-            .mutabilityReversed(ListModificationBehavior.immutable().throwsIfWouldBeModified()
+            .mutabilityReversed(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .createTests();
@@ -243,7 +243,7 @@ class ListTest {
         // Implements RandomAccess (but Javadoc makes no guarantees)
         return forListType(ListCreator.fromStream(str -> str.collect(Collectors.toUnmodifiableList())))
             .expect(NullSupport.REJECT, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
             .createTests();
     }
 
@@ -254,7 +254,7 @@ class ListTest {
     List<DynamicTest> jdk_Stream_toList() {
         return forListType(ListCreator.fromStream(Stream::toList))
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
-            .mutability(ListModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
             .createTests();
     }
 
@@ -283,9 +283,9 @@ class ListTest {
         private NullSupport nullSupport;
         private boolean skipsWrappingForOwnClass;
 
-        private ListModificationBehavior modificationBehavior;
-        private ListModificationBehavior modificationBehaviorSubList;
-        private ListModificationBehavior modificationBehaviorReversed;
+        private ModificationBehavior modificationBehavior;
+        private ModificationBehavior modificationBehaviorSubList;
+        private ModificationBehavior modificationBehaviorReversed;
 
         TestsGenerator(ListCreator listCreator, String testName) {
             this.listCreator = listCreator;
@@ -310,37 +310,37 @@ class ListTest {
          * Sets the expected mutability behavior of this list type. If not overridden, the mutability definition is also
          * taken over for this list type's associated lists: {@link List#subList} and {@link List#reversed()}.
          *
-         * @param expectedMutabilityBehavior definition of how this list type is expected to behave wrt mutability
+         * @param expectedModificationBehavior definition of how this list type is expected to behave wrt mutability
          * @return this instance, for chaining
          */
-        TestsGenerator mutability(ListModificationBehavior expectedMutabilityBehavior) {
-            this.modificationBehavior = expectedMutabilityBehavior;
-            this.modificationBehaviorSubList = expectedMutabilityBehavior;
-            this.modificationBehaviorReversed = expectedMutabilityBehavior;
+        TestsGenerator mutability(ModificationBehavior expectedModificationBehavior) {
+            this.modificationBehavior = expectedModificationBehavior;
+            this.modificationBehaviorSubList = expectedModificationBehavior;
+            this.modificationBehaviorReversed = expectedModificationBehavior;
             return this;
         }
 
         /**
          * Sets the expected mutability behavior of this list type's subList type ({@link List#subList}).
          *
-         * @param expectedMutabilityBehaviorSubList definition of how this list type's subList is expected to behave
-         *                                          wrt mutability
+         * @param expectedModificationBehaviorSubList definition of how this list type's subList is expected to behave
+         *                                            wrt mutability
          * @return this instance, for chaining
          */
-        TestsGenerator mutabilitySubList(ListModificationBehavior expectedMutabilityBehaviorSubList) {
-            this.modificationBehaviorSubList = expectedMutabilityBehaviorSubList;
+        TestsGenerator mutabilitySubList(ModificationBehavior expectedModificationBehaviorSubList) {
+            this.modificationBehaviorSubList = expectedModificationBehaviorSubList;
             return this;
         }
 
         /**
          * Sets the expected mutability behavior of this list type's reversed type ({@link List#reversed}).
          *
-         * @param expectedMutabilityBehaviorReversed definition of how this list type's reverse list is expected to
-         *                                           behave wrt mutability
+         * @param expectedModificationBehaviorReversed definition of how this list type's reverse list is expected to
+         *                                             behave wrt mutability
          * @return this instance, for chaining
          */
-        TestsGenerator mutabilityReversed(ListModificationBehavior expectedMutabilityBehaviorReversed) {
-            this.modificationBehaviorReversed = expectedMutabilityBehaviorReversed;
+        TestsGenerator mutabilityReversed(ModificationBehavior expectedModificationBehaviorReversed) {
+            this.modificationBehaviorReversed = expectedModificationBehaviorReversed;
             return this;
         }
 
@@ -444,11 +444,11 @@ class ListTest {
             return Stream.of(
                     testForImmutabilityType,
                     dynamicTest("unmodifiable",
-                        () -> verifyListExceptionBehavior(list, modificationBehavior)),
+                        () -> ListModificationVerifier.testMethods(list, modificationBehavior)),
                     dynamicTest("unmodifiable_subList",
-                        () -> verifyListExceptionBehavior(list.subList(0, list.size()), modificationBehaviorSubList)),
+                        () -> ListModificationVerifier.testMethods(list.subList(0, list.size()), modificationBehaviorSubList)),
                     dynamicTest("unmodifiable_reversed",
-                        () -> verifyListExceptionBehavior(list.reversed(), modificationBehaviorReversed)),
+                        () -> ListModificationVerifier.testMethods(list.reversed(), modificationBehaviorReversed)),
                     testForIteratorModification,
                     dynamicTest("unmodifiable_listIterator",
                         () -> verifyCannotBeModifiedByListIterator(modificationBehavior, listCreator, list)))

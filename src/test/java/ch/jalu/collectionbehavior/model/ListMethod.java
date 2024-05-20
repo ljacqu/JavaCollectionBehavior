@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Enum representing various methods available on a {@link List}.
  */
-public enum ListMethod {
+public enum ListMethod implements CollectionMethod {
 
     /** {@link List#add(Object)} */
     ADD,

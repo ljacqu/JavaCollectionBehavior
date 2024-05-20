@@ -3,55 +3,57 @@ package ch.jalu.collectionbehavior.model;
 import com.google.common.base.Preconditions;
 
 import java.util.Collections;
-import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Defines the expected behavior of a list type with regard to how it can be modified, or which exceptions are
- * thrown if the list is unmodifiable.
+ * Defines the expected behavior of a collection type with regard to how it can be modified, or which exceptions are
+ * thrown if the collection is unmodifiable.
  * <p>
  * For example, certain unmodifiable list implementations only throw an exception if the call would effectively
- * modify the list, while others unconditionally throw from methods like {@code List#remove}.
+ * modify the list, while others unconditionally throw in methods like {@code List#remove}.
  */
-public final class ListModificationBehavior {
+public final class ModificationBehavior {
 
     /**
      * True if the described type is <b>immutable</b>. False does not imply that the type is modifiable! This flag
-     * defines whether a list cannot be changed in any way, unlike Java's definition of "unmodifiable".
+     * defines whether a collection cannot be changed in any way, unlike Java's definition of "unmodifiable".
      */
     public final boolean isImmutable;
 
     /**
      * If true, the expected behavior is that an {@link UnsupportedOperationException} is thrown when indexes are
      * referenced that are out of bounds. If false, the usual {@link IndexOutOfBoundsException} is expected.
+     * This only applies to lists (sets and maps have no methods referencing indexes).
      */
     public boolean throwsUnsupportedOperationExceptionForInvalidIndex;
 
     /**
-     * Throws an exception if a call is made that would modify an entry in the list. If the size of the list
+     * Throws an exception if a call is made that would modify an entry in the collection. If the size of the collection
      * changes with the processed modification, {@link #throwsOnSizeModification} should be considered instead.
      */
     public final boolean throwsOnModification;
 
     /**
-     * Throws an exception if a call leads to the list's size changing (i.e. adding or removing entries).
+     * Throws an exception if a call leads to the collection's size changing (i.e. adding or removing entries).
      */
     public final boolean throwsOnSizeModification;
 
     /**
-     * If true, an exception is expected from methods that can modify the list even if the supplied arguments would
-     * not modify the list.
+     * If true, an exception is expected from methods that can modify the collection even if the supplied arguments
+     * would not modify it.
      */
     public final boolean throwsOnNonModifyingModificationMethods;
 
     /**
-     * Contains methods that are expected to always throw (regardless of arguments, i.e. regardless if the list would
-     * actually be modified or not). This acts to document exceptions on types that have false for
+     * Contains methods that are expected to always throw (regardless of arguments, i.e. regardless if the collection
+     * would actually be modified or not). This acts to document exceptions on types that have false for
      * {@link #throwsOnNonModifyingModificationMethods}.
      */
-    private final EnumSet<ListMethod> methodsAlwaysThrowing = EnumSet.noneOf(ListMethod.class);
+    private final Set<CollectionMethod> methodsAlwaysThrowing = new HashSet<>();
 
-    private ListModificationBehavior(boolean isImmutable, boolean throwsOnModification,
-                                     boolean throwsOnSizeModification, boolean throwsOnNonModifyingModificationMethods) {
+    private ModificationBehavior(boolean isImmutable, boolean throwsOnModification,
+                                 boolean throwsOnSizeModification, boolean throwsOnNonModifyingModificationMethods) {
         this.isImmutable = isImmutable;
         this.throwsOnModification = throwsOnModification;
         this.throwsOnSizeModification = throwsOnSizeModification;
@@ -59,16 +61,16 @@ public final class ListModificationBehavior {
     }
 
     /**
-     * Returns a behavior definition object that expects the list to be fully modifiable.
+     * Returns a behavior definition object that expects the collection to be fully modifiable.
      *
      * @return modifiable behavior object
      */
-    public static ListModificationBehavior mutable() {
-        return new ListModificationBehavior(false, false, false, false);
+    public static ModificationBehavior mutable() {
+        return new ModificationBehavior(false, false, false, false);
     }
 
     /**
-     * Creates a builder to create a behavior definition for an immutable list type.
+     * Creates a builder to create a behavior definition for an immutable collection type.
      *
      * @return builder for immutable type
      */
@@ -77,8 +79,8 @@ public final class ListModificationBehavior {
     }
 
     /**
-     * Creates a builder to create a behavior definition for an unmodifiable list type. "Unmodifiable" differs from
-     * "immutable" in that an unmodifiable list can be changed by altering the list's backing structure.
+     * Creates a builder to create a behavior definition for an unmodifiable collection type. "Unmodifiable" differs
+     * from "immutable" in that an unmodifiable collection can be changed by altering its backing structure.
      *
      * @return builder for unmodifiable type
      */
@@ -87,25 +89,26 @@ public final class ListModificationBehavior {
     }
 
     /**
-     * Registers the given methods as always throwing, regardless of whether the call would modify the list or not.
-     * Used to register exceptions to behavior definitions that otherwise only throw if the call would actually
-     * modify the list.
+     * Registers the given methods as always throwing, regardless of whether the call would modify the collection or
+     * not. Used to register exceptions to behavior definitions that otherwise only throw if the call would actually
+     * modify the collection.
      *
      * @param methods the methods that are expected to always throw
      * @return this instance, for chaining
      */
-    public ListModificationBehavior alwaysThrowsFor(ListMethod... methods) {
+    public ModificationBehavior alwaysThrowsFor(CollectionMethod... methods) {
         Collections.addAll(methodsAlwaysThrowing, methods);
         return this;
     }
 
     /**
-     * For methods taking a list index, if the provided index is out of bounds, an {@link UnsupportedOperationException}
-     * is thrown instead of the usual {@link IndexOutOfBoundsException}.
+     * For list methods taking an index, if the provided index is out of bounds, an
+     * {@link UnsupportedOperationException} is expected to be thrown instead of the usual
+     * {@link IndexOutOfBoundsException}.
      *
      * @return this instance, for chaining
      */
-    public ListModificationBehavior throwsUnsupportedOpForIndexOutOfBounds() {
+    public ModificationBehavior throwsUnsupportedOpForIndexOutOfBounds() {
         this.throwsUnsupportedOperationExceptionForInvalidIndex = true;
         return this;
     }
@@ -117,7 +120,7 @@ public final class ListModificationBehavior {
      * @param method the method to check for
      * @return the expected exception if it does not conform to the behavior generally defined, otherwise null
      */
-    public Class<? extends Exception> getExpectedException(ListMethod method) {
+    public Class<? extends Exception> getExpectedException(CollectionMethod method) {
         if (methodsAlwaysThrowing.contains(method)) {
             return UnsupportedOperationException.class;
         }
@@ -125,7 +128,7 @@ public final class ListModificationBehavior {
     }
 
     /**
-     * @return true if this behavior definition is for a modifiable list; false if it's unmodifiable
+     * @return true if this behavior definition is for a modifiable collection; false if it's unmodifiable
      */
     public boolean isMutable() {
         return !throwsOnModification && !throwsOnSizeModification;
@@ -141,22 +144,22 @@ public final class ListModificationBehavior {
         }
 
         /**
-         * Methods that (potentially) modify the list are expected to always throw an exception.
+         * Methods that (potentially) modify the collection are expected to always throw an exception.
          *
          * @return behavior definition
          */
-        public ListModificationBehavior alwaysThrows() {
-            return new ListModificationBehavior(isImmutable,true, true, true);
+        public ModificationBehavior alwaysThrows() {
+            return new ModificationBehavior(isImmutable,true, true, true);
         }
 
         /**
-         * Methods that (potentially) modify the list are expected to only throw an exception if the arguments
-         * would actually lead to a modification of the list.
+         * Methods that (potentially) modify the collection are expected to only throw an exception if the arguments
+         * would actually lead to a modification.
          *
          * @return behavior definition
          */
-        public ListModificationBehavior throwsIfWouldBeModified() {
-            return new ListModificationBehavior(isImmutable, true, true, false);
+        public ModificationBehavior throwsIfWouldBeModified() {
+            return new ModificationBehavior(isImmutable, true, true, false);
         }
 
         /**
@@ -165,9 +168,9 @@ public final class ListModificationBehavior {
          *
          * @return behavior definition
          */
-        public ListModificationBehavior throwsOnSizeModification() {
+        public ModificationBehavior throwsOnSizeModification() {
             Preconditions.checkState(!isImmutable);
-            return new ListModificationBehavior(isImmutable, false, true, false);
+            return new ModificationBehavior(isImmutable, false, true, false);
         }
     }
 }

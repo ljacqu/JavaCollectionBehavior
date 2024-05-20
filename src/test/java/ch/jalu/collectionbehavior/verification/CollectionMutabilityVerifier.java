@@ -1,18 +1,22 @@
 package ch.jalu.collectionbehavior.verification;
 
 import ch.jalu.collectionbehavior.model.ListCreator;
-import ch.jalu.collectionbehavior.model.ListModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
+import ch.jalu.collectionbehavior.model.SetWithBackingDataModifier;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -126,6 +130,73 @@ public final class CollectionMutabilityVerifier {
         list.clear();
     }
 
+    /**
+     * Verifies that the given Set is mutable (incl. verification that it can be modified via iterator).
+     *
+     * @param emptySet an empty Set instance of the type to test
+     */
+    public static void verifySetIsMutable(Set<String> emptySet) {
+        assertThat(emptySet, empty()); // Validate method contract
+        Set<String> set = emptySet;
+
+        // Set#add, Set#addAll
+        set.add("a");
+        set.add("b");
+        set.addAll(List.of("b", "c", "d", "c", "X", "Y"));
+        assertThat(set, containsInAnyOrder("a", "b", "c", "d", "X", "Y"));
+
+        // Set#remove, Set#removeAll, Set#removeIf
+        set.remove("a"); // b, c, d, X, Y
+        set.removeAll(Set.of("c", "ë")); // b, d, X, Y
+        set.removeIf(elem -> elem.equals("b")); // d, X, Y
+        assertThat(set, containsInAnyOrder("d", "X", "Y"));
+
+        // Set#retainAll
+        set.retainAll(Set.of("d", "X"));
+        assertThat(set, containsInAnyOrder("d", "X"));
+
+        // Set#clear
+        set.clear();
+        assertThat(set, empty());
+    }
+
+    public static void verifyIsMutableByIterator(Set<String> set) {
+        set.add("north");
+        set.add("east");
+        set.add("south");
+        set.add("west");
+
+        Iterator<String> iterator = set.iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
+            iterator.remove();
+        }
+
+        assertThat(set, empty());
+    }
+
+    public static void verifyIsMutableBySequencedSetMethods(SequencedSet<String> seqColl) {
+        seqColl.add("b");
+        seqColl.addFirst("a");
+        seqColl.addLast("c");
+        assertThat(seqColl, contains("a", "b", "c"));
+
+        seqColl.removeFirst();
+        seqColl.removeLast();
+        assertThat(seqColl, contains("b"));
+
+        SequencedSet<String> reversed = seqColl.reversed();
+        reversed.add("f");
+        // Interestingly, if seqColl were a list, we would expect ("f", "b") here
+        assertThat(seqColl, contains("b", "f"));
+
+        reversed.addFirst("g");
+        reversed.remove("f");
+        assertThat(reversed, contains("g", "b"));
+        assertThat(seqColl, contains("b", "g"));
+        reversed.clear();
+    }
+
     public static void unmodifiable_changeToOriginalStructureIsReflectedInList(
                                                               ListWithBackingDataModifier listWithBackingDataModifier) {
         List<String> list = listWithBackingDataModifier.list();
@@ -142,13 +213,29 @@ public final class CollectionMutabilityVerifier {
         assertThat(list, contains("a", "b", "c", "d"));
     }
 
-    public static void verifyCannotBeModifiedByIterator(List<String> list) {
-        Iterator<?> iterator = list.iterator();
+    public static void unmodifiable_changeToOriginalStructureIsReflectedInSet(
+                                                                SetWithBackingDataModifier setWithBackingDataModifier) {
+        Set<String> set = setWithBackingDataModifier.set();
+        assertThat(set, contains("a", "b", "c", "d"));
+        setWithBackingDataModifier.runBackingDataModifier();
+        assertThat(set, contains("a", "b", "c"));
+    }
+
+    public static void immutable_changeToOriginalStructureIsNotReflectedInSet(
+                                                                SetWithBackingDataModifier setWithBackingDataModifier) {
+        Set<String> set = setWithBackingDataModifier.set();
+        assertThat(set, containsInAnyOrder("a", "b", "c", "d"));
+        setWithBackingDataModifier.runBackingDataModifier();
+        assertThat(set, containsInAnyOrder("a", "b", "c", "d"));
+    }
+
+    public static void verifyCannotBeModifiedByIterator(Collection<String> coll) {
+        Iterator<?> iterator = coll.iterator();
         iterator.next();
         assertThrows(UnsupportedOperationException.class, iterator::remove);
     }
 
-    public static void verifyCannotBeModifiedByListIterator(ListModificationBehavior mutability,
+    public static void verifyCannotBeModifiedByListIterator(ModificationBehavior mutability,
                                                             ListCreator listCreator, List<String> list) {
         ListIterator<String> listIterator = list.listIterator();
         assertThrows(UnsupportedOperationException.class, () -> listIterator.add("test"));
@@ -164,10 +251,5 @@ public final class CollectionMutabilityVerifier {
                 assertDoesNotThrow(() -> listIterator.set("test"));
             }
         }
-    }
-
-    public static void verifyListExceptionBehavior(List<String> listToVerify,
-                                                   ListModificationBehavior expectedBehavior) {
-        new ListModificationVerifier(listToVerify, expectedBehavior).testMethods();
     }
 }
