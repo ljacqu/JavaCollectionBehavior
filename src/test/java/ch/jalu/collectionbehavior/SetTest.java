@@ -1,5 +1,6 @@
 package ch.jalu.collectionbehavior;
 
+import ch.jalu.collectionbehavior.model.MethodCallEffect;
 import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.model.SequencedSetType;
@@ -189,7 +190,9 @@ class SetTest {
         return forSetType(SetCreator.forSingleElement(Collections::singleton))
             .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.DOES_NOT_IMPLEMENT)
             .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(SetMethod.ADD, SetMethod.REMOVE_IF))
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.REMOVE_IF)
+            )
             .createTests();
     }
 
@@ -272,6 +275,7 @@ class SetTest {
          *
          * @param modificationBehavior definition of how the set is expected to behave wrt mutability
          * @return this instance, for chaining
+         * @see SetModificationVerifier
          */
         TestsGenerator mutability(ModificationBehavior modificationBehavior) {
             this.modificationBehavior = modificationBehavior;

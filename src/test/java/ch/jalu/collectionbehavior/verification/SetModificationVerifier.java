@@ -25,8 +25,8 @@ public final class SetModificationVerifier {
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(str -> str.equals("a")))
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of("fff", "xxx")))
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of("fff", "a")))
-            .test(SetMethod.RETAIN_ALL, set -> set.retainAll(Set.of("a")))
-            .test(SetMethod.RETAIN_ALL, set -> set.retainAll(Set.of("qqq")))
+            .test(SetMethod.RETAIN_ALL, set -> set.retainAll(Set.of("a", "b", "c", "d")))
+            .test(SetMethod.RETAIN_ALL, set -> set.retainAll(Set.of("d")))
             .test(SetMethod.CLEAR, set -> set.clear());
     }
 

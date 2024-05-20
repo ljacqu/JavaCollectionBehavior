@@ -4,6 +4,7 @@ import ch.jalu.collectionbehavior.model.ListCreator;
 import ch.jalu.collectionbehavior.model.ListCreator.ListBasedListCreator;
 import ch.jalu.collectionbehavior.model.ListMethod;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
+import ch.jalu.collectionbehavior.model.MethodCallEffect;
 import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.model.RandomAccessType;
@@ -85,7 +86,8 @@ class ListTest {
     List<DynamicTest> jdk_List_of() {
         return forListType(ListCreator.forArrayBasedType(List::of))
             .expect(NullSupport.REJECT, RandomAccessType.IMPLEMENTS)
-            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows()
+                .throwsUnsupportedOpForIndexOutOfBounds())
             .createTests();
     }
 
@@ -98,7 +100,8 @@ class ListTest {
     List<DynamicTest> jdk_List_copyOf() {
         return forListType(ListCreator.forListBasedType(List::copyOf))
             .expect(NullSupport.REJECT, RandomAccessType.IMPLEMENTS)
-            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows()
+                .throwsUnsupportedOpForIndexOutOfBounds())
             .skipsWrappingForOwnClass()
             .createTests();
     }
@@ -113,7 +116,13 @@ class ListTest {
     List<DynamicTest> jdk_Arrays_asList() {
         return forListType(ListCreator.forArrayBasedType(Arrays::asList))
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
-            .mutability(ModificationBehavior.unmodifiable().throwsOnSizeModification())
+            .mutability(ModificationBehavior.unmodifiable().throwsOnSizeModification()
+                .throwsUnsupportedOpForIndexOutOfBounds()
+                .butThrows(ArrayIndexOutOfBoundsException.class)
+                    .on(MethodCallEffect.INDEX_OUT_OF_BOUNDS, ListMethod.SET)
+            )
+            .mutabilityReversed(ModificationBehavior.unmodifiable().throwsOnSizeModification())
+            .mutabilitySubList(ModificationBehavior.unmodifiable().throwsOnSizeModification())
             .createTests();
     }
 
@@ -143,9 +152,13 @@ class ListTest {
     List<DynamicTest> guava_ImmutableList() {
         return forListType(ListCreator.forArrayBasedType(ImmutableList::copyOf))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
-            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows()
+                .throwsUnsupportedOpForIndexOutOfBounds()
+            )
             .mutabilityReversed(ModificationBehavior.immutable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING,
+                        ListMethod.SET, ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .createTests();
     }
@@ -159,9 +172,13 @@ class ListTest {
     List<DynamicTest> guava_ImmutableList_copyOf() {
         return forListType(ListCreator.forListBasedType(ImmutableList::copyOf))
             .expect(NullSupport.ARGUMENTS, RandomAccessType.IMPLEMENTS)
-            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows()
+                .throwsUnsupportedOpForIndexOutOfBounds()
+            )
             .mutabilityReversed(ModificationBehavior.immutable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING,
+                        ListMethod.SET, ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .skipsWrappingForOwnClass()
             .createTests();
@@ -194,9 +211,12 @@ class ListTest {
         // method, whereas in JDK 11 it always created a new instance
         return forListType(ListCreator.forListBasedType(Collections::unmodifiableList))
             .expect(NullSupport.FULL, RandomAccessType.PRESERVES)
-            .mutability(ModificationBehavior.unmodifiable().alwaysThrows())
+            .mutability(ModificationBehavior.unmodifiable().alwaysThrows()
+                .throwsUnsupportedOpForIndexOutOfBounds())
             .mutabilityReversed(ModificationBehavior.unmodifiable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING,
+                        ListMethod.SET, ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .skipsWrappingForOwnClass()
             .createTests();
@@ -211,13 +231,19 @@ class ListTest {
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
             .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .throwsUnsupportedOpForIndexOutOfBounds()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING,
+                        ListMethod.SET, ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .mutabilitySubList(ModificationBehavior.immutable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REPLACE_ALL, ListMethod.SORT)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING,
+                        ListMethod.SET, ListMethod.REPLACE_ALL, ListMethod.SORT)
             )
             .mutabilityReversed(ModificationBehavior.immutable().throwsIfWouldBeModified()
-                .alwaysThrowsFor(ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING,
+                        ListMethod.SET, ListMethod.REMOVE_IF, ListMethod.REPLACE_ALL)
             )
             .createTests();
     }
@@ -243,7 +269,8 @@ class ListTest {
         // Implements RandomAccess (but Javadoc makes no guarantees)
         return forListType(ListCreator.fromStream(str -> str.collect(Collectors.toUnmodifiableList())))
             .expect(NullSupport.REJECT, RandomAccessType.IMPLEMENTS)
-            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows()
+                .throwsUnsupportedOpForIndexOutOfBounds())
             .createTests();
     }
 
@@ -254,7 +281,8 @@ class ListTest {
     List<DynamicTest> jdk_Stream_toList() {
         return forListType(ListCreator.fromStream(Stream::toList))
             .expect(NullSupport.FULL, RandomAccessType.IMPLEMENTS)
-            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutability(ModificationBehavior.immutable().alwaysThrows()
+                .throwsUnsupportedOpForIndexOutOfBounds())
             .createTests();
     }
 
@@ -312,6 +340,7 @@ class ListTest {
          *
          * @param expectedModificationBehavior definition of how this list type is expected to behave wrt mutability
          * @return this instance, for chaining
+         * @see ListModificationVerifier
          */
         TestsGenerator mutability(ModificationBehavior expectedModificationBehavior) {
             this.modificationBehavior = expectedModificationBehavior;

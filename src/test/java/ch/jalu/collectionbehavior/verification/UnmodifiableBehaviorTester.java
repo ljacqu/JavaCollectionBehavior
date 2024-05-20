@@ -26,9 +26,14 @@ class UnmodifiableBehaviorTester<C extends Collection<String>> {
 
     UnmodifiableBehaviorTester<C> test(CollectionMethod method, Consumer<C> action) {
         MethodCallEffect effect = determineMethodCallEffect(action);
-        Class<? extends Exception> expectedException = expectedBehavior.getExpectedException(method);
-        if (expectedException == null) {
-            expectedException = determineExpectedException(effect);
+        Class<? extends Exception> manuallyDefinedException = expectedBehavior.getExpectedException(method, effect);
+        Class<? extends Exception> expectedException = determineExpectedException(effect);
+        if (manuallyDefinedException != null) {
+            if (manuallyDefinedException.equals(expectedException)) {
+                throw new IllegalStateException("Exception for " + method + ", " + effect
+                    + " was registered, but it is in line with the defined behavior!");
+            }
+            expectedException = manuallyDefinedException;
         }
 
         if (expectedException != null) {

@@ -1,10 +1,8 @@
 package ch.jalu.collectionbehavior.model;
 
 import com.google.common.base.Preconditions;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 /**
  * Defines the expected behavior of a collection type with regard to how it can be modified, or which exceptions are
@@ -46,11 +44,12 @@ public final class ModificationBehavior {
     public final boolean throwsOnNonModifyingModificationMethods;
 
     /**
-     * Contains methods that are expected to always throw (regardless of arguments, i.e. regardless if the collection
-     * would actually be modified or not). This acts to document exceptions on types that have false for
+     * Contains (method, effect) pairs that are expected to throw an exception that is not in line with the rules
+     * generally defined in this behavior object. This acts to document exceptions on types that have false for
      * {@link #throwsOnNonModifyingModificationMethods}.
      */
-    private final Set<CollectionMethod> methodsAlwaysThrowing = new HashSet<>();
+    private final Table<CollectionMethod, MethodCallEffect, Class<? extends Exception>> exceptionExceptions =
+        HashBasedTable.create();
 
     private ModificationBehavior(boolean isImmutable, boolean throwsOnModification,
                                  boolean throwsOnSizeModification, boolean throwsOnNonModifyingModificationMethods) {
@@ -89,16 +88,14 @@ public final class ModificationBehavior {
     }
 
     /**
-     * Registers the given methods as always throwing, regardless of whether the call would modify the collection or
-     * not. Used to register exceptions to behavior definitions that otherwise only throw if the call would actually
-     * modify the collection.
+     * Registers methods that throw the given exception for cases that are not in line with the general behavior.
+     * This method returns a builder to which the methods can be passed.
      *
-     * @param methods the methods that are expected to always throw
-     * @return this instance, for chaining
+     * @param expectedException exception type that some methods throw (special cases)
+     * @return exception registration builder to pass methods to
      */
-    public ModificationBehavior alwaysThrowsFor(CollectionMethod... methods) {
-        Collections.addAll(methodsAlwaysThrowing, methods);
-        return this;
+    public ExceptionRegistration butThrows(Class<? extends Exception> expectedException) {
+        return new ExceptionRegistration(expectedException);
     }
 
     /**
@@ -118,13 +115,11 @@ public final class ModificationBehavior {
      * differently from the usual behavior.
      *
      * @param method the method to check for
+     * @param effect the effect the method has (or would have) on the list
      * @return the expected exception if it does not conform to the behavior generally defined, otherwise null
      */
-    public Class<? extends Exception> getExpectedException(CollectionMethod method) {
-        if (methodsAlwaysThrowing.contains(method)) {
-            return UnsupportedOperationException.class;
-        }
-        return null;
+    public Class<? extends Exception> getExpectedException(CollectionMethod method, MethodCallEffect effect) {
+        return exceptionExceptions.get(method, effect);
     }
 
     /**
@@ -132,6 +127,29 @@ public final class ModificationBehavior {
      */
     public boolean isMutable() {
         return !throwsOnModification && !throwsOnSizeModification;
+    }
+
+    public final class ExceptionRegistration {
+
+        private final Class<? extends Exception> expectedException;
+
+        private ExceptionRegistration(Class<? extends Exception> expectedException) {
+            this.expectedException = expectedException;
+        }
+
+        /**
+         * The exception is thrown for the given methods, when the effect of the method is as specified.
+         *
+         * @param effect the effect the methods have on the collection
+         * @param methods the methods for which the exception should be registered
+         * @return modification behavior object this object originated from
+         */
+        public ModificationBehavior on(MethodCallEffect effect, CollectionMethod... methods) {
+            for (CollectionMethod method : methods) {
+                exceptionExceptions.put(method, effect, expectedException);
+            }
+            return ModificationBehavior.this;
+        }
     }
 
     /** Builder for unmodifiable/immutable behavior definitions. */
