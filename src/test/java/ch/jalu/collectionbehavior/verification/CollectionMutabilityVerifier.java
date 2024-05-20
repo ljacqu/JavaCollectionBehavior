@@ -1,8 +1,8 @@
 package ch.jalu.collectionbehavior.verification;
 
 import ch.jalu.collectionbehavior.model.ListCreator;
-import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.ListWithBackingDataModifier;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.SetWithBackingDataModifier;
 
 import java.util.Collection;
@@ -10,7 +10,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.SequencedCollection;
 import java.util.SequencedSet;
 import java.util.Set;
 import java.util.function.Function;
@@ -186,11 +185,16 @@ public final class CollectionMutabilityVerifier {
         seqColl.removeLast();
         assertThat(seqColl, contains("b"));
 
-        SequencedCollection<String> reversedCollection = seqColl.reversed();
-        reversedCollection.add("f");
+        SequencedSet<String> reversed = seqColl.reversed();
+        reversed.add("f");
         // Interestingly, if seqColl were a list, we would expect ("f", "b") here
         assertThat(seqColl, contains("b", "f"));
-        reversedCollection.clear();
+
+        reversed.addFirst("g");
+        reversed.remove("f");
+        assertThat(reversed, contains("g", "b"));
+        assertThat(seqColl, contains("b", "g"));
+        reversed.clear();
     }
 
     public static void unmodifiable_changeToOriginalStructureIsReflectedInList(
@@ -256,6 +260,6 @@ public final class CollectionMutabilityVerifier {
 
     public static void verifySetExceptionBehavior(Set<String> setToVerify,
                                                   ModificationBehavior expectedBehavior) {
-        new SetModificationVerifier(setToVerify, expectedBehavior).testMethods();
+        SetModificationVerifier.testMethods(setToVerify, expectedBehavior);
     }
 }

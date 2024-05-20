@@ -9,6 +9,7 @@ import ch.jalu.collectionbehavior.model.SetMethod;
 import ch.jalu.collectionbehavior.model.SetOrder;
 import ch.jalu.collectionbehavior.model.SetWithBackingDataModifier;
 import ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier;
+import ch.jalu.collectionbehavior.verification.SetModificationVerifier;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.DynamicTest;
@@ -363,12 +364,19 @@ class SetTest {
 
             List<DynamicTest> testsToRun = new ArrayList<>();
             createTestForImmutabilityBehavior().ifPresent(testsToRun::add);
+            Set<String> set = setCreator.createSetWithAbcdOrSubset();
             testsToRun.add(dynamicTest("unmodifiable",
-                () -> verifySetExceptionBehavior(setCreator.createSetWithAbcdOrSubset(), modificationBehavior)));
+                () -> verifySetExceptionBehavior(set, modificationBehavior)));
+            if (set instanceof SequencedSet<String> seqSet) {
+                testsToRun.add(dynamicTest("unmodifiable_sequencedSet",
+                    () -> SetModificationVerifier.testMethodsForSequencedSet(seqSet, modificationBehavior)));
+                testsToRun.add(dynamicTest("unmodifiable_reversed",
+                    () -> SetModificationVerifier.testMethodsForReversedSet(seqSet.reversed(), modificationBehavior)));
+            }
 
             if (setCreator.getSizeLimit() > 0) {
                 testsToRun.add(dynamicTest("unmodifiable_iterator",
-                    () -> verifyCannotBeModifiedByIterator(setCreator.createSetWithAbcdOrSubset())));
+                    () -> verifyCannotBeModifiedByIterator(set)));
             }
 
             return testsToRun.stream();
@@ -387,6 +395,7 @@ class SetTest {
                 () -> CollectionMutabilityVerifier.verifySetIsMutable(emptyList)));
             testsToRun.add(dynamicTest("mutable_iterator",
                 () -> verifyIsMutableByIterator(emptyList)));
+
             if (emptyList instanceof SequencedSet<String> seqSet) {
                 testsToRun.add(dynamicTest("mutable_sequencedSet",
                     () -> verifyIsMutableBySequencedSetMethods(seqSet)));
