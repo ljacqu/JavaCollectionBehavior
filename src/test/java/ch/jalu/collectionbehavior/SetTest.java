@@ -20,13 +20,16 @@ import org.junit.jupiter.api.TestFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.SequencedCollection;
 import java.util.SequencedSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,9 +38,13 @@ import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifi
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInSet;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByIterator;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByIterator;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByNavigableSetMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySequencedSetMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifyRejectsNullArgInMethods;
 import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifySupportsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.SetModificationVerifier.testMethods;
+import static ch.jalu.collectionbehavior.verification.SetModificationVerifier.testMethodsForReversedSet;
+import static ch.jalu.collectionbehavior.verification.SetModificationVerifier.testMethodsForSequencedSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -71,6 +78,32 @@ class SetTest {
     List<DynamicTest> jdk_LinkedHashSet() {
         return forSetType(SetCreator.forMutableType(LinkedHashSet::new))
             .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.IMPLEMENTS)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
+    }
+
+    /**
+     * {@link TreeSet}: modifiable Set that keeps entries in a sorted manner. With the default comparator,
+     * null is not supported. Elements already added to it are silently ignored.
+     * Implements SequencedSet, but methods like {@link SequencedSet#removeFirst} throw an exception because
+     * the entries are implicitly sorted.
+     */
+    @TestFactory
+    List<DynamicTest> jdk_TreeSet() {
+        return forSetType(SetCreator.forMutableType(TreeSet::new))
+            .expect(NullSupport.REJECT, SetOrder.SORTED, SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
+    }
+
+    /**
+     * {@link TreeSet} with a custom comparator: supports null if supported by the comparator.
+     */
+    @TestFactory
+    List<DynamicTest> jdk_TreeSet_customComparator() {
+        Comparator<String> strComparator = Comparator.nullsFirst(Comparator.naturalOrder());
+        return forSetType(SetCreator.forMutableType(() -> new TreeSet<>(strComparator)))
+            .expect(NullSupport.FULL, SetOrder.SORTED, SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING)
             .mutability(ModificationBehavior.mutable())
             .createTests();
     }
@@ -355,7 +388,7 @@ class SetTest {
 
         private Stream<DynamicTest> createTestForSequencedSetImpl() {
             return switch (sequencedSetType) {
-                case IMPLEMENTS -> Stream.of(testLogic.isSequencedSet());
+                case IMPLEMENTS, IMPLEMENTS_W_IMPLICIT_ORDERING -> Stream.of(testLogic.isSequencedSet());
                 case DOES_NOT_IMPLEMENT -> Stream.of(testLogic.isNotSequencedSet());
             };
         }
@@ -369,12 +402,12 @@ class SetTest {
             createTestForImmutabilityBehavior().ifPresent(testsToRun::add);
             Set<String> set = setCreator.createSetWithAbcdOrSubset();
             testsToRun.add(dynamicTest("unmodifiable",
-                () -> SetModificationVerifier.testMethods(set, modificationBehavior)));
+                () -> testMethods(set, modificationBehavior)));
             if (set instanceof SequencedSet<String> seqSet) {
                 testsToRun.add(dynamicTest("unmodifiable_sequencedSet",
-                    () -> SetModificationVerifier.testMethodsForSequencedSet(seqSet, modificationBehavior)));
+                    () -> testMethodsForSequencedSet(seqSet, modificationBehavior)));
                 testsToRun.add(dynamicTest("unmodifiable_reversed",
-                    () -> SetModificationVerifier.testMethodsForReversedSet(seqSet.reversed(), modificationBehavior)));
+                    () -> testMethodsForReversedSet(seqSet.reversed(), modificationBehavior)));
             }
 
             if (setCreator.getSizeLimit() > 0) {
@@ -400,8 +433,14 @@ class SetTest {
                 () -> verifyIsMutableByIterator(emptyList)));
 
             if (emptyList instanceof SequencedSet<String> seqSet) {
-                testsToRun.add(dynamicTest("mutable_sequencedSet",
-                    () -> verifyIsMutableBySequencedSetMethods(seqSet)));
+                boolean removeOnly = sequencedSetType == SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING;
+                String suffix = removeOnly ? "_removeOnly" : "";
+                testsToRun.add(dynamicTest("mutable_sequencedSet" + suffix,
+                    () -> verifyIsMutableBySequencedSetMethods(seqSet, removeOnly)));
+            }
+            if (emptyList instanceof NavigableSet<String> navSet) {
+                testsToRun.add(dynamicTest("mutable_navigableSet",
+                    () -> verifyIsMutableByNavigableSetMethods(navSet)));
             }
             return testsToRun;
         }

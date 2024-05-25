@@ -10,8 +10,10 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NavigableSet;
 import java.util.SequencedSet;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -175,11 +177,17 @@ public final class CollectionMutabilityVerifier {
         assertThat(set, empty());
     }
 
-    public static void verifyIsMutableBySequencedSetMethods(SequencedSet<String> seqColl) {
-        seqColl.add("b");
-        seqColl.addFirst("a");
-        seqColl.addLast("c");
-        assertThat(seqColl, contains("a", "b", "c"));
+    public static void verifyIsMutableBySequencedSetMethods(SequencedSet<String> seqColl, boolean removeOnly) {
+        if (!removeOnly) {
+            seqColl.add("b");
+            seqColl.addFirst("a");
+            seqColl.addLast("c");
+            assertThat(seqColl, contains("a", "b", "c"));
+        } else {
+            assertThrows(UnsupportedOperationException.class, () -> seqColl.addFirst("a"));
+            assertThrows(UnsupportedOperationException.class, () -> seqColl.addLast("c"));
+            seqColl.addAll(List.of("a", "b", "c"));
+        }
 
         seqColl.removeFirst();
         seqColl.removeLast();
@@ -190,11 +198,55 @@ public final class CollectionMutabilityVerifier {
         // Interestingly, if seqColl were a list, we would expect ("f", "b") here
         assertThat(seqColl, contains("b", "f"));
 
-        reversed.addFirst("g");
+        if (removeOnly) {
+            reversed.add("g");
+            assertThrows(UnsupportedOperationException.class, () -> reversed.addFirst("g"));
+        } else {
+            reversed.addFirst("g");
+        }
+
         reversed.remove("f");
         assertThat(reversed, contains("g", "b"));
         assertThat(seqColl, contains("b", "g"));
         reversed.clear();
+    }
+
+    public static void verifyIsMutableByNavigableSetMethods(NavigableSet<String> navSet) {
+        navSet.addAll(Set.of("a", "e", "i", "o", "u"));
+        assertThat(navSet, contains("a", "e", "i", "o", "u"));
+
+        // descendingSet
+        navSet.descendingSet().add("k"); // aeikou
+        // descendingIterator
+        Iterator<String> descendingIterator = navSet.descendingIterator();
+        descendingIterator.next();
+        descendingIterator.remove(); // removes "u" -> aeiko
+        // subSet
+        SortedSet<String> subSet = navSet.subSet("e", "o");
+        subSet.add("g"); // aeigko
+        assertThat(navSet, contains("a", "e", "g", "i", "k", "o"));
+        // headSet(E)
+        SortedSet<String> headSetExcl = navSet.headSet("m");
+        headSetExcl.remove("g");
+        headSetExcl.remove("o");
+        assertThat(navSet, contains("a", "e", "i", "k", "o"));
+        // headSet(E, boolean)
+        NavigableSet<String> headSetIncl = navSet.headSet("o", true);
+        headSetIncl.add("c");
+        headSetIncl.removeFirst();
+        assertThat(navSet, contains("c", "e", "i", "k", "o"));
+        // tailSet(E)
+        SortedSet<String> tailSetIncl = navSet.tailSet("k");
+        tailSetIncl.add("l");
+        // tailSet(E, boolean)
+        SortedSet<String> tailSetExcl = navSet.tailSet("i", false);
+        tailSetExcl.removeFirst();
+        assertThat(navSet, contains("c", "e", "i", "l", "o"));
+        // subSet
+        SortedSet<String> subset = navSet.subSet("e", "l");// = subset(e, true, k, false)
+        subset.retainAll(Set.of("i"));
+        assertThat(navSet, contains("c", "i", "l", "o"));
+        navSet.clear();
     }
 
     public static void unmodifiable_changeToOriginalStructureIsReflectedInList(
