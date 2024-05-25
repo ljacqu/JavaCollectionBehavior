@@ -201,18 +201,37 @@ class SetTest {
      */
     @TestFactory
     List<DynamicTest> jdk_Collections_unmodifiableSequencedSet() {
-        Function<Set<String>, Set<String>> creationFn = input -> {
-            if (input instanceof SequencedSet<String> seqSet) {
-                return Collections.unmodifiableSequencedSet(seqSet);
-            }
-            return Collections.unmodifiableSequencedSet(new LinkedHashSet<>(input));
-        };
+        SetCreator setCreator = SetCreator.forSetBasedType(Collections::unmodifiableSequencedSet,
+            in -> in instanceof SequencedSet<String> seq ? seq : new LinkedHashSet<>(in));
 
-        return forSetType(SetCreator.forSetBasedType(creationFn))
+        return forSetType(setCreator)
             .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.IMPLEMENTS)
             .mutability(ModificationBehavior.unmodifiable().alwaysThrows())
             .skipsWrappingForOwnClass()
             .createTests();
+    }
+
+    /**
+     * {@link Collections#unmodifiableNavigableSet(NavigableSet)} wraps a navigable set into an unmodified
+     * navigable set facade. Changes to the backing collection are reflected. Supports null (if the backing set
+     * supports it).
+     */
+    @TestFactory
+    List<DynamicTest> jdk_Collections_unmodifiableNavigableSet() {
+        SetCreator setCreator = SetCreator.forSetBasedType(Collections::unmodifiableNavigableSet,
+            in -> in instanceof NavigableSet<String> nav ? nav : createTreeSet(in));
+
+        return forSetType(setCreator)
+            .expect(NullSupport.FULL, SetOrder.SORTED, SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING)
+            .mutability(ModificationBehavior.unmodifiable().alwaysThrows())
+            .skipsWrappingForOwnClass()
+            .createTests();
+    }
+
+    private static TreeSet<String> createTreeSet(Set<String> elements) {
+        TreeSet<String> treeSet = new TreeSet<>(Comparator.nullsFirst(Comparator.naturalOrder()));
+        treeSet.addAll(elements);
+        return treeSet;
     }
 
     /**

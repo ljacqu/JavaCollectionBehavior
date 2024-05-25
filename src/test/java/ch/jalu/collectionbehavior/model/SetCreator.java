@@ -38,7 +38,7 @@ public abstract sealed class SetCreator {
             case MutableSetCreator msc -> msc.newSet();
             case ArrayBasedSetCreator asc -> asc.newSet();
             case CollectionBasedSetCreator cbc -> cbc.newSet(Collections.emptySet());
-            case SetBasedSetCreator sbc -> sbc.newSet(Collections.emptySet());
+            case SetBasedSetCreator<?> sbc -> sbc.newSet(Collections.emptySet());
             case StreamBasedSetCreator ssc -> ssc.newSet();
             case EmptySetCreator esc -> esc.newSet();
             case SingleElementSetCreator sec -> sec.newSet("a");
@@ -57,7 +57,7 @@ public abstract sealed class SetCreator {
             case MutableSetCreator msc -> msc.newSet((String) null);
             case ArrayBasedSetCreator asc -> asc.newSet((String) null);
             case CollectionBasedSetCreator cbc -> cbc.newSet(Collections.singleton(null));
-            case SetBasedSetCreator lsc -> lsc.newSet(Collections.singleton(null));
+            case SetBasedSetCreator<?> lsc -> lsc.newSet(Collections.singleton(null));
             case StreamBasedSetCreator ssc -> ssc.newSet((String) null);
             case EmptySetCreator esc -> throw new UnsupportedOperationException();
             case SingleElementSetCreator sec -> sec.newSet(null);
@@ -76,7 +76,7 @@ public abstract sealed class SetCreator {
             case MutableSetCreator msc -> msc.newSet(args);
             case ArrayBasedSetCreator asc -> asc.newSet(args);
             case CollectionBasedSetCreator cbc -> cbc.newSet(Arrays.asList(args));
-            case SetBasedSetCreator sbc -> sbc.newSet(new LinkedHashSet<>(Arrays.asList(args)));
+            case SetBasedSetCreator<?> sbc -> sbc.newSet(new LinkedHashSet<>(Arrays.asList(args)));
             case StreamBasedSetCreator sbc -> sbc.newSet(args);
             case EmptySetCreator esc -> esc.newSet();
             case SingleElementSetCreator sec -> sec.newSet(args[0]);
@@ -97,7 +97,7 @@ public abstract sealed class SetCreator {
             case MutableSetCreator msc -> msc.newSet(args);
             case ArrayBasedSetCreator asc -> asc.newSet(args);
             case CollectionBasedSetCreator cbc -> cbc.newSet(Arrays.asList(args));
-            case SetBasedSetCreator sbc -> sbc.newSet(new LinkedHashSet<>(Arrays.asList(args)));
+            case SetBasedSetCreator<?> sbc -> sbc.newSet(new LinkedHashSet<>(Arrays.asList(args)));
             case StreamBasedSetCreator sbc -> sbc.newSet(args);
             case EmptySetCreator esc -> throw new UnsupportedOperationException();
             case SingleElementSetCreator sec -> throw new UnsupportedOperationException();
@@ -117,7 +117,7 @@ public abstract sealed class SetCreator {
             case MutableSetCreator msc -> msc.newSet(args);
             case ArrayBasedSetCreator asc -> asc.newSet(args);
             case CollectionBasedSetCreator cbc -> cbc.newSet(Arrays.asList(args));
-            case SetBasedSetCreator sbc -> throw new UnsupportedOperationException();
+            case SetBasedSetCreator<?> sbc -> throw new UnsupportedOperationException();
             case StreamBasedSetCreator sbc -> sbc.newSet(args);
             case EmptySetCreator esc -> throw new UnsupportedOperationException();
             case SingleElementSetCreator sec -> throw new UnsupportedOperationException();
@@ -132,7 +132,7 @@ public abstract sealed class SetCreator {
      * @return true if it can technically encounter duplicate elements in its instantiation, false otherwise
      */
     public boolean canEncounterDuplicateArguments() {
-        return !(this instanceof SetBasedSetCreator) && getSizeLimit() >= 2;
+        return !(this instanceof SetBasedSetCreator<?>) && getSizeLimit() >= 2;
     }
 
     /**
@@ -199,7 +199,23 @@ public abstract sealed class SetCreator {
      * @return set creator
      */
     public static SetCreator forSetBasedType(Function<Set<String>, Set<String>> callback) {
-        return new SetBasedSetCreator(callback);
+        return forSetBasedType(callback, Function.identity());
+    }
+
+    /**
+     * Creates a set creator based on a method that copies or wraps another set of a specific type.
+     * Use {@link #fromCollection} if the method can generally take collections! This ensures that the creation
+     * method is tested on its behavior when duplicate elements exist in the argument of the method.
+     *
+     * @param callback method that takes a set to return a set
+     * @param inputTransformer callback to convert the set to the required input type. This callback should check the
+     *                         incoming set's type and cast it if it can be used, otherwise it should create a new set
+     * @param <S> the set type required to create a set
+     * @return set creator
+     */
+    public static <S extends Set<String>> SetCreator forSetBasedType(Function<S, Set<String>> callback,
+                                                                     Function<Set<String>, S> inputTransformer) {
+        return new SetBasedSetCreator<>(callback, inputTransformer);
     }
 
     /**
@@ -312,24 +328,28 @@ public abstract sealed class SetCreator {
     }
 
     /** Implementation for set creations based on another set (by wrapping or copying it). */
-    private static final class SetBasedSetCreator extends FromCollectionSetCreator {
+    private static final class SetBasedSetCreator<S extends Set<String>> extends FromCollectionSetCreator {
 
-        private final Function<Set<String>, Set<String>> callback;
+        private final Function<S, Set<String>> callback;
+        private final Function<Set<String>, ? extends S> inputTransformer;
 
-        SetBasedSetCreator(Function<Set<String>, Set<String>> callback) {
+        SetBasedSetCreator(Function<S, Set<String>> callback,
+                           Function<Set<String>, ? extends S> inputTransformer) {
             this.callback = callback;
+            this.inputTransformer = inputTransformer;
         }
 
         @Override
         public Set<String> newSet(Set<String> args) {
-            return callback.apply(args);
+            S input = inputTransformer.apply(args);
+            return callback.apply(input);
         }
 
         @Override
         public Optional<SetWithBackingDataModifier> createSetWithBackingDataModifier(String[] args) {
-            LinkedHashSet<String> backingSet = new LinkedHashSet<>(Arrays.asList(args));
-            Set<String> set = newSet(backingSet);
-            return Optional.of(new SetWithBackingDataModifier(set, backingSet::removeLast));
+            S backingSet = inputTransformer.apply(new LinkedHashSet<>(Arrays.asList(args)));
+            Set<String> set = callback.apply(backingSet);
+            return Optional.of(new SetWithBackingDataModifier(set, () -> backingSet.remove("d")));
         }
     }
 
