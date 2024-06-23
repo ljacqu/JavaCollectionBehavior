@@ -310,7 +310,7 @@ class SetTest {
         /**
          * Sets some basic expected properties of the set type to this generator.
          *
-         * @param nullSupport expected null support of the list type
+         * @param nullSupport expected null support of the set type
          * @param elementOrder expected order of the set's elements
          * @param sequencedSetType whether the set type extends SequencedSet
          * @return this instance, for chaining
@@ -438,7 +438,7 @@ class SetTest {
         }
 
         /**
-         * Returns tests to run for a list creator whose type should be fully modifiable.
+         * Returns tests to run for a set creator whose type should be fully modifiable.
          *
          * @return tests to run
          */
@@ -471,13 +471,13 @@ class SetTest {
             if (!modificationBehavior.isImmutable) {
                 // Must be able to create this in order to "claim" that it's not immutable
                 SetWithBackingDataModifier setWithBd = setWithDataModifier.orElseThrow();
-                DynamicTest test = dynamicTest("unmodifiable_changeToOriginalStructureReflectedInList",
+                DynamicTest test = dynamicTest("unmodifiable_changeToOriginalStructureReflectedInSet",
                     () -> unmodifiable_changeToOriginalStructureIsReflectedInSet(setWithBd));
                 return Optional.of(test);
             }
 
             return setWithDataModifier
-                .map(setWithBd -> dynamicTest("immutable_originalStructureDoesNotChangeList",
+                .map(setWithBd -> dynamicTest("immutable_originalStructureDoesNotChangeSet",
                     () -> immutable_changeToOriginalStructureIsNotReflectedInSet(setWithBd)));
         }
 
