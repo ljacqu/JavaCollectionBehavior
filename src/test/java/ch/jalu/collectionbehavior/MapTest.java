@@ -1,17 +1,36 @@
 package ch.jalu.collectionbehavior;
 
+import ch.jalu.collectionbehavior.model.MapCreator;
+import ch.jalu.collectionbehavior.model.MapWithBackingDataModifier;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
+import ch.jalu.collectionbehavior.model.NullSupport;
+import ch.jalu.collectionbehavior.model.SequencedMapType;
+import ch.jalu.collectionbehavior.model.SetOrder;
+import ch.jalu.collectionbehavior.verification.MapModificationVerifier;
+import ch.jalu.collectionbehavior.verification.MapMutabilityVerifier;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedMap;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInSet;
+import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInSet;
+import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifyRejectsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifySupportsNullArgInMethods;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -20,7 +39,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 class MapTest {
 
@@ -28,58 +49,24 @@ class MapTest {
      * HashMap: standard implementation of Map. Does not retain iteration order. Supports null values and null as key.
      * Removal of entries from the key set, values set or entry set is reflected to the actual Map.
      */
-    @Test
-    void jdkHashMap() {
-        Map<Character, Integer> map = new HashMap<>();
-        map.put('0', 48);
-        map.put('z', 122);
-        map.put('A', 65);
-
-        assertContainsEntriesNotInOrder(map);
-        assertThat(map, not(instanceOf(SequencedMap.class)));
-
-        assertThat(map.containsValue(null), equalTo(false));
-        assertThat(map.containsKey(null), equalTo(false));
-        map.put(null, -1);
-        map.put('~', null);
-        assertThat(map.containsValue(null), equalTo(true));
-        assertThat(map.containsKey(null), equalTo(true));
-
-        map.keySet().remove('A');
-        assertThat(map.keySet(), containsInAnyOrder('0', 'z', null, '~'));
-        map.values().remove(-1);
-        assertThat(map.keySet(), containsInAnyOrder('0', 'z', '~'));
-        map.entrySet().removeIf(e -> e.getValue() == null);
-        assertThat(map.keySet(), containsInAnyOrder('0', 'z'));
+    @TestFactory
+    List<DynamicTest> jdk_HashMap() {
+        return forMapType(MapCreator.forMutableType(HashMap::new))
+            .expect(NullSupport.FULL, SetOrder.UNORDERED, SequencedMapType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
     }
 
     /**
      * LinkedHashMap: hash map with iteration by insertion order. Supports null values and null as key.
      * Removal of entries from the key set, values set or entry set is reflected to the actual Map.
      */
-    @Test
-    void jdkLinkedHashMap() {
-        Map<Character, Integer> map = new LinkedHashMap<>();
-        map.put('0', 48);
-        map.put('z', 122);
-        map.put('A', 65);
-
-        assertThat(map.keySet(), contains('0', 'z', 'A'));
-        assertThat(map, instanceOf(SequencedMap.class));
-
-        assertThat(map.containsValue(null), equalTo(false));
-        assertThat(map.containsKey(null), equalTo(false));
-        map.put(null, -1);
-        map.put('~', null);
-        assertThat(map.containsValue(null), equalTo(true));
-        assertThat(map.containsKey(null), equalTo(true));
-
-        map.keySet().remove('A');
-        assertThat(map.keySet(), contains('0', 'z', null, '~'));
-        map.values().remove(-1);
-        assertThat(map.keySet(), contains('0', 'z', '~'));
-        map.entrySet().removeIf(e -> e.getValue() == null);
-        assertThat(map.keySet(), contains('0', 'z'));
+    @TestFactory
+    List<DynamicTest> jdk_LinkedHashMap() {
+        return forMapType(MapCreator.forMutableType(LinkedHashMap::new))
+            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedMapType.IMPLEMENTS)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
     }
 
     /**
@@ -108,6 +95,15 @@ class MapTest {
             Map.entry('A', 65), Map.entry('0', 48), Map.entry('A', 65)));
     }
 
+    @TestFactory
+    List<DynamicTest> jdk_Map_copyOf() {
+        return forMapType(MapCreator.forMapBasedType(Map::copyOf))
+            .expect(NullSupport.REJECT, SetOrder.UNORDERED, SequencedMapType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .skipsWrappingForOwnClass()
+            .createTests();
+    }
+
     /**
      * {@link Map#copyOf} returns an immutable Map copied from another map. Iteration order is not preserved from
      * the original Map. Null is not supported as key or as value. Throws also for null in {@link Map#containsKey} and
@@ -132,9 +128,6 @@ class MapTest {
         assertThrows(NullPointerException.class, () -> Map.copyOf(mapWithNullValue));
         Map<Character, Integer> mapWithNullKey = newLinkedHashMap('A', 65, null, -1, 'z', 122);
         assertThrows(NullPointerException.class, () -> Map.copyOf(mapWithNullKey));
-
-        assertThrows(NullPointerException.class, () -> map.containsKey(null));
-        assertThrows(NullPointerException.class, () -> map.containsValue(null));
     }
 
     /**
@@ -358,5 +351,275 @@ class MapTest {
         map.put(key2, value2);
         map.put(key3, value3);
         return map;
+    }
+
+    private static TestsGenerator forMapType(MapCreator mapCreator) {
+        StackWalker instance = StackWalker.getInstance();
+        String testName = instance.walk(frames -> frames.skip(1).findFirst()).get().getMethodName();
+        return new TestsGenerator(mapCreator, testName);
+    }
+
+    /**
+     * Generates tests based on the expected behavior that is defined.
+     */
+    private static final class TestsGenerator {
+
+        private final MapCreator mapCreator;
+        private final String testName;
+        private final TestLogic testLogic;
+
+        private NullSupport nullSupport;
+        private SetOrder elementOrder; // todo: different type? or just rename?
+        private SequencedMapType sequencedMapType;
+        private boolean acceptsDuplicatesOnCreation = true;
+        private boolean skipsWrappingForOwnClass;
+
+        private ModificationBehavior modificationBehavior;
+
+
+        private TestsGenerator(MapCreator mapCreator, String testName) {
+            this.mapCreator = mapCreator;
+            this.testName = testName;
+            this.testLogic = new TestLogic(mapCreator);
+        }
+
+        /**
+         * Sets some basic expected properties of the map type to this generator.
+         *
+         * @param nullSupport expected null support of the map type
+         * @param elementOrder expected order of the map's elements
+         * @param sequencedMapType whether the map type extends SequencedMap
+         * @return this instance, for chaining
+         */
+        TestsGenerator expect(NullSupport nullSupport, SetOrder elementOrder, SequencedMapType sequencedMapType) {
+            this.nullSupport = nullSupport;
+            this.elementOrder = elementOrder;
+            this.sequencedMapType = sequencedMapType;
+            return this;
+        }
+
+        /**
+         * Registers the expected mutability behavior of the map type that should be tested.
+         *
+         * @param modificationBehavior definition of how the map is expected to behave wrt mutability
+         * @return this instance, for chaining
+         */
+        TestsGenerator mutability(ModificationBehavior modificationBehavior) {
+            this.modificationBehavior = modificationBehavior;
+            return this;
+        }
+
+        /**
+         * When the map is created based on another structure that allows duplicates, defines that duplicates in that
+         * input structure will result in an exception.
+         * TODO: Revise javadoc
+         *
+         * @return this instance, for chaining
+         */
+        TestsGenerator rejectsDuplicatesOnCreation() {
+            this.acceptsDuplicatesOnCreation = false;
+            return this;
+        }
+
+        /**
+         * Only applicable for map-based set creators: it is expected that the method recognizes sets of its return
+         * type and that it will not wrap those maps again, i.e. it returns the same map in this case.
+         *
+         * @return this instance, for chaining
+         */
+        TestsGenerator skipsWrappingForOwnClass() {
+            this.skipsWrappingForOwnClass = true;
+            return this;
+        }
+
+        public List<DynamicTest> createTests() {
+            return Stream.of(
+                    createTestsForNullSupport(),
+                    createTestForElementOrder(),
+                    createTestForSequencedMapImpl(),
+                    createTestsForMutability(),
+                    createTestForSkipsWrappingOwnClassIfApplicable()
+                )
+                .flatMap(Function.identity())
+                .toList();
+        }
+
+        // TODO: Test null keys and null values
+        private Stream<DynamicTest> createTestsForNullSupport() {
+            List<DynamicTest> tests = switch (nullSupport) {
+                case FULL -> List.of(
+                    testLogic.supportsNullElements(),
+                    testLogic.supportsNullMethodArgs());
+
+                case ARGUMENTS -> List.of(
+                    testLogic.mayNotContainNull(),
+                    testLogic.supportsNullMethodArgs());
+
+                case REJECT -> List.of(
+                    testLogic.mayNotContainNull(),
+                    testLogic.rejectsNullMethodArgs());
+            };
+
+            if (mapCreator.getSizeLimit() == 0) {
+                // A null element does not apply to an empty map type, skip the test
+                return tests.stream().skip(1);
+            }
+            return tests.stream();
+        }
+
+        private Stream<DynamicTest> createTestsForMutability() {
+            if (modificationBehavior.isMutable()) {
+                return Stream.of(
+                    dynamicTest("mutable",
+                        () -> MapMutabilityVerifier.verifyMapIsMutable(mapCreator.createMap())));
+            }
+
+            List<DynamicTest> testsToRun = new ArrayList<>();
+            Map<String, Integer> map = mapCreator.createMapWithAbcdOrSubset();
+            createTestForImmutabilityBehavior().ifPresent(testsToRun::add);
+            testsToRun.add(dynamicTest("unmodifiable",
+                () -> MapModificationVerifier.testMethods(map, modificationBehavior)));
+            return testsToRun.stream();
+
+        }
+
+        private Optional<DynamicTest> createTestForImmutabilityBehavior() {
+            Optional<MapWithBackingDataModifier> mapWithDataModifier =
+                mapCreator.createMapWithBackingDataModifier("a", "b", "c", "d");
+
+            if (!modificationBehavior.isImmutable) {
+                // Must be able to create this in order to "claim" that it's not immutable
+                MapWithBackingDataModifier mapWithBd = mapWithDataModifier.orElseThrow();
+                DynamicTest test = dynamicTest("unmodifiable_changeToOriginalStructureReflectedInMap",
+                    () -> unmodifiable_changeToOriginalStructureIsReflectedInSet(mapWithBd));
+                return Optional.of(test);
+            }
+
+            return mapWithDataModifier
+                .map(mapWithBd -> dynamicTest("immutable_originalStructureDoesNotChangeMap",
+                    () -> immutable_changeToOriginalStructureIsNotReflectedInSet(mapWithBd)));
+        }
+
+        private Stream<DynamicTest> createTestForElementOrder() {
+            if (mapCreator.getSizeLimit() <= 1) {
+                // 0 or 1 element are treated as order, throw exception otherwise: misconfiguration
+                Preconditions.checkState(elementOrder == SetOrder.INSERTION_ORDER);
+                return Stream.empty();
+            }
+
+            return switch (elementOrder) {
+                case INSERTION_ORDER -> Stream.of(testLogic.keepsElementsByInsertionOrder());
+                case SORTED -> Stream.of(testLogic.keepsElementsSorted());
+                case UNORDERED -> Stream.of(testLogic.hasRandomElementOrder());
+            };
+        }
+
+        private Stream<DynamicTest> createTestForSequencedMapImpl() {
+            return switch (sequencedMapType) {
+                case IMPLEMENTS -> Stream.of(testLogic.isSequencedMap());
+                case DOES_NOT_IMPLEMENT -> Stream.of(testLogic.isNotSequencedMap());
+            };
+        }
+
+        private Stream<DynamicTest> createTestForSkipsWrappingOwnClassIfApplicable() {
+            if (skipsWrappingForOwnClass) {
+                return Stream.of(testLogic.skipsWrappingForOwnClass());
+            } else if (mapCreator instanceof MapCreator.MapBasedMapCreator<?>) {
+                return Stream.of(testLogic.alwaysWrapsOwnClass());
+            }
+            return Stream.empty();
+        }
+    }
+
+    private static final class TestLogic {
+
+        private final MapCreator mapCreator;
+
+        private TestLogic(MapCreator mapCreator) {
+            this.mapCreator = mapCreator;
+        }
+
+        DynamicTest supportsNullElements() {
+            return dynamicTest("supportsNullElements",
+                () -> assertDoesNotThrow(mapCreator::createMapWithNull));
+        }
+
+        DynamicTest mayNotContainNull() {
+            return dynamicTest("mayNotContainNull",
+                () -> assertThrows(NullPointerException.class, mapCreator::createMapWithNull));
+        }
+
+        DynamicTest supportsNullMethodArgs() {
+            return dynamicTest("supportsNullMethodArgs",
+                () -> verifySupportsNullArgInMethods(mapCreator.createMap()));
+        }
+
+        DynamicTest rejectsNullMethodArgs() {
+            return dynamicTest("rejectsNullMethodArgs",
+                () -> verifyRejectsNullArgInMethods(mapCreator.createMap()));
+        }
+
+        DynamicTest skipsWrappingForOwnClass() {
+            MapCreator.MapBasedMapCreator<?> mapCopyCreator = (MapCreator.MapBasedMapCreator<?>) mapCreator;
+            return dynamicTest("skipsWrappingForOwnClass", () -> {
+                Map<String, Integer> map1 = mapCopyCreator.newMap(Map.of("a", 1, "b", 2));
+                Map<String, Integer> map2 = mapCopyCreator.newMap(map1);
+                assertThat(map1, sameInstance(map2));
+            });
+        }
+
+        DynamicTest alwaysWrapsOwnClass() {
+            MapCreator.MapBasedMapCreator<?> mapCopyCreator = (MapCreator.MapBasedMapCreator<?>) mapCreator;
+            return dynamicTest("alwaysWrapsOwnClass", () -> {
+                Map<String, Integer> map1 = mapCopyCreator.newMap(Map.of("a", 1, "b", 2));
+                Map<String, Integer> map2 = mapCopyCreator.newMap(map1);
+                assertThat(map1, not(sameInstance(map2)));
+            });
+        }
+
+        DynamicTest isSequencedMap() {
+            return dynamicTest("isSequencedMap",
+                () -> assertThat(mapCreator.createMap(), instanceOf(SequencedMap.class)));
+        }
+
+        DynamicTest isNotSequencedMap() {
+            return dynamicTest("isNotSequencedMap", () -> {
+                Map<String, Integer> map = mapCreator.createMap();
+                assertThat(map, not(instanceOf(SequencedMap.class)));
+
+                if (mapCreator instanceof MapCreator.MapBasedMapCreator<?> mmc) {
+                    // Explicitly check that a SequencedSet as base does not yield a SequencedSet, as is done for
+                    // RandomAccess sometimes with methods that wrap lists
+                    SequencedMap<String, Integer> sequencedMap = new LinkedHashMap<>(map);
+                    assertThat(mmc.newMap(sequencedMap), not(instanceOf(SequencedMap.class)));
+                }
+            });
+        }
+
+        DynamicTest hasRandomElementOrder() {
+            return dynamicTest("hasRandomEntryOrder", () -> {
+                Map<String, Integer> map = mapCreator.createMapWithAlphanumericalEntries();
+                // It's still possible that by coincidence the key set has the same order even though it makes
+                // no guarantees. It's improbable to happen because of the number of entries we use.
+                Set<String> keySet = map.keySet();
+                assertThat(keySet, containsInAnyOrder(MapCreator.ALPHANUM_ELEMENTS_RANDOM));
+                assertThat(keySet, not(contains(MapCreator.ALPHANUM_ELEMENTS_RANDOM)));
+                assertThat(keySet, not(contains(MapCreator.ALPHANUM_ELEMENTS_SORTED)));
+            });
+        }
+
+        DynamicTest keepsElementsSorted() {
+            return dynamicTest("keepsEntriesSorted", () -> {
+                Map<String, Integer> map = mapCreator.createMapWithAlphanumericalEntries();
+                assertThat(map.keySet(), contains(MapCreator.ALPHANUM_ELEMENTS_SORTED));
+            });
+        }
+
+        DynamicTest keepsElementsByInsertionOrder() {
+            return dynamicTest("keepsEntriesByInsertionOrder", () -> {
+                Map<String, Integer> map = mapCreator.createMapWithAlphanumericalEntries();
+                assertThat(map.keySet(), contains(MapCreator.ALPHANUM_ELEMENTS_RANDOM));
+            });
+        }
     }
 }
