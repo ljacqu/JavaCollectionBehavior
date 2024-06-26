@@ -44,7 +44,7 @@ public final class MapModificationVerifier {
             .test(MapMethod.MERGE, map -> map.merge("a", 5, Integer::sum)) 
             .test(MapMethod.MERGE, map -> map.merge("e", 5, (a, b) -> a)) 
             .test(MapMethod.MERGE, map -> map.merge("a", 1, (a, b) -> A_VALUE))
-            .test(MapMethod.COMPUTE, map -> map.compute("a", (k, v) -> v + 1))
+            .test(MapMethod.COMPUTE, map -> map.compute("a", (k, v) -> v == null ? null : v + 1))
             .test(MapMethod.COMPUTE, map -> map.compute("e", (k, v) -> v == null ? null : v + 1))
             .test(MapMethod.COMPUTE_IF_ABSENT, map -> map.computeIfAbsent("e", k -> 5)) 
             .test(MapMethod.COMPUTE_IF_ABSENT, map -> map.computeIfAbsent("a", k -> 5)) 
