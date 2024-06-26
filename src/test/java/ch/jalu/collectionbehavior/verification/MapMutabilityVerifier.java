@@ -2,7 +2,9 @@ package ch.jalu.collectionbehavior.verification;
 
 import ch.jalu.collectionbehavior.model.MapWithBackingDataModifier;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import static ch.jalu.collectionbehavior.model.MapCreator.A_VALUE;
 import static ch.jalu.collectionbehavior.model.MapCreator.B_VALUE;
@@ -11,6 +13,7 @@ import static ch.jalu.collectionbehavior.model.MapCreator.D_VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public final class MapMutabilityVerifier {
 
@@ -55,7 +58,57 @@ public final class MapMutabilityVerifier {
         assertThat(map, anEmptyMap());
     }
 
-    // TODO keySet, values, entrySet
+    public static void verifyMapKeySetIsMutable(Map<String, Integer> map) {
+        assertThat(map, anEmptyMap()); // Validate method contract
+        map.putAll(Map.of("a", 1, "b", 2, "c", 3, "d", 4));
+
+        Set<String> keySet = map.keySet();
+
+        keySet.remove("c");
+        keySet.removeIf(k -> k.equals("b"));
+        keySet.retainAll(Set.of("d", "z"));
+        assertThat(map, equalTo(Map.of("d", 4)));
+
+        keySet.clear();
+        assertThat(map, anEmptyMap());
+        assertThrows(UnsupportedOperationException.class, () -> keySet.add("f"));
+    }
+
+    public static void verifyMapValuesIsMutable(Map<String, Integer> map) {
+        assertThat(map, anEmptyMap()); // Validate method contract
+        map.putAll(Map.of("a", 1, "b", 2, "c", 3, "d", 4));
+
+        Collection<Integer> values = map.values();
+
+        values.remove(3);
+        values.removeIf(k -> k.equals(2));
+        values.retainAll(Set.of(4, 8));
+        assertThat(map, equalTo(Map.of("d", 4)));
+
+        values.clear();
+        assertThat(map, anEmptyMap());
+        assertThrows(UnsupportedOperationException.class, () -> values.add(7));
+    }
+
+    public static void verifyMapEntrySetIsMutable(Map<String, Integer> map) {
+        assertThat(map, anEmptyMap()); // Validate method contract
+        map.putAll(Map.of("a", 1, "b", 2, "c", 3, "d", 4));
+
+        Set<Map.Entry<String, Integer>> entrySet = map.entrySet();
+        entrySet.remove(Map.entry("b", 2));
+        entrySet.remove(Map.entry("d", 2)); // no change
+        entrySet.removeIf(k -> k.equals(Map.entry("b", 2)));
+        entrySet.retainAll(Set.of(Map.entry("d", 4), Map.entry("e", 5)));
+        assertThat(map, equalTo(Map.of("d", 4)));
+
+        Map.Entry<String, Integer> entry = entrySet.iterator().next();
+        entry.setValue(7);
+        assertThat(map, equalTo(Map.of("d", 7)));
+
+        entrySet.clear();
+        assertThat(map, anEmptyMap());
+        assertThrows(UnsupportedOperationException.class, () -> entrySet.add(Map.entry("z", 7)));
+    }
 
     public static void unmodifiable_changeToOriginalStructureIsReflectedInSet(MapWithBackingDataModifier setWithBackingDataModifier) {
         Map<String, Integer> map = setWithBackingDataModifier.map();

@@ -2,9 +2,11 @@ package ch.jalu.collectionbehavior;
 
 import ch.jalu.collectionbehavior.model.MapCreator;
 import ch.jalu.collectionbehavior.model.MapWithBackingDataModifier;
+import ch.jalu.collectionbehavior.model.MethodCallEffect;
 import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.NullSupport;
 import ch.jalu.collectionbehavior.model.SequencedMapType;
+import ch.jalu.collectionbehavior.model.SetMethod;
 import ch.jalu.collectionbehavior.model.SetOrder;
 import ch.jalu.collectionbehavior.verification.MapModificationVerifier;
 import ch.jalu.collectionbehavior.verification.MapMutabilityVerifier;
@@ -27,6 +29,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForEntrySet;
+import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForKeySet;
+import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForValues;
 import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInSet;
 import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInSet;
 import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifyRejectsNullArgInMethods;
@@ -95,11 +100,25 @@ class MapTest {
             Map.entry('A', 65), Map.entry('0', 48), Map.entry('A', 65)));
     }
 
+    /**
+     * {@link Map#copyOf} returns an immutable Map copied from another map. Iteration order is not preserved from
+     * the original Map. Null is not supported as key or as value. Throws also for null in {@link Map#containsKey} and
+     * similar. Recognizes maps of its own class and avoids unnecessary copies.
+     */
     @TestFactory
     List<DynamicTest> jdk_Map_copyOf() {
         return forMapType(MapCreator.forMapBasedType(Map::copyOf))
             .expect(NullSupport.REJECT, SetOrder.UNORDERED, SequencedMapType.DOES_NOT_IMPLEMENT)
             .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .mutabilityEntrySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
+            .mutabilityKeySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
+            .mutabilityValues(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
             .skipsWrappingForOwnClass()
             .createTests();
     }
@@ -375,6 +394,9 @@ class MapTest {
         private boolean skipsWrappingForOwnClass;
 
         private ModificationBehavior modificationBehavior;
+        private ModificationBehavior modificationBehaviorKeySet;
+        private ModificationBehavior modificationBehaviorEntrySet;
+        private ModificationBehavior modificationBehaviorValues;
 
 
         private TestsGenerator(MapCreator mapCreator, String testName) {
@@ -406,6 +428,24 @@ class MapTest {
          */
         TestsGenerator mutability(ModificationBehavior modificationBehavior) {
             this.modificationBehavior = modificationBehavior;
+            this.modificationBehaviorKeySet = modificationBehavior;
+            this.modificationBehaviorEntrySet = modificationBehavior;
+            this.modificationBehaviorValues = modificationBehavior;
+            return this;
+        }
+
+        TestsGenerator mutabilityKeySet(ModificationBehavior expectedKeySetBehavior) {
+            this.modificationBehaviorKeySet = expectedKeySetBehavior;
+            return this;
+        }
+
+        TestsGenerator mutabilityEntrySet(ModificationBehavior expectedEntrySetBehavior) {
+            this.modificationBehaviorEntrySet = expectedEntrySetBehavior;
+            return this;
+        }
+
+        TestsGenerator mutabilityValues(ModificationBehavior expectedValuesBehavior) {
+            this.modificationBehaviorValues = expectedValuesBehavior;
             return this;
         }
 
@@ -437,7 +477,7 @@ class MapTest {
                     createTestsForNullSupport(),
                     createTestForElementOrder(),
                     createTestForSequencedMapImpl(),
-                    createTestsForMutability(),
+                    createTestForMutability(),
                     createTestForSkipsWrappingOwnClassIfApplicable()
                 )
                 .flatMap(Function.identity())
@@ -467,11 +507,9 @@ class MapTest {
             return tests.stream();
         }
 
-        private Stream<DynamicTest> createTestsForMutability() {
+        private Stream<DynamicTest> createTestForMutability() {
             if (modificationBehavior.isMutable()) {
-                return Stream.of(
-                    dynamicTest("mutable",
-                        () -> MapMutabilityVerifier.verifyMapIsMutable(mapCreator.createMap())));
+                return createTestsForMutableAssertions().stream();
             }
 
             List<DynamicTest> testsToRun = new ArrayList<>();
@@ -479,8 +517,27 @@ class MapTest {
             createTestForImmutabilityBehavior().ifPresent(testsToRun::add);
             testsToRun.add(dynamicTest("unmodifiable",
                 () -> MapModificationVerifier.testMethods(map, modificationBehavior)));
+            testsToRun.add(dynamicTest("unmodifiable_entrySet",
+                () -> testMethodsForEntrySet(map, modificationBehaviorEntrySet)));
+            testsToRun.add(dynamicTest("unmodifiable_keySet",
+                () -> testMethodsForKeySet(map, modificationBehaviorKeySet)));
+            testsToRun.add(dynamicTest("unmodifiable_values",
+                () -> testMethodsForValues(map, modificationBehaviorValues)));
             return testsToRun.stream();
+        }
 
+        private List<DynamicTest> createTestsForMutableAssertions() {
+            Map<String, Integer> map = mapCreator.createMap();
+            return List.of(
+                dynamicTest("mutable",
+                    () -> MapMutabilityVerifier.verifyMapIsMutable(map)),
+                dynamicTest("mutable_keySet",
+                    () -> MapMutabilityVerifier.verifyMapKeySetIsMutable(map)),
+                dynamicTest("mutable_values",
+                    () -> MapMutabilityVerifier.verifyMapValuesIsMutable(map)),
+                dynamicTest("mutable_entrySet",
+                    () -> MapMutabilityVerifier.verifyMapEntrySetIsMutable(map)));
+            // TODO: navigableMap, sortedMap
         }
 
         private Optional<DynamicTest> createTestForImmutabilityBehavior() {

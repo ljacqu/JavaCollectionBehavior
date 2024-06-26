@@ -13,15 +13,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 abstract class UnmodifiableContainerBehaviorTester<C> {
 
-    private final C originalList;
+    private final C originalContainer;
     private final Function<C, C> copyFunction;
     private final ModificationBehavior expectedBehavior;
+    private final boolean copyOriginalForEqualsCheck;
 
-    UnmodifiableContainerBehaviorTester(C originalList, Function<C, C> copyFunction,
+    UnmodifiableContainerBehaviorTester(C originalContainer, Function<C, C> copyFunction,
                                         ModificationBehavior expectedBehavior) {
-        this.originalList = originalList;
+        this(originalContainer, copyFunction, expectedBehavior, false);
+    }
+
+    UnmodifiableContainerBehaviorTester(C originalContainer, Function<C, C> copyFunction,
+                                        ModificationBehavior expectedBehavior, boolean copyOriginalForEqualsCheck) {
+        this.originalContainer = originalContainer;
         this.copyFunction = copyFunction;
         this.expectedBehavior = expectedBehavior;
+        this.copyOriginalForEqualsCheck = copyOriginalForEqualsCheck;
     }
 
     UnmodifiableContainerBehaviorTester<C> test(CollectionMethod method, Consumer<C> action) {
@@ -38,11 +45,11 @@ abstract class UnmodifiableContainerBehaviorTester<C> {
 
         if (expectedException != null) {
             assertThrows(
-                expectedException, () -> action.accept(originalList),
+                expectedException, () -> action.accept(originalContainer),
                 () -> method + " (" + effect + ")");
         } else {
             assertDoesNotThrow(
-                () -> action.accept(originalList),
+                () -> action.accept(originalContainer),
                 () -> method + " (" + effect + ")");
         }
         return this;
@@ -51,7 +58,7 @@ abstract class UnmodifiableContainerBehaviorTester<C> {
     protected abstract int getSize(C container);
 
     private MethodCallEffect determineMethodCallEffect(Consumer<C> action) {
-        C copy = copyFunction.apply(originalList);
+        C copy = copyFunction.apply(originalContainer);
 
         try {
             action.accept(copy);
@@ -61,10 +68,14 @@ abstract class UnmodifiableContainerBehaviorTester<C> {
             return MethodCallEffect.NO_SUCH_ELEMENT;
         }
 
-        if (getSize(copy) != getSize(originalList)) {
+        if (getSize(copy) != getSize(originalContainer)) {
             return MethodCallEffect.SIZE_ALTERING;
         }
-        return copy.equals(originalList) ? MethodCallEffect.NON_MODIFYING : MethodCallEffect.MODIFYING;
+
+        boolean copyIsEqualToOriginal = copyOriginalForEqualsCheck
+            ? copy.equals(copyFunction.apply(originalContainer))
+            : copy.equals(originalContainer);
+        return copyIsEqualToOriginal ? MethodCallEffect.NON_MODIFYING : MethodCallEffect.MODIFYING;
     }
 
     private Class<? extends Exception> determineExpectedException(MethodCallEffect effect) {

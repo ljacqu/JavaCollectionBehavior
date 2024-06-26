@@ -136,7 +136,7 @@ public abstract sealed class MapCreator {
      *
      * @return map initialized with keys "a", "b", "a", "c", "b"
      */
-    public Map<String, Integer> createSetWithDuplicateArgs() {
+    public Map<String, Integer> createMapWithDuplicateArgs() {
         String[] args = {"a", "b", "a", "c", "b"};
         return switch (this) {
             case MutableMapCreator mmc -> mmc.newMap(args);
@@ -150,7 +150,7 @@ public abstract sealed class MapCreator {
     /**
      * Returns whether this map creator instantiates a map in a way that keys can be provided to it
      * multiple times. For example, duplicate keys cannot be encountered in a map creation method that
-     * copies another map. This method is relevant for {@link #createSetWithDuplicateArgs()}.
+     * copies another map. This method is relevant for {@link #createMapWithDuplicateArgs()}.
      *
      * @return true if it can technically encounter duplicate keys in its instantiation, false otherwise
      */
