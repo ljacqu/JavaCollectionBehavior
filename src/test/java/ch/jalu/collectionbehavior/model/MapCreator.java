@@ -39,11 +39,7 @@ public abstract sealed class MapCreator {
     public static final int C_VALUE = createValue("c"); // 99
     public static final int D_VALUE = createValue("d"); // 100
 
-    private static Integer createValue(String key) {
-        if ("null".equals(key)) {
-            return null;
-        }
-
+    private static int createValue(String key) {
         int value = 0;
         char[] charArray = key == null ? new char[]{ 'ê' } : key.toCharArray();
         for (int i = 0; i < charArray.length; i++) {
@@ -126,13 +122,13 @@ public abstract sealed class MapCreator {
      * @return map with keys "a", "b", "c", "d" or the largest subset supported by the map type
      */
     public Map<String, Integer> createMapWithAbcdOrSubset() {
-        String[] args = {"a", "b", "c", "d"};
+        String[] keys = {"a", "b", "c", "d"};
         return switch (this) {
-            case MutableMapCreator mmc -> mmc.newMap(args);
-            case MapBasedMapCreator<?> mmc -> mmc.newMap(MapCreator.createLinkedHashMap(args));
-            case StreamBasedMapCreator smc -> smc.newMap(args);
+            case MutableMapCreator mmc -> mmc.newMap(keys);
+            case MapBasedMapCreator<?> mmc -> mmc.newMap(MapCreator.createLinkedHashMap(keys));
+            case StreamBasedMapCreator smc -> smc.newMap(keys);
             case EmptyMapCreator emc -> emc.newMap();
-            case SingleEntryMapCreator sec -> sec.newMap(args[0]);
+            case SingleEntryMapCreator sec -> sec.newMap(keys[0]);
         };
     }
 

@@ -11,6 +11,7 @@ import ch.jalu.collectionbehavior.model.SetMethod;
 import ch.jalu.collectionbehavior.model.SetOrder;
 import ch.jalu.collectionbehavior.verification.MapModificationVerifier;
 import ch.jalu.collectionbehavior.verification.MapMutabilityVerifier;
+import ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.DynamicTest;
@@ -30,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethods;
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForEntrySet;
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForKeySet;
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForValues;
@@ -51,8 +53,8 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 class MapTest {
 
     /**
-     * HashMap: standard implementation of Map. Does not retain iteration order. Supports null values and null as key.
-     * Removal of entries from the key set, values set or entry set is reflected to the actual Map.
+     * {@link HashMap}: standard implementation of Map. Does not retain iteration order. Supports null values and null
+     * as key. Removal of entries from the key set, values set or entry set is reflected to the actual Map.
      */
     @TestFactory
     List<DynamicTest> jdk_HashMap() {
@@ -63,7 +65,7 @@ class MapTest {
     }
 
     /**
-     * LinkedHashMap: hash map with iteration by insertion order. Supports null values and null as key.
+     * {@link LinkedHashMap}: hash map with iteration by insertion order. Supports null values and null as key.
      * Removal of entries from the key set, values set or entry set is reflected to the actual Map.
      */
     @TestFactory
@@ -80,24 +82,53 @@ class MapTest {
      * the Map is being created. Random iteration order.
      */
     @Test
-    void jdkMapOf() {
-        Map<Character, Integer> map = Map.of('0', 48, 'z', 122, 'A', 65);
+    void jdk_Map_of() {
+        Map<String, Integer> map0 = Map.of();
+        Map<String, Integer> map1 = Map.of("rA", 240);
+        Map<String, Integer> map2 = Map.of("rA", 240, "Xo", 134);
+        Map<String, Integer> map3 = Map.of("rA", 240, "Xo", 134, "J1", 40);
+        Map<String, Integer> map4 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194);
+        Map<String, Integer> map5 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38);
+        Map<String, Integer> map6 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255);
+        Map<String, Integer> map7 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19);
+        Map<String, Integer> map8 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247);
+        Map<String, Integer> map9 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247, "Kq", 169);
+        Map<String, Integer> mapX = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247, "Kq", 169, "Mf", 129);
 
-        // assertContainsEntriesNotInOrder(map);
-        assertThat(map, not(instanceOf(SequencedMap.class)));
+        assertThat(map0.getClass(), equalTo(map2.getClass()));
+        assertThat(map1.getClass(), not(equalTo(map2.getClass())));
+        assertThat(map3.getClass(), equalTo(map2.getClass()));
+        assertThat(map4.getClass(), equalTo(map2.getClass()));
+        assertThat(map5.getClass(), equalTo(map2.getClass()));
+        assertThat(map6.getClass(), equalTo(map2.getClass()));
+        assertThat(map7.getClass(), equalTo(map2.getClass()));
+        assertThat(map8.getClass(), equalTo(map2.getClass()));
+        assertThat(map9.getClass(), equalTo(map2.getClass()));
+        assertThat(mapX.getClass(), equalTo(map2.getClass()));
 
-        assertThrows(UnsupportedOperationException.class, () -> map.put('f', 999));
-        assertThrows(UnsupportedOperationException.class, () -> map.remove('0'));
-        // assertKeyAndValuesAndEntrySetImmutable(map);
+        assertThat(map0, not(instanceOf(SequencedMap.class)));
+        assertThat(map1, not(instanceOf(SequencedMap.class)));
 
-        assertThrows(NullPointerException.class, () -> Map.of('A', 65, 'B', null));
-        assertThrows(NullPointerException.class, () -> Map.of('A', 65, null, 32));
-        assertThrows(NullPointerException.class, () -> map.containsKey(null));
-        assertThrows(NullPointerException.class, () -> map.containsValue(null));
+        String[] keysX = {"rA", "Xo", "J1", "lW", "B2", "iK", "c8", "yG", "Kq", "Mf"};
+        assertThat(mapX.keySet(), containsInAnyOrder(keysX));
+        assertThat(mapX.keySet(), not(contains(keysX)));
 
-        assertThrows(IllegalArgumentException.class, () -> Map.of('A', 65, '0', 48, 'A', 65));
-        assertThrows(IllegalArgumentException.class, () -> Map.ofEntries(
-            Map.entry('A', 65), Map.entry('0', 48), Map.entry('A', 65)));
+        assertThrows(NullPointerException.class, () -> Map.of("a", 12, "b", null));
+        assertThrows(NullPointerException.class, () -> Map.of("a", 12, null, 13));
+        assertThrows(NullPointerException.class, () -> Map.of("a", null));
+        assertThrows(NullPointerException.class, () -> Map.of(null, 12));
+        MapNullBehaviorVerifier.verifyRejectsNullArgInMethods(mapX);
+
+        assertThrows(IllegalArgumentException.class, () -> Map.of("a", 10, "b", 12, "a", 10));
+
+        ModificationBehavior modificationBehavior = ModificationBehavior.immutable().alwaysThrows();
+        MapModificationVerifier.testMethods(mapX, modificationBehavior);
+        ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
+            .butThrows(UnsupportedOperationException.class)
+                .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL);
+        MapModificationVerifier.testMethodsForEntrySet(mapX, modificationBehaviorViews);
+        MapModificationVerifier.testMethodsForKeySet(mapX, modificationBehaviorViews);
+        MapModificationVerifier.testMethodsForValues(mapX, modificationBehaviorViews);
     }
 
     /**
@@ -112,13 +143,16 @@ class MapTest {
             .mutability(ModificationBehavior.immutable().alwaysThrows())
             .mutabilityEntrySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL)
+            )
             .mutabilityKeySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL)
+            )
             .mutabilityValues(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL)
+            )
             .skipsWrappingForOwnClass()
             .createTests();
     }
@@ -207,7 +241,34 @@ class MapTest {
                 .butThrows(UnsupportedOperationException.class)
                     .on(MethodCallEffect.NON_MODIFYING,
                         MapMethod.REMOVE_KEY_VALUE, MapMethod.REPLACE, MapMethod.REPLACE_WITH_OLD_VALUE,
-                        MapMethod.COMPUTE, MapMethod.COMPUTE_IF_PRESENT, MapMethod.COMPUTE_IF_ABSENT))
+                        MapMethod.COMPUTE, MapMethod.COMPUTE_IF_PRESENT, MapMethod.COMPUTE_IF_ABSENT)
+            )
+            .createTests();
+    }
+
+    @TestFactory
+    List<DynamicTest> jdk_Collections_singletonMap() {
+        return forMapType(MapCreator.forSingleEntry(Collections::singletonMap))
+            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedMapType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class).on(MethodCallEffect.NON_MODIFYING,
+                    // putAll non-modifying does not throw...
+                    MapMethod.PUT, MapMethod.PUT_IF_ABSENT, MapMethod.REMOVE_KEY_VALUE, MapMethod.REPLACE,
+                    MapMethod.REMOVE_KEY_VALUE, MapMethod.REPLACE_WITH_OLD_VALUE, MapMethod.REPLACE_ALL,
+                    MapMethod.MERGE, MapMethod.COMPUTE, MapMethod.COMPUTE_IF_ABSENT, MapMethod.COMPUTE_IF_PRESENT)
+            )
+            .mutabilityEntrySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class).on(MethodCallEffect.NON_MODIFYING,
+                    SetMethod.ADD, SetMethod.ADD_ALL, SetMethod.REMOVE_IF)
+            )
+            .mutabilityKeySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class).on(MethodCallEffect.NON_MODIFYING,
+                    SetMethod.ADD, SetMethod.ADD_ALL, SetMethod.REMOVE_IF)
+            )
+            .mutabilityValues(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class).on(MethodCallEffect.NON_MODIFYING,
+                    SetMethod.REMOVE_IF)
+            )
             .createTests();
     }
 
@@ -218,37 +279,29 @@ class MapTest {
      */
     @Test
     void jdk_Collectors_toMap() {
-        // TODO: Needs to be extended to showcase duplicate keys and null support that differs from hashmap
         Map<Character, Integer> map = Stream.of('f', 'g')
             .collect(Collectors.toMap(v -> v, v -> (int) v));
         assertThat(map.getClass(), equalTo(HashMap.class));
-    }
 
-    @Test
-    void jdkCollectorsToMap() {
-        Map<Character, Integer> map = Stream.of('0', 'z', 'A')
-            .collect(Collectors.toMap(Function.identity(), chr -> (int) chr));
-        assertThat(map.getClass(), equalTo(HashMap.class));
+        // Throws for duplicate keys (plain HashMap would not)
+        assertThrows(IllegalStateException.class, () -> Stream.of('f', 'g', 'f')
+            .collect(Collectors.toMap(v -> v, v -> (int) v)));
 
-        assertThat(map.containsKey(null), equalTo(false));
-        assertThat(map.containsValue(null), equalTo(false));
-
-        map.put('f', -3);
-        map.remove('z');
-        assertThat(map.keySet(), containsInAnyOrder('0', 'A', 'f'));
-
-        assertThrows(NullPointerException.class, () -> Stream.of(3, null, 5)
-            .collect(Collectors.toMap(String::valueOf, Function.identity())));
-
-        Map<Integer, String> mapWithNullKey = Stream.of(3, null, 5)
+        // Null key is OK
+        Map<Character, String> mapWithNullKey = Stream.of('f', 'g', null)
             .collect(Collectors.toMap(Function.identity(), String::valueOf));
-        assertThat(mapWithNullKey.keySet(), containsInAnyOrder(3, null, 5));
+        assertThat(mapWithNullKey.get(null), equalTo("null"));
 
-        IllegalStateException duplicateKeyEx = assertThrows(IllegalStateException.class, () -> Stream.of(3, 4, -3)
-            .collect(Collectors.toMap(i -> i * i, i -> Integer.toString(i))));
-        assertThat(duplicateKeyEx.getMessage(), equalTo("Duplicate key 9 (attempted merging values 3 and -3)"));
+        // Throws for null values (plain HashMap does not)
+        assertThrows(NullPointerException.class, () -> Stream.of('f', 'g', null)
+            .collect(Collectors.toMap(v -> v, null)));
     }
 
+    /**
+     * {@link Collectors#toUnmodifiableMap(Function, Function)} produces an unmodifiable map that rejects null values:
+     * keys and values may not be null; methods like {@link Map#containsKey} may not be called with null as argument.
+     * Order of keys is random.
+     */
     @TestFactory
     List<DynamicTest> jdk_Collectors_toUnmodifiableMap() {
         return forMapType(MapCreator.fromStream(
@@ -257,10 +310,12 @@ class MapTest {
             .mutability(ModificationBehavior.immutable().alwaysThrows())
             .mutabilityKeySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL)
+            )
             .mutabilityEntrySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL)
+            )
             .mutabilityValues(ModificationBehavior.immutable().throwsIfWouldBeModified())
             .rejectsDuplicateKeysOnCreation()
             .createTests();
@@ -410,7 +465,7 @@ class MapTest {
             Map<String, Integer> map = mapCreator.createMapWithAbcdOrSubset();
             createTestForImmutabilityBehavior().ifPresent(testsToRun::add);
             testsToRun.add(dynamicTest("unmodifiable",
-                () -> MapModificationVerifier.testMethods(map, modificationBehavior)));
+                () -> testMethods(map, modificationBehavior)));
             testsToRun.add(dynamicTest("unmodifiable_entrySet",
                 () -> testMethodsForEntrySet(map, modificationBehaviorEntrySet)));
             testsToRun.add(dynamicTest("unmodifiable_keySet",
@@ -582,6 +637,7 @@ class MapTest {
         DynamicTest keepsElementsByInsertionOrder() {
             return dynamicTest("keepsEntriesByInsertionOrder", () -> {
                 Map<String, Integer> map = mapCreator.createMapWithAlphanumericalEntries();
+                System.out.println(map);
                 assertThat(map.keySet(), contains(MapCreator.ALPHANUM_ELEMENTS_RANDOM));
             });
         }
