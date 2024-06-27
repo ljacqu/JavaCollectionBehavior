@@ -252,7 +252,7 @@ class MapTest {
     @TestFactory
     List<DynamicTest> jdk_Collectors_toUnmodifiableMap() {
         return forMapType(MapCreator.fromStream(
-                            str -> str.collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue))))
+                              str -> str.collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue))))
             .expect(NullSupport.REJECT, SetOrder.UNORDERED, SequencedMapType.DOES_NOT_IMPLEMENT)
             .mutability(ModificationBehavior.immutable().alwaysThrows())
             .mutabilityKeySet(ModificationBehavior.immutable().throwsIfWouldBeModified()
@@ -262,6 +262,7 @@ class MapTest {
                 .butThrows(UnsupportedOperationException.class)
                     .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL))
             .mutabilityValues(ModificationBehavior.immutable().throwsIfWouldBeModified())
+            .rejectsDuplicateKeysOnCreation()
             .createTests();
     }
 
@@ -281,7 +282,7 @@ class MapTest {
         private final TestLogic testLogic;
 
         private NullSupport nullSupport;
-        private SetOrder elementOrder; // todo: different type? or just rename?
+        private SetOrder keyOrder;
         private SequencedMapType sequencedMapType;
         private boolean acceptsDuplicatesOnCreation = true;
         private boolean skipsWrappingForOwnClass;
@@ -302,13 +303,13 @@ class MapTest {
          * Sets some basic expected properties of the map type to this generator.
          *
          * @param nullSupport expected null support of the map type
-         * @param elementOrder expected order of the map's elements
+         * @param keySetOrder expected order of the map's keys
          * @param sequencedMapType whether the map type extends SequencedMap
          * @return this instance, for chaining
          */
-        TestsGenerator expect(NullSupport nullSupport, SetOrder elementOrder, SequencedMapType sequencedMapType) {
+        TestsGenerator expect(NullSupport nullSupport, SetOrder keySetOrder, SequencedMapType sequencedMapType) {
             this.nullSupport = nullSupport;
-            this.elementOrder = elementOrder;
+            this.keyOrder = keySetOrder;
             this.sequencedMapType = sequencedMapType;
             return this;
         }
@@ -343,19 +344,18 @@ class MapTest {
         }
 
         /**
-         * When the map is created based on another structure that allows duplicates, defines that duplicates in that
-         * input structure will result in an exception.
-         * TODO: Revise javadoc
+         * When the map is created based on another structure that allows duplicate keys, defines that duplicate keys
+         * in that input structure will result in an exception.
          *
          * @return this instance, for chaining
          */
-        TestsGenerator rejectsDuplicatesOnCreation() {
+        TestsGenerator rejectsDuplicateKeysOnCreation() {
             this.acceptsDuplicatesOnCreation = false;
             return this;
         }
 
         /**
-         * Only applicable for map-based set creators: it is expected that the method recognizes sets of its return
+         * Only applicable for map-based map creators: it is expected that the method recognizes sets of its return
          * type and that it will not wrap those maps again, i.e. it returns the same map in this case.
          *
          * @return this instance, for chaining
@@ -371,7 +371,8 @@ class MapTest {
                     createTestForElementOrder(),
                     createTestForSequencedMapImpl(),
                     createTestForMutability(),
-                    createTestForSkipsWrappingOwnClassIfApplicable()
+                    createTestForSkipsWrappingOwnClassIfApplicable(),
+                    createTestForDuplicateKeysOnCreation()
                 )
                 .flatMap(Function.identity())
                 .toList();
@@ -453,11 +454,11 @@ class MapTest {
         private Stream<DynamicTest> createTestForElementOrder() {
             if (mapCreator.getSizeLimit() <= 1) {
                 // 0 or 1 element are treated as order, throw exception otherwise: misconfiguration
-                Preconditions.checkState(elementOrder == SetOrder.INSERTION_ORDER);
+                Preconditions.checkState(keyOrder == SetOrder.INSERTION_ORDER);
                 return Stream.empty();
             }
 
-            return switch (elementOrder) {
+            return switch (keyOrder) {
                 case INSERTION_ORDER -> Stream.of(testLogic.keepsElementsByInsertionOrder());
                 case SORTED -> Stream.of(testLogic.keepsElementsSorted());
                 case UNORDERED -> Stream.of(testLogic.hasRandomElementOrder());
@@ -479,6 +480,17 @@ class MapTest {
             }
             return Stream.empty();
         }
+
+        private Stream<DynamicTest> createTestForDuplicateKeysOnCreation() {
+            if (!mapCreator.canEncounterDuplicateKeys()) {
+                Preconditions.checkState(acceptsDuplicatesOnCreation);
+                return Stream.empty();
+            }
+
+            return acceptsDuplicatesOnCreation
+                ? Stream.of(testLogic.acceptsDuplicateKeysOnCreation(keyOrder))
+                : Stream.of(testLogic.rejectsDuplicateKeysOnCreation());
+        }
     }
 
     private static final class TestLogic {
@@ -491,12 +503,14 @@ class MapTest {
 
         DynamicTest supportsNullElements() {
             return dynamicTest("supportsNullElements",
-                () -> assertDoesNotThrow(mapCreator::createMapWithNull));
+                () -> assertDoesNotThrow(mapCreator::createMapWithNullKey));
         }
 
         DynamicTest mayNotContainNull() {
-            return dynamicTest("mayNotContainNull",
-                () -> assertThrows(NullPointerException.class, mapCreator::createMapWithNull));
+            return dynamicTest("mayNotContainNull", () -> {
+                assertThrows(NullPointerException.class, mapCreator::createMapWithNullKey);
+                assertThrows(NullPointerException.class, mapCreator::createMapWithNullValue);
+            });
         }
 
         DynamicTest supportsNullMethodArgs() {
@@ -570,6 +584,20 @@ class MapTest {
                 Map<String, Integer> map = mapCreator.createMapWithAlphanumericalEntries();
                 assertThat(map.keySet(), contains(MapCreator.ALPHANUM_ELEMENTS_RANDOM));
             });
+        }
+
+        DynamicTest acceptsDuplicateKeysOnCreation(SetOrder expectedOrder) {
+            if (expectedOrder == SetOrder.UNORDERED) {
+                return dynamicTest("acceptsDuplicateKeysOnCreation",
+                    () -> assertThat(mapCreator.createMapWithDuplicateKeys().keySet(), containsInAnyOrder("a", "b", "c")));
+            }
+            return dynamicTest("acceptsDuplicateKeysOnCreation",
+                () -> assertThat(mapCreator.createMapWithDuplicateKeys().keySet(), contains("a", "b", "c")));
+        }
+
+        DynamicTest rejectsDuplicateKeysOnCreation() {
+            return dynamicTest("rejectsDuplicateKeysOnCreation",
+                () -> assertThrows(IllegalStateException.class, mapCreator::createMapWithDuplicateKeys));
         }
     }
 }

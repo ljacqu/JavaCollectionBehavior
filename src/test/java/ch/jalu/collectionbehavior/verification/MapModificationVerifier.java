@@ -53,7 +53,7 @@ public final class MapModificationVerifier {
     }
 
     public static void testMethodsForEntrySet(Map<String, Integer> originalMap, ModificationBehavior expectedBehavior) {
-        new UnmodifiableBehaviorTester<>(originalMap.entrySet(), LinkedHashSet::new, expectedBehavior)
+        new UnmodifiableCollectionBehaviorTester<>(originalMap.entrySet(), LinkedHashSet::new, expectedBehavior)
             .test(SetMethod.ADD, set -> set.add(Map.entry("g", 1)))
             .test(SetMethod.ADD, set -> set.add(Map.entry("a", A_VALUE)))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of(Map.entry("g", 44))))
@@ -70,7 +70,7 @@ public final class MapModificationVerifier {
     }
 
     public static void testMethodsForKeySet(Map<String, Integer> originalMap, ModificationBehavior expectedBehavior) {
-        new UnmodifiableBehaviorTester<>(originalMap.keySet(), LinkedHashSet::new, expectedBehavior)
+        new UnmodifiableCollectionBehaviorTester<>(originalMap.keySet(), LinkedHashSet::new, expectedBehavior)
             .test(SetMethod.ADD, set -> set.add("f"))
             .test(SetMethod.ADD, set -> set.add("b"))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of("g")))
@@ -88,8 +88,8 @@ public final class MapModificationVerifier {
 
     public static void testMethodsForValues(Map<String, Integer> originalMap, ModificationBehavior expectedBehavior) {
         // Note: Map#values returns a Collection, not a Set, but we reference SetMethod
-        // because it has the least "additions" to Collection
-        new UnmodifiableBehaviorTester<>(originalMap.values(), ArrayList::new, expectedBehavior, true)
+        // because it has the least "additions" to the Collection interface
+        new UnmodifiableCollectionBehaviorTester<>(originalMap.values(), ArrayList::new, expectedBehavior, true)
             .test(SetMethod.ADD, set -> set.add(1))
             .test(SetMethod.ADD, set -> set.add(A_VALUE))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of(1)))

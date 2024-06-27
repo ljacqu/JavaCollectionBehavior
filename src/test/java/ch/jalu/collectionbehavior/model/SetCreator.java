@@ -107,7 +107,7 @@ public abstract sealed class SetCreator {
     /**
      * Initializes a set with "a", "b", "c", including some of these entries multiple times to test the
      * set's behavior with duplicate elements. This method throws an exception if the instantiation type
-     * cannot encounter sets (see {@link #canEncounterDuplicateArguments()}).
+     * cannot encounter duplicates (see {@link #canEncounterDuplicateArguments()}).
      *
      * @return set initialized with "a", "b", "a", "c", "b"
      */

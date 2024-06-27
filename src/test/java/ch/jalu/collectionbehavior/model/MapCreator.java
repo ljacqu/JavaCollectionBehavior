@@ -4,6 +4,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,11 @@ public abstract sealed class MapCreator {
     public static final int C_VALUE = createValue("c"); // 99
     public static final int D_VALUE = createValue("d"); // 100
 
-    private static int createValue(String key) {
+    private static Integer createValue(String key) {
+        if ("null".equals(key)) {
+            return null;
+        }
+
         int value = 0;
         char[] charArray = key == null ? new char[]{ 'ê' } : key.toCharArray();
         for (int i = 0; i < charArray.length; i++) {
@@ -77,19 +82,40 @@ public abstract sealed class MapCreator {
     }
 
     /**
-     * Creates a map that includes a null element. This method throws an exception if the
-     * map type does not support null elements. An exception is also thrown if this method
+     * Creates a map that includes a null key. This method throws an exception if the
+     * map type does not support null keys. An exception is also thrown if this method
      * is called on a creator for an empty map type ({@link EmptyMapCreator}).
      *
      * @return map containing {@code null}
      */
-    public Map<String, Integer> createMapWithNull() {
+    public Map<String, Integer> createMapWithNullKey() {
         return switch (this) {
             case MutableMapCreator mmc -> mmc.newMap((String) null);
             case MapBasedMapCreator<?> mmc -> mmc.newMap(MapCreator.createLinkedHashMap((String) null));
             case StreamBasedMapCreator smc -> smc.newMap((String) null);
             case EmptyMapCreator emc -> throw new UnsupportedOperationException();
             case SingleEntryMapCreator sec -> sec.newMap(null);
+        };
+    }
+
+    /**
+     * Creates a map that includes a key with a null value. This method throws an exception if the
+     * map type does not support null values. An exception is also thrown if this method
+     * is called on a creator for an empty map type ({@link EmptyMapCreator}).
+     *
+     * @return map containing {@code null}
+     */
+    public Map<String, Integer> createMapWithNullValue() {
+        return switch (this) {
+            case MutableMapCreator mmc -> mmc.newMapWithNullValue("null");
+            case MapBasedMapCreator<?> mmc -> {
+                Map<String, Integer> map = new HashMap<>();
+                map.put("null", null);
+                yield mmc.newMap(map);
+            }
+            case StreamBasedMapCreator smc -> smc.newMapWithNullValue("null");
+            case EmptyMapCreator emc -> throw new UnsupportedOperationException();
+            case SingleEntryMapCreator sec -> sec.newMapWithNullValue("null");
         };
     }
 
@@ -130,13 +156,13 @@ public abstract sealed class MapCreator {
     }
 
     /**
-     * Initializes a map with keys "a", "b", "c", including some of these entries multiple times to test the
-     * map's behavior with duplicate elements. This method throws an exception if the instantiation type
-     * cannot encounter sets (see {@link #canEncounterDuplicateArguments()}).
+     * Initializes a map with keys "a", "b", "c", including some of these keys multiple times to test the
+     * map's behavior with duplicate keys. This method throws an exception if the instantiation type
+     * cannot encounter duplicates (see {@link #canEncounterDuplicateKeys()}).
      *
      * @return map initialized with keys "a", "b", "a", "c", "b"
      */
-    public Map<String, Integer> createMapWithDuplicateArgs() {
+    public Map<String, Integer> createMapWithDuplicateKeys() {
         String[] args = {"a", "b", "a", "c", "b"};
         return switch (this) {
             case MutableMapCreator mmc -> mmc.newMap(args);
@@ -150,11 +176,11 @@ public abstract sealed class MapCreator {
     /**
      * Returns whether this map creator instantiates a map in a way that keys can be provided to it
      * multiple times. For example, duplicate keys cannot be encountered in a map creation method that
-     * copies another map. This method is relevant for {@link #createMapWithDuplicateArgs()}.
+     * copies another map. This method is relevant for {@link #createMapWithDuplicateKeys()}.
      *
      * @return true if it can technically encounter duplicate keys in its instantiation, false otherwise
      */
-    public boolean canEncounterDuplicateArguments() { // todo rename?
+    public boolean canEncounterDuplicateKeys() {
         return !(this instanceof MapBasedMapCreator<?>) && getSizeLimit() >= 2;
     }
 
@@ -268,6 +294,12 @@ public abstract sealed class MapCreator {
             return map;
         }
 
+        Map<String, Integer> newMapWithNullValue(String key) {
+            Map<String, Integer> map = callback.get();
+            map.put(key, null);
+            return map;
+        }
+
         @Override
         public Optional<MapWithBackingDataModifier> createMapWithBackingDataModifier(String... args) {
             throw new UnsupportedOperationException();
@@ -315,6 +347,12 @@ public abstract sealed class MapCreator {
             return callback.apply(stream);
         }
 
+        Map<String, Integer> newMapWithNullValue(String key) {
+            Stream<Map.Entry<String, Integer>> stream = Stream.of(
+                new AbstractMap.SimpleEntry<>(key, null));
+            return callback.apply(stream);
+        }
+
         @Override
         public Optional<MapWithBackingDataModifier> createMapWithBackingDataModifier(String[] args) {
             return Optional.empty();
@@ -332,6 +370,10 @@ public abstract sealed class MapCreator {
 
         Map<String, Integer> newMap(String elem) {
             return callback.apply(elem, MapCreator.createValue(elem));
+        }
+
+        Map<String, Integer> newMapWithNullValue(String key) {
+            return callback.apply(key, null);
         }
 
         @Override

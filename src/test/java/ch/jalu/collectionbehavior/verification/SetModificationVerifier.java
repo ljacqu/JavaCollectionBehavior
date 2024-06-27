@@ -14,7 +14,7 @@ public final class SetModificationVerifier {
     }
 
     public static void testMethods(Set<String> originalSet, ModificationBehavior expectedBehavior) {
-        new UnmodifiableBehaviorTester<>(originalSet, LinkedHashSet::new, expectedBehavior)
+        new UnmodifiableCollectionBehaviorTester<>(originalSet, LinkedHashSet::new, expectedBehavior)
             .test(SetMethod.ADD, set -> set.add("a"))
             .test(SetMethod.ADD, set -> set.add("foo"))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of("a", "b")))
@@ -31,7 +31,7 @@ public final class SetModificationVerifier {
     }
 
     public static void testMethodsForSequencedSet(SequencedSet<String> originalSet, ModificationBehavior expectedBehavior) {
-        new UnmodifiableBehaviorTester<>(originalSet, LinkedHashSet::new, expectedBehavior)
+        new UnmodifiableCollectionBehaviorTester<>(originalSet, LinkedHashSet::new, expectedBehavior)
             .test(SetMethod.ADD_FIRST, set -> set.addFirst("a"))
             .test(SetMethod.ADD_FIRST, set -> set.addFirst("foo"))
             .test(SetMethod.ADD_LAST, set -> set.addLast("a"))
