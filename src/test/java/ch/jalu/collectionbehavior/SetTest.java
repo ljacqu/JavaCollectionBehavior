@@ -1,26 +1,50 @@
 package ch.jalu.collectionbehavior;
 
+import ch.jalu.collectionbehavior.model.MethodCallEffect;
+import ch.jalu.collectionbehavior.model.ModificationBehavior;
+import ch.jalu.collectionbehavior.model.NullSupport;
+import ch.jalu.collectionbehavior.model.SequencedSetType;
+import ch.jalu.collectionbehavior.model.SetCreator;
+import ch.jalu.collectionbehavior.model.SetCreator.FromCollectionSetCreator;
+import ch.jalu.collectionbehavior.model.SetMethod;
+import ch.jalu.collectionbehavior.model.SetOrder;
+import ch.jalu.collectionbehavior.model.SetWithBackingDataModifier;
+import ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier;
+import ch.jalu.collectionbehavior.verification.SetModificationVerifier;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.NavigableSet;
+import java.util.Optional;
 import java.util.SequencedCollection;
 import java.util.SequencedSet;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsImmutable;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsMutable;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyIsUnmodifiable;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyRejectsNullArgInMethods;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifySupportsNullArgInMethods;
-import static ch.jalu.collectionbehavior.CollectionBehaviorTestUtil.verifyThrowsOnlyIfSetWouldBeModified;
-import static com.google.common.collect.Lists.newArrayList;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInSet;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInSet;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyCannotBeModifiedByIterator;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByIterator;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableByNavigableSetMethods;
+import static ch.jalu.collectionbehavior.verification.CollectionMutabilityVerifier.verifyIsMutableBySequencedSetMethods;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifyRejectsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.CollectionNullBehaviorVerifier.verifySupportsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.SetModificationVerifier.testMethods;
+import static ch.jalu.collectionbehavior.verification.SetModificationVerifier.testMethodsForReversedSet;
+import static ch.jalu.collectionbehavior.verification.SetModificationVerifier.testMethodsForSequencedSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -28,306 +52,558 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
-public class SetTest {
+class SetTest {
 
     /**
      * {@link HashSet}: standard modifiable Set. Fully supports null. Does not keep insertion order.
      * Elements already added to it are silently ignored.
      */
-    @Test
-    void testJdkHashSet() {
-        // Is mutable
-        verifyIsMutable(new HashSet<>());
-
-        // Has random order
-        Set<Integer> set = new HashSet<>(Arrays.asList(1, 4, 9, 16));
-        assertContainsButNotInOrder(set, 1, 4, 9, 16);
-        assertThat(set, not(instanceOf(SequencedCollection.class)));
-
-        // May contain null
-        Set<Long> setWithNull = new HashSet<>();
-        setWithNull.add(null); // No exception
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
+    @TestFactory
+    List<DynamicTest> jdk_HashSet() {
+        return forSetType(SetCreator.forMutableType(HashSet::new))
+            .expect(NullSupport.FULL, SetOrder.UNORDERED, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
     }
 
     /**
      * {@link LinkedHashSet}: modifiable Set that keeps insertion order. Fully supports null.
      * Elements already added to it are silently ignored.
      */
-    @Test
-    void testJdkLinkedHashSet() {
-        // Is mutable
-        verifyIsMutable(new LinkedHashSet<>());
-
-        // Keeps insertion order
-        Set<Integer> set = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16, 9));
-        assertThat(set, contains(1, 4, 9, 16));
-        assertThat(set, instanceOf(SequencedSet.class));
-
-        // May contain null
-        Set<Long> setWithNull = new LinkedHashSet<>();
-        setWithNull.add(null); // No exception
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
+    @TestFactory
+    List<DynamicTest> jdk_LinkedHashSet() {
+        return forSetType(SetCreator.forMutableType(LinkedHashSet::new))
+            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.IMPLEMENTS)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
     }
 
     /**
-     * {@link Set#of} produces an immutable Set. Does not support null (not even for {@link Set#contains} etc.).
-     * Throws an exception if any element is passed in twice. Random iteration order.
+     * {@link TreeSet}: modifiable Set that keeps entries in a sorted manner. With the default comparator,
+     * null is not supported. Elements already added to it are silently ignored.
+     * Implements SequencedSet, but methods like {@link SequencedSet#removeFirst} throw an exception because
+     * the entries are implicitly sorted.
      */
-    @Test
-    void testJdkSetOf() {
-        // Is immutable
-        Integer[] elements = { 1, 4, 9, 16 };
-        Set<Integer> set = Set.of(elements);
-        verifyIsImmutable(set, () -> elements[2] = -999);
-
-        // Has random order
-        assertContainsButNotInOrder(set, 1, 4, 9, 16);
-        assertThat(set, not(instanceOf(SequencedCollection.class)));
-
-        // May not contain null
-        assertThrows(NullPointerException.class, () -> Set.of(14, null, 16));
-
-        // No null support in methods
-        verifyRejectsNullArgInMethods(set);
+    @TestFactory
+    List<DynamicTest> jdk_TreeSet() {
+        return forSetType(SetCreator.forMutableType(TreeSet::new))
+            .expect(NullSupport.REJECT, SetOrder.SORTED, SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
     }
 
     /**
-     * {@link Set#copyOf} produces an immutable Set. Does not support null (not even for {@link Set#contains} etc.).
-     * Duplicate elements in the original collection are ignored. Random iteration order. Recognizes instances of the
-     * same class and avoids unnecessary copying.
+     * {@link TreeSet} with a custom comparator: supports null if supported by the comparator.
      */
-    @Test
-    void testJdkSetCopyOf() {
-        // Is immutable
-        List<Integer> elements = newArrayList(1, 4, 9, 16, 9);
-        Set<Integer> set = Set.copyOf(elements);
-        verifyIsImmutable(set, () -> elements.remove((Integer) 4));
-
-        // Has random order
-        assertContainsButNotInOrder(set, 1, 4, 9, 16);
-        assertThat(set, not(instanceOf(SequencedCollection.class)));
-
-        // May not contain null
-        List<Integer> elementsWithNull = Arrays.asList(1, 4, null, 16);
-        assertThrows(NullPointerException.class, () -> Set.copyOf(elementsWithNull));
-
-        // No null support in methods
-        verifyRejectsNullArgInMethods(set);
-
-        // Does not create new instances if not needed
-        assertThat(Set.copyOf(set), sameInstance(set));
+    @TestFactory
+    List<DynamicTest> jdk_TreeSet_customComparator() {
+        Comparator<String> strComparator = Comparator.nullsFirst(Comparator.naturalOrder());
+        return forSetType(SetCreator.forMutableType(() -> new TreeSet<>(strComparator)))
+            .expect(NullSupport.FULL, SetOrder.SORTED, SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
     }
 
     /**
-     * {@link ImmutableSet#of} produces an immutable Set. Does not support null as elements.
+     * {@link Set#of(Object[])} produces an immutable Set. Does not support null (not even for {@link Set#contains}
+     * etc.). Throws an exception if any element is passed in twice. Random iteration order.
+     */
+    @TestFactory
+    List<DynamicTest> jdk_Set_of() {
+        return forSetType(SetCreator.forArrayBasedType(Set::of))
+            .expect(NullSupport.REJECT, SetOrder.UNORDERED, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .rejectsDuplicatesOnCreation()
+            .createTests();
+    }
+
+    /**
+     * {@link Set#copyOf(Collection)} produces an immutable Set. Does not support null (not even for
+     * {@link Set#contains} etc.). Duplicate elements in the original collection are ignored. Random iteration order.
+     * Recognizes instances of the same class and avoids unnecessary copying.
+     */
+    @TestFactory
+    List<DynamicTest> jdk_Set_copyOf() {
+        return forSetType(SetCreator.fromCollection(Set::copyOf))
+            .expect(NullSupport.REJECT, SetOrder.UNORDERED, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .skipsWrappingForOwnClass()
+            .createTests();
+    }
+
+    /**
+     * {@link ImmutableSet#copyOf(Object[])} produces an immutable Set. Does not support null as elements.
      * Insertion order is kept. Can be instantiated with duplicates (also when using the builder,
      * {@link ImmutableSet#builder()}).
      */
-    @Test
-    void testGuavaImmutableSet() {
-        // Is immutable
-        Set<Integer> set = ImmutableSet.of(1, 4, 9, 16, 9);
-        verifyIsImmutable(set, () -> { /* Noop */ });
+    @TestFactory
+    List<DynamicTest> guava_ImmutableSet() {
+        // Keeps insertion order, but is not SequencedCollection because Guava supports older JDK versions
+        // https://github.com/google/guava/issues/6903
 
-        // Keeps insertion order, but is not SequencedCollection (https://github.com/google/guava/issues/6903)
-        assertThat(set, contains(1, 4, 9, 16));
-        assertThat(set, not(instanceOf(SequencedCollection.class))); // Because Guava supports older JDK versions
-
-        // May not contain null
-        assertThrows(NullPointerException.class, () -> ImmutableSet.of(14, null, 16));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
-
-        // Builder also accepts duplicates
-        assertThat(ImmutableSet.builder()
-            .add(14)
-            .add(15, 15)
-            .add(14)
-            .add(16)
-            .build(), contains(14, 15, 16));
+        return forSetType(SetCreator.forArrayBasedType(ImmutableSet::copyOf))
+            .expect(NullSupport.ARGUMENTS, SetOrder.INSERTION_ORDER, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .createTests();
     }
 
     /**
-     * {@link ImmutableSet#copyOf} produces an immutable Set. Null as element is not supported but can be used
-     * in {@link Set#contains} etc. Elements are copied. Retains iteration order of the original collection.
+     * {@link ImmutableSet#copyOf(Collection)} produces an immutable Set. Null as element is not supported but can be
+     * used in {@link Set#contains} etc. Elements are copied. Retains iteration order of the original collection.
      * Recognizes its own instances and avoids unnecessary copies.
      */
-    @Test
-    void testGuavaImmutableSetCopy() {
-        // Is immutable
-        List<Integer> elements = newArrayList(1, 4, 9, 16, 9);
-        Set<Integer> set = ImmutableSet.copyOf(elements);
-        verifyIsImmutable(set, () -> elements.set(2, -999));
+    @TestFactory
+    List<DynamicTest> guava_ImmutableSet_copyOf() {
+        // Keeps insertion order, but is not SequencedCollection because Guava supports older JDK versions
+        // https://github.com/google/guava/issues/6903
 
-        // Keeps insertion order, but is not SequencedCollection (https://github.com/google/guava/issues/6903)
-        assertThat(set, contains(1, 4, 9, 16));
-        assertThat(set, not(instanceOf(SequencedCollection.class))); // Because Guava supports older JDK versions
-
-        // May not contain null
-        List<Integer> elementsWithNull = newArrayList(1, null, 9);
-        assertThrows(NullPointerException.class, () -> ImmutableSet.copyOf(elementsWithNull));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
-
-        // Does not create new instances if not needed
-        assertThat(ImmutableSet.copyOf(set), sameInstance(set));
+        return forSetType(SetCreator.fromCollection(ImmutableSet::copyOf))
+            .expect(NullSupport.ARGUMENTS, SetOrder.INSERTION_ORDER, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .skipsWrappingForOwnClass()
+            .createTests();
     }
 
     /**
      * {@link Collections#emptySet()} always returns the same instance: immutable empty Set.
      */
-    @Test
-    void testJdkCollectionsEmptySet() {
-        // Is immutable
-        Set<Integer> set1 = Collections.emptySet();
-        verifyThrowsOnlyIfSetWouldBeModified(set1, UnmodifiableSetExceptionBehavior.COLLECTIONS_EMPTYSET);
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set1);
-
+    @TestFactory
+    List<DynamicTest> jdk_Collections_emptySet() {
         // Not a sequenced collection. Could probably implement it in theory, but there's no point to it?
-        assertThat(set1, not(instanceOf(SequencedCollection.class)));
-
-        // Always returns the same instance
-        Set<String> set2 = Collections.emptySet();
-        assertThat(set1, sameInstance(set2));
+        return forSetType(SetCreator.forEmptySet(Collections::emptySet))
+            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified())
+            .createTests();
     }
 
     /**
-     * {@link Collections#unmodifiableSet} wraps a Set into an unmodifiable Set facade. Changes to the backing
+     * {@link Collections#unmodifiableSet(Set)} wraps a Set into an unmodifiable Set facade. Changes to the backing
      * collection are reflected. Supports null as elements. Iteration order kept from underlying collection.
      */
-    @Test
-    void testJdkCollectionsUnmodifiableSet() {
-        // Is unmodifiable
-        SequencedSet<Integer> elements = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16));
-        Set<Integer> set = Collections.unmodifiableSet(elements);
-        verifyIsUnmodifiable(set, () -> elements.remove(9));
-
+    @TestFactory
+    List<DynamicTest> jdk_Collections_unmodifiableSet() {
         // Has same order as backing set, never SequencedCollection (even if backing set is)
-        assertThat(set, contains(1, 4, 16));
-        assertThat(set, not(instanceOf(SequencedCollection.class)));
-
-        // May contain null
-        Set<Integer> setWithNull = new HashSet<>(Arrays.asList(2, null));
-        Collections.unmodifiableSet(setWithNull); // No exception
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
-
         // Same instance returned in JDK 17, whereas in JDK 11 it always returned a new instance
-        assertThat(Collections.unmodifiableSet(set), sameInstance(set));
+        return forSetType(SetCreator.forSetBasedType(Collections::unmodifiableSet))
+            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.unmodifiable().alwaysThrows())
+            .skipsWrappingForOwnClass()
+            .createTests();
     }
 
     /**
-     * {@link Collections#unmodifiableSequencedSet} wraps a sequenced set into an unmodifiable sequenced set facade.
-     * Changes to the backing collection are reflected. Supports null as elements.
+     * {@link Collections#unmodifiableSequencedSet(SequencedSet)} wraps a sequenced set into an unmodifiable sequenced
+     * set facade. Changes to the backing collection are reflected. Supports null as elements.
      */
-    @Test
-    void testJdkCollectionsUnmodifiableSequencedSet() {
-        // Is unmodifiable
-        SequencedSet<Integer> elements = new LinkedHashSet<>(Arrays.asList(1, 4, 9, 16));
-        SequencedSet<Integer> set = Collections.unmodifiableSequencedSet(elements);
-        verifyIsUnmodifiable(set, () -> elements.remove(9));
+    @TestFactory
+    List<DynamicTest> jdk_Collections_unmodifiableSequencedSet() {
+        SetCreator setCreator = SetCreator.forSetBasedType(Collections::unmodifiableSequencedSet,
+            in -> in instanceof SequencedSet<String> seq ? seq : new LinkedHashSet<>(in));
 
-        // Has same order as backing set and is a SequencedSet (no check as `set` is already declared as such)
-        assertThat(set, contains(1, 4, 16));
-
-        // May contain null
-        SequencedSet<Integer> setWithNull = new LinkedHashSet<>(Arrays.asList(2, null));
-        Collections.unmodifiableSequencedSet(setWithNull); // No exception
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
-
-        // Same instance returned
-        assertThat(Collections.unmodifiableSequencedSet(set), sameInstance(set));
-
-        // Same instance not returned with Collections#unmodifiableSet
-        assertThat(Collections.unmodifiableSet(set), not(sameInstance(set)));
+        return forSetType(setCreator)
+            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.IMPLEMENTS)
+            .mutability(ModificationBehavior.unmodifiable().alwaysThrows())
+            .skipsWrappingForOwnClass()
+            .createTests();
     }
 
     /**
-     * {@link Collections#singleton} produces an immutable Set with a single element. Supports null.
+     * {@link Collections#unmodifiableNavigableSet(NavigableSet)} wraps a navigable set into an unmodified
+     * navigable set facade. Changes to the backing collection are reflected. Supports null (if the backing set
+     * supports it).
      */
-    @Test
-    void testJdkCollectionsSingleton() {
-        // Is immutable
-        Set<Integer> set = Collections.singleton(4);
-        verifyThrowsOnlyIfSetWouldBeModified(set, UnmodifiableSetExceptionBehavior.COLLECTIONS_SINGLETON);
+    @TestFactory
+    List<DynamicTest> jdk_Collections_unmodifiableNavigableSet() {
+        SetCreator setCreator = SetCreator.forSetBasedType(Collections::unmodifiableNavigableSet,
+            in -> in instanceof NavigableSet<String> nav ? nav : createTreeSet(in));
 
-        // May contain null
-        Set<Integer> singletonWithNull = Collections.singleton(null);
-        assertThat(singletonWithNull.contains(null), equalTo(true));
+        return forSetType(setCreator)
+            .expect(NullSupport.FULL, SetOrder.SORTED, SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING)
+            .mutability(ModificationBehavior.unmodifiable().alwaysThrows())
+            .skipsWrappingForOwnClass()
+            .createTests();
+    }
 
-        // Not a sequenced collection. Could probably implement it in theory, but there's no point to it?
-        assertThat(set, not(instanceOf(SequencedCollection.class)));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
+    private static TreeSet<String> createTreeSet(Set<String> elements) {
+        TreeSet<String> treeSet = new TreeSet<>(Comparator.nullsFirst(Comparator.naturalOrder()));
+        treeSet.addAll(elements);
+        return treeSet;
     }
 
     /**
-     * {@link Collectors#toSet} makes no guarantees about the returned type or its mutability. For now, it
+     * {@link Collections#singleton(Object)} produces an immutable Set with a single element. Supports null.
+     */
+    @TestFactory
+    List<DynamicTest> jdk_Collections_singleton() {
+        return forSetType(SetCreator.forSingleElement(Collections::singleton))
+            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.REMOVE_IF)
+            )
+            .createTests();
+    }
+
+    /**
+     * {@link Collectors#toSet()} makes no guarantees about the returned type or its mutability. For now, it
      * returns a HashSet and therefore also supports null values.
      */
     @Test
-    void testJdkCollectorsToSet() {
-        // Is mutable (but Javadoc makes no guarantee)
-        Set<String> emptySet = Stream.of("f", "g")
-            .filter(e -> false)
+    void jdk_Collectors_toSet() {
+        Set<String> set = Stream.of("f", "g")
             .collect(Collectors.toSet());
-        assertThat(emptySet.getClass(), equalTo(HashSet.class));
-        verifyIsMutable(emptySet);
-
-        // Has random order
-        Set<Integer> set = Stream.of(1, 4, 9, 16).collect(Collectors.toSet());
-        assertContainsButNotInOrder(set, 1, 4, 9, 16);
-
-        // May contain null
-        Set<Integer> setWithNull = Stream.of(3, null, 4)
-            .collect(Collectors.toSet());
-        assertThat(setWithNull.contains(null), equalTo(true));
-
-        // Null support in methods
-        verifySupportsNullArgInMethods(set);
+        assertThat(set.getClass(), equalTo(HashSet.class));
     }
 
     /**
-     * {@link Collectors#toUnmodifiableSet} produces an immutable Set. Null as element is not supported and may not be
+     * {@link Collectors#toUnmodifiableSet()} produces an immutable Set. Null as element is not supported and may not be
      * used as argument in methods like {@link Set#contains}.
      */
-    @Test
-    void testJdkCollectorsToUnmodifiableSet() {
-        // Is immutable
-        Set<Integer> set = Stream.of(1, 4, 9, 16)
-            .collect(Collectors.toUnmodifiableSet());
-        verifyIsImmutable(set, () -> { /* noop */ });
-
-        // Has random order
-        assertContainsButNotInOrder(set, 1, 4, 9, 16);
-        assertThat(set, not(instanceOf(SequencedCollection.class)));
-
-        // May not contain null
-        assertThrows(NullPointerException.class, () -> Stream.of(1, null, 16)
-            .collect(Collectors.toUnmodifiableSet()));
-
-        // No null support in methods
-        verifyRejectsNullArgInMethods(set);
+    @TestFactory
+    List<DynamicTest> jdk_Collectors_toUnmodifiableSet() {
+        return forSetType(SetCreator.fromStream(str -> str.collect(Collectors.toUnmodifiableSet())))
+            .expect(NullSupport.REJECT, SetOrder.UNORDERED, SequencedSetType.DOES_NOT_IMPLEMENT)
+            .mutability(ModificationBehavior.immutable().alwaysThrows())
+            .createTests();
     }
 
-    private static void assertContainsButNotInOrder(Set<Integer> set, Integer... values) {
-        assertThat(set, containsInAnyOrder(values));
-        assertThat(set, not(contains(values)));
-        // Of course it's still possible that by coincidence the Set has the same order, but we just have to live with this
+    /**
+     * Creates a new test generator instance for the given set creator.
+     *
+     * @param setCreator set creator providing the type to test
+     * @return test generator
+     */
+    private static TestsGenerator forSetType(SetCreator setCreator) {
+        StackWalker instance = StackWalker.getInstance();
+        String testName = instance.walk(frames -> frames.skip(1).findFirst()).get().getMethodName();
+        return new TestsGenerator(setCreator, testName);
+    }
+
+    /**
+     * Generates tests based on the expected behavior that is defined.
+     */
+    private static final class TestsGenerator {
+
+        private final SetCreator setCreator;
+        private final String testName;
+        private final TestLogic testLogic;
+
+        private NullSupport nullSupport;
+        private SetOrder elementOrder;
+        private SequencedSetType sequencedSetType;
+        private boolean acceptsDuplicatesOnCreation = true;
+        private boolean skipsWrappingForOwnClass;
+
+        private ModificationBehavior modificationBehavior;
+
+
+        private TestsGenerator(SetCreator setCreator, String testName) {
+            this.setCreator = setCreator;
+            this.testName = testName;
+            this.testLogic = new TestLogic(setCreator);
+        }
+
+        /**
+         * Sets some basic expected properties of the set type to this generator.
+         *
+         * @param nullSupport expected null support of the set type
+         * @param elementOrder expected order of the set's elements
+         * @param sequencedSetType whether the set type extends SequencedSet
+         * @return this instance, for chaining
+         */
+        TestsGenerator expect(NullSupport nullSupport, SetOrder elementOrder, SequencedSetType sequencedSetType) {
+            this.nullSupport = nullSupport;
+            this.elementOrder = elementOrder;
+            this.sequencedSetType = sequencedSetType;
+            return this;
+        }
+
+        /**
+         * Registers the expected mutability behavior of the set type that should be tested.
+         *
+         * @param modificationBehavior definition of how the set is expected to behave wrt mutability
+         * @return this instance, for chaining
+         * @see SetModificationVerifier
+         */
+        TestsGenerator mutability(ModificationBehavior modificationBehavior) {
+            this.modificationBehavior = modificationBehavior;
+            return this;
+        }
+
+        /**
+         * When the set is created based on another structure that allows duplicates, defines that duplicates in that
+         * input structure will result in an exception.
+         *
+         * @return this instance, for chaining
+         */
+        TestsGenerator rejectsDuplicatesOnCreation() {
+            this.acceptsDuplicatesOnCreation = false;
+            return this;
+        }
+
+        /**
+         * Only applicable for set-based set creators: it is expected that the method recognizes sets of its return
+         * type and that it will not wrap those sets again, i.e. it returns the same set in this case.
+         *
+         * @return this instance, for chaining
+         */
+        TestsGenerator skipsWrappingForOwnClass() {
+            this.skipsWrappingForOwnClass = true;
+            return this;
+        }
+
+        List<DynamicTest> createTests() {
+            return Stream.of(
+                    createTestsForNullSupport(),
+                    createTestForElementOrder(),
+                    createTestForSequencedSetImpl(),
+                    createTestsForMutability(),
+                    createTestForSkipsWrappingOwnClassIfApplicable(),
+                    createTestForDuplicatesOnCreation()
+                )
+                .flatMap(Function.identity())
+                .toList();
+        }
+
+        private Stream<DynamicTest> createTestsForNullSupport() {
+            List<DynamicTest> tests = switch (nullSupport) {
+                case FULL -> List.of(
+                    testLogic.supportsNullElements(),
+                    testLogic.supportsNullMethodArgs());
+
+                case ARGUMENTS -> List.of(
+                    testLogic.mayNotContainNull(),
+                    testLogic.supportsNullMethodArgs());
+
+                case REJECT -> List.of(
+                    testLogic.mayNotContainNull(),
+                    testLogic.rejectsNullMethodArgs());
+            };
+
+            if (setCreator.getSizeLimit() == 0) {
+                // A null element does not apply to an empty set type, skip the test
+                return tests.stream().skip(1);
+            }
+            return tests.stream();
+        }
+
+        private Stream<DynamicTest> createTestForElementOrder() {
+            if (setCreator.getSizeLimit() <= 1) {
+                // 0 or 1 element are treated as order, throw exception otherwise: misconfiguration
+                Preconditions.checkState(elementOrder == SetOrder.INSERTION_ORDER);
+                return Stream.empty();
+            }
+
+            return switch (elementOrder) {
+                case INSERTION_ORDER -> Stream.of(testLogic.keepsElementsByInsertionOrder());
+                case SORTED -> Stream.of(testLogic.keepsElementsSorted());
+                case UNORDERED -> Stream.of(testLogic.hasRandomElementOrder());
+            };
+        }
+
+        private Stream<DynamicTest> createTestForSequencedSetImpl() {
+            return switch (sequencedSetType) {
+                case IMPLEMENTS, IMPLEMENTS_W_IMPLICIT_ORDERING -> Stream.of(testLogic.isSequencedSet());
+                case DOES_NOT_IMPLEMENT -> Stream.of(testLogic.isNotSequencedSet());
+            };
+        }
+
+        private Stream<DynamicTest> createTestsForMutability() {
+            if (modificationBehavior.isMutable()) {
+                return createTestsForMutableAssertions().stream();
+            }
+
+            List<DynamicTest> testsToRun = new ArrayList<>();
+            createTestForImmutabilityBehavior().ifPresent(testsToRun::add);
+            Set<String> set = setCreator.createSetWithAbcdOrSubset();
+            testsToRun.add(dynamicTest("unmodifiable",
+                () -> testMethods(set, modificationBehavior)));
+            if (set instanceof SequencedSet<String> seqSet) {
+                testsToRun.add(dynamicTest("unmodifiable_sequencedSet",
+                    () -> testMethodsForSequencedSet(seqSet, modificationBehavior)));
+                testsToRun.add(dynamicTest("unmodifiable_reversed",
+                    () -> testMethodsForReversedSet(seqSet.reversed(), modificationBehavior)));
+            }
+
+            if (setCreator.getSizeLimit() > 0) {
+                testsToRun.add(dynamicTest("unmodifiable_iterator",
+                    () -> verifyCannotBeModifiedByIterator(set)));
+            }
+
+            return testsToRun.stream();
+        }
+
+        /**
+         * Returns tests to run for a set creator whose type should be fully modifiable.
+         *
+         * @return tests to run
+         */
+        private List<DynamicTest> createTestsForMutableAssertions() {
+            Set<String> emptyList = setCreator.createSet();
+
+            List<DynamicTest> testsToRun = new ArrayList<>();
+            testsToRun.add(dynamicTest("mutable",
+                () -> CollectionMutabilityVerifier.verifySetIsMutable(emptyList)));
+            testsToRun.add(dynamicTest("mutable_iterator",
+                () -> verifyIsMutableByIterator(emptyList)));
+
+            if (emptyList instanceof SequencedSet<String> seqSet) {
+                boolean removeOnly = sequencedSetType == SequencedSetType.IMPLEMENTS_W_IMPLICIT_ORDERING;
+                String suffix = removeOnly ? "_removeOnly" : "";
+                testsToRun.add(dynamicTest("mutable_sequencedSet" + suffix,
+                    () -> verifyIsMutableBySequencedSetMethods(seqSet, removeOnly)));
+            }
+            if (emptyList instanceof NavigableSet<String> navSet) {
+                testsToRun.add(dynamicTest("mutable_navigableSet",
+                    () -> verifyIsMutableByNavigableSetMethods(navSet)));
+            }
+            return testsToRun;
+        }
+
+        private Optional<DynamicTest> createTestForImmutabilityBehavior() {
+            Optional<SetWithBackingDataModifier> setWithDataModifier =
+                setCreator.createSetWithBackingDataModifier("a", "b", "c", "d");
+
+            if (!modificationBehavior.isImmutable) {
+                // Must be able to create this in order to "claim" that it's not immutable
+                SetWithBackingDataModifier setWithBd = setWithDataModifier.orElseThrow();
+                DynamicTest test = dynamicTest("unmodifiable_changeToOriginalStructureReflectedInSet",
+                    () -> unmodifiable_changeToOriginalStructureIsReflectedInSet(setWithBd));
+                return Optional.of(test);
+            }
+
+            return setWithDataModifier
+                .map(setWithBd -> dynamicTest("immutable_originalStructureDoesNotChangeSet",
+                    () -> immutable_changeToOriginalStructureIsNotReflectedInSet(setWithBd)));
+        }
+
+        private Stream<DynamicTest> createTestForSkipsWrappingOwnClassIfApplicable() {
+            if (skipsWrappingForOwnClass) {
+                return Stream.of(testLogic.skipsWrappingForOwnClass());
+            } else if (setCreator instanceof FromCollectionSetCreator) {
+                return Stream.of(testLogic.alwaysWrapsOwnClass());
+            }
+            return Stream.empty();
+        }
+
+        private Stream<DynamicTest> createTestForDuplicatesOnCreation() {
+            if (!setCreator.canEncounterDuplicateArguments()) {
+                Preconditions.checkState(acceptsDuplicatesOnCreation);
+                return Stream.empty();
+            }
+
+            return acceptsDuplicatesOnCreation
+                ? Stream.of(testLogic.acceptsDuplicatesOnCreation(elementOrder))
+                : Stream.of(testLogic.rejectsDuplicatesOnCreation());
+        }
+    }
+
+    private static final class TestLogic {
+
+        private final SetCreator setCreator;
+
+        private TestLogic(SetCreator setCreator) {
+            this.setCreator = setCreator;
+        }
+
+        DynamicTest supportsNullElements() {
+            return dynamicTest("supportsNullElements",
+                () -> assertDoesNotThrow(setCreator::createSetWithNull));
+        }
+
+        DynamicTest mayNotContainNull() {
+            return dynamicTest("mayNotContainNull",
+                () -> assertThrows(NullPointerException.class, setCreator::createSetWithNull));
+        }
+
+        DynamicTest supportsNullMethodArgs() {
+            return dynamicTest("supportsNullMethodArgs",
+                () -> verifySupportsNullArgInMethods(setCreator.createSet()));
+        }
+
+        DynamicTest rejectsNullMethodArgs() {
+            return dynamicTest("rejectsNullMethodArgs",
+                () -> verifyRejectsNullArgInMethods(setCreator.createSet()));
+        }
+
+        DynamicTest skipsWrappingForOwnClass() {
+            FromCollectionSetCreator setCopyCreator = (FromCollectionSetCreator) setCreator;
+            return dynamicTest("skipsWrappingForOwnClass", () -> {
+                Set<String> set1 = setCopyCreator.newSet(Set.of("a", "b"));
+                Set<String> set2 = setCopyCreator.newSet(set1);
+                assertThat(set1, sameInstance(set2));
+            });
+        }
+
+        DynamicTest alwaysWrapsOwnClass() {
+            FromCollectionSetCreator setCopyCreator = (FromCollectionSetCreator) setCreator;
+            return dynamicTest("alwaysWrapsOwnClass", () -> {
+                Set<String> set1 = setCopyCreator.newSet(Set.of("a", "b"));
+                Set<String> set2 = setCopyCreator.newSet(set1);
+                assertThat(set1, not(sameInstance(set2)));
+            });
+        }
+
+        DynamicTest isSequencedSet() {
+            return dynamicTest("isSequencedSet",
+                () -> assertThat(setCreator.createSet(), instanceOf(SequencedSet.class)));
+        }
+
+        DynamicTest isNotSequencedSet() {
+            return dynamicTest("isNotSequencedSet", () -> {
+                Set<String> set = setCreator.createSet();
+                assertThat(set, not(instanceOf(SequencedSet.class)));
+                assertThat(set, not(instanceOf(SequencedCollection.class)));
+                if (setCreator instanceof FromCollectionSetCreator fcc) {
+                    // Explicitly check that a SequencedSet as base does not yield a SequencedSet, as is done for
+                    // RandomAccess sometimes with methods that wrap lists
+                    SequencedSet<String> sequencedSet = new LinkedHashSet<>(set);
+                    assertThat(fcc.newSet(sequencedSet), not(instanceOf(SequencedSet.class)));
+                }
+            });
+        }
+
+        DynamicTest hasRandomElementOrder() {
+            return dynamicTest("hasRandomElementOrder", () -> {
+                Set<String> set = setCreator.createSetWithAlphanumericalEntries();
+                // It's still possible that by coincidence the Set has the same order even though it makes
+                // no guarantees. It's improbable to happen because of the number of entries we use.
+                assertThat(set, containsInAnyOrder(SetCreator.ALPHANUM_ELEMENTS_RANDOM));
+                assertThat(set, not(contains(SetCreator.ALPHANUM_ELEMENTS_RANDOM)));
+                assertThat(set, not(contains(SetCreator.ALPHANUM_ELEMENTS_SORTED)));
+            });
+        }
+
+        DynamicTest keepsElementsSorted() {
+            return dynamicTest("keepsElementsSorted", () -> {
+                Set<String> set = setCreator.createSetWithAlphanumericalEntries();
+                assertThat(set, contains(SetCreator.ALPHANUM_ELEMENTS_SORTED));
+            });
+        }
+
+        DynamicTest keepsElementsByInsertionOrder() {
+            return dynamicTest("keepsElementsByInsertionOrder", () -> {
+                Set<String> set = setCreator.createSetWithAlphanumericalEntries();
+                assertThat(set, contains(SetCreator.ALPHANUM_ELEMENTS_RANDOM));
+            });
+        }
+
+        DynamicTest acceptsDuplicatesOnCreation(SetOrder expectedOrder) {
+            if (expectedOrder == SetOrder.UNORDERED) {
+                return dynamicTest("acceptsDuplicatesOnCreation",
+                    () -> assertThat(setCreator.createSetWithDuplicateArgs(), containsInAnyOrder("a", "b", "c")));
+            }
+            return dynamicTest("acceptsDuplicatesOnCreation",
+                () -> assertThat(setCreator.createSetWithDuplicateArgs(), contains("a", "b", "c")));
+        }
+
+        DynamicTest rejectsDuplicatesOnCreation() {
+            return dynamicTest("rejectsDuplicatesOnCreation",
+                () -> assertThrows(IllegalArgumentException.class, setCreator::createSetWithDuplicateArgs));
+        }
     }
 }
