@@ -14,7 +14,7 @@ public final class ListModificationVerifier {
     }
 
     public static void testMethods(List<String> originalList, ModificationBehavior expectedBehavior) {
-        new UnmodifiableBehaviorTester<>(originalList, ArrayList::new, expectedBehavior)
+        new UnmodifiableCollectionBehaviorTester<>(originalList, ArrayList::new, expectedBehavior)
             .test(ListMethod.ADD, list -> list.add("foo"))
             .test(ListMethod.ADD_WITH_INDEX, list -> list.add(1, "foo"))
             .test(ListMethod.ADD_WITH_INDEX, list -> list.add(5, "foo"))
