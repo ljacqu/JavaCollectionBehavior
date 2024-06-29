@@ -14,6 +14,7 @@ import java.util.Set;
 import static ch.jalu.collectionbehavior.model.MapCreator.A_VALUE;
 import static ch.jalu.collectionbehavior.model.MapCreator.B_VALUE;
 import static ch.jalu.collectionbehavior.model.MapCreator.D_VALUE;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public final class MapModificationVerifier {
 
@@ -67,6 +68,11 @@ public final class MapModificationVerifier {
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(List.of()))
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(set))
             .test(SetMethod.CLEAR, set -> set.clear());
+
+        originalMap.entrySet().stream().findFirst().ifPresent(entry -> {
+            assertThrows(UnsupportedOperationException.class, () -> entry.setValue(1));
+            assertThrows(UnsupportedOperationException.class, () -> entry.setValue(entry.getValue()));
+        });
     }
 
     public static void testMethodsForKeySet(Map<String, Integer> originalMap, ModificationBehavior expectedBehavior) {

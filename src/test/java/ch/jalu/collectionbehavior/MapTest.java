@@ -15,6 +15,7 @@ import ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
@@ -81,54 +82,95 @@ class MapTest {
      * {@link Map#containsKey} results in an exception. Also throws an exception if there are duplicate keys when
      * the Map is being created. Random iteration order.
      */
-    @Test
-    void jdk_Map_of() {
-        Map<String, Integer> map0 = Map.of();
-        Map<String, Integer> map1 = Map.of("rA", 240);
-        Map<String, Integer> map2 = Map.of("rA", 240, "Xo", 134);
-        Map<String, Integer> map3 = Map.of("rA", 240, "Xo", 134, "J1", 40);
-        Map<String, Integer> map4 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194);
-        Map<String, Integer> map5 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38);
-        Map<String, Integer> map6 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255);
-        Map<String, Integer> map7 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19);
-        Map<String, Integer> map8 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247);
-        Map<String, Integer> map9 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247, "Kq", 169);
-        Map<String, Integer> mapX = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247, "Kq", 169, "Mf", 129);
+    @Nested
+    class Jdk_Map_of {
 
-        assertThat(map0.getClass(), equalTo(map2.getClass()));
-        assertThat(map1.getClass(), not(equalTo(map2.getClass())));
-        assertThat(map3.getClass(), equalTo(map2.getClass()));
-        assertThat(map4.getClass(), equalTo(map2.getClass()));
-        assertThat(map5.getClass(), equalTo(map2.getClass()));
-        assertThat(map6.getClass(), equalTo(map2.getClass()));
-        assertThat(map7.getClass(), equalTo(map2.getClass()));
-        assertThat(map8.getClass(), equalTo(map2.getClass()));
-        assertThat(map9.getClass(), equalTo(map2.getClass()));
-        assertThat(mapX.getClass(), equalTo(map2.getClass()));
+        private static final Map<String, Integer> MAP_0 = Map.of();
+        private static final Map<String, Integer> MAP_1 = Map.of("rA", 240);
+        private static final Map<String, Integer> MAP_2 = Map.of("rA", 240, "Xo", 134);
+        private static final Map<String, Integer> MAP_3 = Map.of("rA", 240, "Xo", 134, "J1", 40);
+        private static final Map<String, Integer> MAP_4 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194);
+        private static final Map<String, Integer> MAP_5 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38);
+        private static final Map<String, Integer> MAP_6 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255);
+        private static final Map<String, Integer> MAP_7 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19);
+        private static final Map<String, Integer> MAP_8 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247);
+        private static final Map<String, Integer> MAP_9 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247, "Kq", 169);
+        private static final Map<String, Integer> MAP_10 = Map.of("rA", 240, "Xo", 134, "J1", 40, "lW", 194, "B2", 38, "iK", 255, "c8", 19, "yG", 247, "Kq", 169, "Mf", 129);
 
-        assertThat(map0, not(instanceOf(SequencedMap.class)));
-        assertThat(map1, not(instanceOf(SequencedMap.class)));
+        @Test
+        void hasDifferentClassForMapOfOneElement() {
+            assertThat(MAP_0.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_1.getClass(), not(equalTo(MAP_2.getClass())));
+            assertThat(MAP_3.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_4.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_5.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_6.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_7.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_8.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_9.getClass(), equalTo(MAP_2.getClass()));
+            assertThat(MAP_10.getClass(), equalTo(MAP_2.getClass()));
+        }
 
-        String[] keysX = {"rA", "Xo", "J1", "lW", "B2", "iK", "c8", "yG", "Kq", "Mf"};
-        assertThat(mapX.keySet(), containsInAnyOrder(keysX));
-        assertThat(mapX.keySet(), not(contains(keysX)));
+        @Test
+        void isNotSequencedMap() {
+            assertThat(MAP_0, not(instanceOf(SequencedMap.class)));
+            assertThat(MAP_1, not(instanceOf(SequencedMap.class)));
+        }
 
-        assertThrows(NullPointerException.class, () -> Map.of("a", 12, "b", null));
-        assertThrows(NullPointerException.class, () -> Map.of("a", 12, null, 13));
-        assertThrows(NullPointerException.class, () -> Map.of("a", null));
-        assertThrows(NullPointerException.class, () -> Map.of(null, 12));
-        MapNullBehaviorVerifier.verifyRejectsNullArgInMethods(mapX);
+        @Test
+        void hasRandomEntryOrder() {
+            String[] keysX = {"rA", "Xo", "J1", "lW", "B2", "iK", "c8", "yG", "Kq", "Mf"};
+            assertThat(MAP_10.keySet(), containsInAnyOrder(keysX));
+            assertThat(MAP_10.keySet(), not(contains(keysX)));
+        }
 
-        assertThrows(IllegalArgumentException.class, () -> Map.of("a", 10, "b", 12, "a", 10));
+        @Test
+        void rejectsNullArgsInMethods() {
+            MapNullBehaviorVerifier.verifyRejectsNullArgInMethods(MAP_10);
+        }
 
-        ModificationBehavior modificationBehavior = ModificationBehavior.immutable().alwaysThrows();
-        MapModificationVerifier.testMethods(mapX, modificationBehavior);
-        ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
-            .butThrows(UnsupportedOperationException.class)
+        @Test
+        void mayNotContainNull() {
+            assertThrows(NullPointerException.class, () -> Map.of("a", 12, "b", null));
+            assertThrows(NullPointerException.class, () -> Map.of("a", 12, null, 13));
+            assertThrows(NullPointerException.class, () -> Map.of("a", null));
+            assertThrows(NullPointerException.class, () -> Map.of(null, 12));
+        }
+
+        @Test
+        void rejectsDuplicateKeysOnCreation() {
+            assertThrows(IllegalArgumentException.class, () -> Map.of("a", 10, "b", 12, "a", 10));
+        }
+
+        @Test
+        void unmodifiable() {
+            ModificationBehavior modificationBehavior = ModificationBehavior.immutable().alwaysThrows();
+            MapModificationVerifier.testMethods(MAP_10, modificationBehavior);
+        }
+
+        @Test
+        void unmodifiable_keySet() {
+            ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class)
                 .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL);
-        MapModificationVerifier.testMethodsForEntrySet(mapX, modificationBehaviorViews);
-        MapModificationVerifier.testMethodsForKeySet(mapX, modificationBehaviorViews);
-        MapModificationVerifier.testMethodsForValues(mapX, modificationBehaviorViews);
+            MapModificationVerifier.testMethodsForKeySet(MAP_10, modificationBehaviorViews);
+        }
+
+        @Test
+        void unmodifiable_entrySet() {
+            ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class)
+                .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL);
+            MapModificationVerifier.testMethodsForEntrySet(MAP_10, modificationBehaviorViews);
+        }
+
+        @Test
+        void unmodifiable_values() {
+            ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
+                .butThrows(UnsupportedOperationException.class)
+                .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD, SetMethod.ADD_ALL);
+            MapModificationVerifier.testMethodsForValues(MAP_10, modificationBehaviorViews);
+        }
     }
 
     /**
@@ -557,8 +599,10 @@ class MapTest {
         }
 
         DynamicTest supportsNullElements() {
-            return dynamicTest("supportsNullElements",
-                () -> assertDoesNotThrow(mapCreator::createMapWithNullKey));
+            return dynamicTest("supportsNullElements", () -> {
+                assertDoesNotThrow(mapCreator::createMapWithNullKey);
+                assertDoesNotThrow(mapCreator::createMapWithNullValue);
+            });
         }
 
         DynamicTest mayNotContainNull() {
@@ -637,7 +681,6 @@ class MapTest {
         DynamicTest keepsElementsByInsertionOrder() {
             return dynamicTest("keepsEntriesByInsertionOrder", () -> {
                 Map<String, Integer> map = mapCreator.createMapWithAlphanumericalEntries();
-                System.out.println(map);
                 assertThat(map.keySet(), contains(MapCreator.ALPHANUM_ELEMENTS_RANDOM));
             });
         }
