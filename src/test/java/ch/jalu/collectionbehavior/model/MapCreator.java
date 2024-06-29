@@ -39,30 +39,6 @@ public abstract sealed class MapCreator {
     public static final int C_VALUE = createValue("c"); // 99
     public static final int D_VALUE = createValue("d"); // 100
 
-    private static int createValue(String key) {
-        int value = 0;
-        char[] charArray = key == null ? new char[]{ 'ê' } : key.toCharArray();
-        for (int i = 0; i < charArray.length; i++) {
-            char c = charArray[i];
-            value ^= (c << i);
-        }
-        return value;
-    }
-
-    private static List<Map.Entry<String, Integer>> createEntries(String... keys) {
-        List<Map.Entry<String, Integer>> list = new ArrayList<>();
-        for (String k : keys) {
-            Map.Entry<String, Integer> entry = new AbstractMap.SimpleEntry<>(k, createValue(k));
-            list.add(entry);
-        }
-        return list;
-    }
-
-    private static LinkedHashMap<String, Integer> createLinkedHashMap(String... keys) {
-        return Arrays.stream(keys)
-            .collect(Collectors.toMap(Function.identity(), MapCreator::createValue, (a, b) -> a, LinkedHashMap::new));
-    }
-
     /**
      * @return New map of the specific Map type. The returned map has the minimum number
      *         of entries supported by the type.
@@ -269,6 +245,41 @@ public abstract sealed class MapCreator {
         return new EmptyMapCreator(callback);
     }
 
+
+    // -----------
+    // Helpers
+    // -----------
+
+    /**
+     * Creates an int value based on the key. The method is implemented so that the generated values
+     * aren't in the same sorted order as the keys.
+     *
+     * @param key the map key
+     * @return the map value
+     */
+    private static int createValue(String key) {
+        int value = 0;
+        char[] charArray = key == null ? new char[0] : key.toCharArray();
+        for (int i = 0; i < charArray.length; i++) {
+            char c = charArray[i];
+            value ^= (c << i);
+        }
+        return value;
+    }
+
+    private static List<Map.Entry<String, Integer>> createEntries(String... keys) {
+        List<Map.Entry<String, Integer>> list = new ArrayList<>();
+        for (String k : keys) {
+            Map.Entry<String, Integer> entry = new AbstractMap.SimpleEntry<>(k, createValue(k));
+            list.add(entry);
+        }
+        return list;
+    }
+
+    private static LinkedHashMap<String, Integer> createLinkedHashMap(String... keys) {
+        return Arrays.stream(keys)
+            .collect(Collectors.toMap(Function.identity(), MapCreator::createValue, (a, b) -> a, LinkedHashMap::new));
+    }
 
     // -----------
     // Implementations

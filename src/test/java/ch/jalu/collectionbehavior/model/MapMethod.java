@@ -1,6 +1,7 @@
 package ch.jalu.collectionbehavior.model;
 
 import java.util.Map;
+import java.util.SortedMap;
 
 /**
  * Enum representing various methods available on a {@link Map}.
@@ -44,5 +45,13 @@ public enum MapMethod implements CollectionMethod {
     COMPUTE_IF_ABSENT,
 
     /** {@link Map#computeIfPresent(Object, java.util.function.BiFunction)} */
-    COMPUTE_IF_PRESENT
+    COMPUTE_IF_PRESENT,
+
+    // SequencedMap
+
+    /** {@link SortedMap#putFirst} */
+    PUT_FIRST,
+
+    /** {@link SortedMap#putLast} */
+    PUT_LAST
 }

@@ -4,6 +4,7 @@ import ch.jalu.collectionbehavior.model.MapWithBackingDataModifier;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 
 import static ch.jalu.collectionbehavior.model.MapCreator.A_VALUE;
@@ -12,6 +13,7 @@ import static ch.jalu.collectionbehavior.model.MapCreator.C_VALUE;
 import static ch.jalu.collectionbehavior.model.MapCreator.D_VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -108,6 +110,20 @@ public final class MapMutabilityVerifier {
         entrySet.clear();
         assertThat(map, anEmptyMap());
         assertThrows(UnsupportedOperationException.class, () -> entrySet.add(Map.entry("z", 7)));
+    }
+
+    public static void verifyMapIsMutableBySequencedMapValues(SequencedMap<String, Integer> map) {
+        assertThat(map, anEmptyMap()); // Validate method contract
+
+        map.put("b", 2);
+        map.putFirst("a", 1);
+        map.putLast("c", 3);
+        assertThat(map.keySet(), contains("a", "b", "c"));
+
+        map.putLast("b", 2);
+        assertThat(map.keySet(), contains("a", "c", "b"));
+
+        map.clear();
     }
 
     public static void unmodifiable_changeToOriginalStructureIsReflectedInSet(MapWithBackingDataModifier setWithBackingDataModifier) {

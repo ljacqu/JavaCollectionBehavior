@@ -5,16 +5,16 @@ import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import java.util.Map;
 import java.util.function.Function;
 
-class UnmodifiableMapBehaviorTester extends UnmodifiableContainerBehaviorTester<Map<String, Integer>> {
+class UnmodifiableMapBehaviorTester<M extends Map<String, Integer>> extends UnmodifiableContainerBehaviorTester<M> {
 
-    UnmodifiableMapBehaviorTester(Map<String, Integer> originalMap,
-                                  Function<Map<String, Integer>, Map<String, Integer>> copyFunction,
+    UnmodifiableMapBehaviorTester(M originalMap,
+                                  Function<M, M> copyFunction,
                                   ModificationBehavior expectedBehavior) {
         super(originalMap, copyFunction, expectedBehavior);
     }
 
     @Override
-    protected int getSize(Map<String, Integer> map) {
+    protected int getSize(M map) {
         return map.size();
     }
 }

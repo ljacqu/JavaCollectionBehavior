@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedMap;
 import java.util.Set;
 
 import static ch.jalu.collectionbehavior.model.MapCreator.A_VALUE;
@@ -22,7 +23,7 @@ public final class MapModificationVerifier {
     }
 
     public static void testMethods(Map<String, Integer> originalMap, ModificationBehavior expectedBehavior) {
-        new UnmodifiableMapBehaviorTester(originalMap, LinkedHashMap::new, expectedBehavior)
+        new UnmodifiableMapBehaviorTester<>(originalMap, LinkedHashMap::new, expectedBehavior)
             .test(MapMethod.PUT, map -> map.put("e", 5))
             .test(MapMethod.PUT, map -> map.put("a", 1))
             .test(MapMethod.PUT, map -> map.put("a", A_VALUE))
@@ -109,5 +110,15 @@ public final class MapModificationVerifier {
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(List.of(2)))
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(set))
             .test(SetMethod.CLEAR, set -> set.clear());
+    }
+
+    public static void testMethodsForSequencedMap(SequencedMap<String, Integer> originalMap,
+                                                  ModificationBehavior expectedBehavior) {
+        new UnmodifiableMapBehaviorTester<>(originalMap, LinkedHashMap::new, expectedBehavior)
+            .test(MapMethod.PUT_FIRST, map -> map.putFirst("a", A_VALUE))
+            .test(MapMethod.PUT_FIRST, map -> map.putFirst("0", 0))
+            .test(MapMethod.PUT_LAST, map -> map.putFirst("d", D_VALUE))
+            .test(MapMethod.PUT_LAST, map -> map.putFirst("z", 0))
+        ;
     }
 }

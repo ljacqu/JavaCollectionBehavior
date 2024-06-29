@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethods;
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForEntrySet;
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForKeySet;
+import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForSequencedMap;
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForValues;
 import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInSet;
 import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInSet;
@@ -582,12 +583,19 @@ class MapTest {
                 () -> testMethodsForKeySet(map, modificationBehaviorKeySet)));
             testsToRun.add(dynamicTest("unmodifiable_values",
                 () -> testMethodsForValues(map, modificationBehaviorValues)));
+
+            if (map instanceof SequencedMap<String, Integer> seqMap) {
+                testsToRun.add(dynamicTest("unmodifiable_SequencedMap",
+                    () -> testMethodsForSequencedMap(seqMap, modificationBehavior)));
+            }
+
             return testsToRun.stream();
         }
 
         private List<DynamicTest> createTestsForMutableAssertions() {
             Map<String, Integer> map = mapCreator.createMap();
-            return List.of(
+            List<DynamicTest> tests = new ArrayList<>();
+            tests.addAll(List.of(
                 dynamicTest("mutable",
                     () -> MapMutabilityVerifier.verifyMapIsMutable(map)),
                 dynamicTest("mutable_keySet",
@@ -595,8 +603,14 @@ class MapTest {
                 dynamicTest("mutable_values",
                     () -> MapMutabilityVerifier.verifyMapValuesIsMutable(map)),
                 dynamicTest("mutable_entrySet",
-                    () -> MapMutabilityVerifier.verifyMapEntrySetIsMutable(map)));
-            // TODO: navigableMap, sortedMap
+                    () -> MapMutabilityVerifier.verifyMapEntrySetIsMutable(map))));
+
+            if (map instanceof SequencedMap<String, Integer> seqMap) {
+                tests.add(dynamicTest("mutable_SequencedMap",
+                    () -> MapMutabilityVerifier.verifyMapIsMutableBySequencedMapValues(seqMap)));
+            }
+
+            return tests;
         }
 
         private Optional<DynamicTest> createTestForImmutabilityBehavior() {
@@ -719,7 +733,7 @@ class MapTest {
                 assertThat(map, not(instanceOf(SequencedMap.class)));
 
                 if (mapCreator instanceof MapCreator.MapBasedMapCreator<?> mmc) {
-                    // Explicitly check that a SequencedSet as base does not yield a SequencedSet, as is done for
+                    // Explicitly check that a SequencedMap as base does not yield a SequencedMap, as is done for
                     // RandomAccess sometimes with methods that wrap lists
                     SequencedMap<String, Integer> sequencedMap = new LinkedHashMap<>(map);
                     assertThat(mmc.newMap(sequencedMap), not(instanceOf(SequencedMap.class)));
