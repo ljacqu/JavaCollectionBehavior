@@ -19,9 +19,17 @@ public final class MapNullBehaviorVerifier {
      *
      * @param map the map to test (may not contain null as key or value)
      */
-    public static void verifySupportsNullArgInMethods(Map<String, Integer> map) {
+    public static void verifySupportsNullArgInMethodsForKeys(Map<String, Integer> map) {
         assertThat(map.containsKey(null), equalTo(false));
-        assertThat(map.containsValue(null), equalTo(false));
+    }
+
+    /**
+     * Verifies that null can be supplied as argument to all methods that do not modify the map.
+     *
+     * @param map the map to test (may not contain null as key or value)
+     */
+    public static void verifySupportsNullArgInMethodsForValues(Map<String, Integer> map) {
+        assertThat(map.containsKey(null), equalTo(false));
     }
 
     /**
@@ -30,8 +38,17 @@ public final class MapNullBehaviorVerifier {
      *
      * @param map the map to test
      */
-    public static void verifyRejectsNullArgInMethods(Map<String, Integer> map) {
+    public static void verifyRejectsNullArgInMethodsForKeys(Map<String, Integer> map) {
         assertThrows(NullPointerException.class, () -> map.containsKey(null));
+    }
+
+    /**
+     * Verifies that a NullPointerException is thrown by all methods that don't modify the map
+     * if null is supplied as argument.
+     *
+     * @param map the map to test
+     */
+    public static void verifyRejectsNullArgInMethodsForValues(Map<String, Integer> map) {
         assertThrows(NullPointerException.class, () -> map.containsValue(null));
     }
 }

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.TestFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,8 +42,10 @@ import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.te
 import static ch.jalu.collectionbehavior.verification.MapModificationVerifier.testMethodsForValues;
 import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.immutable_changeToOriginalStructureIsNotReflectedInSet;
 import static ch.jalu.collectionbehavior.verification.MapMutabilityVerifier.unmodifiable_changeToOriginalStructureIsReflectedInSet;
-import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifyRejectsNullArgInMethods;
-import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifySupportsNullArgInMethods;
+import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifyRejectsNullArgInMethodsForKeys;
+import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifyRejectsNullArgInMethodsForValues;
+import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifySupportsNullArgInMethodsForKeys;
+import static ch.jalu.collectionbehavior.verification.MapNullBehaviorVerifier.verifySupportsNullArgInMethodsForValues;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -74,6 +79,18 @@ class MapTest {
     List<DynamicTest> jdk_LinkedHashMap() {
         return forMapType(MapCreator.forMutableType(LinkedHashMap::new))
             .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, SequencedMapType.IMPLEMENTS)
+            .mutability(ModificationBehavior.mutable())
+            .createTests();
+    }
+
+    /**
+     * {@link TreeMap}
+     */
+    @TestFactory
+    List<DynamicTest> jdk_TreeMap() {
+        Comparator<String> strComparator = Comparator.nullsFirst(Comparator.naturalOrder());
+        return forMapType(MapCreator.forMutableType(() -> new TreeMap<>(strComparator)))
+            .expect(NullSupport.FULL, SetOrder.SORTED, SequencedMapType.IMPLEMENTS)
             .mutability(ModificationBehavior.mutable())
             .createTests();
     }
@@ -127,7 +144,8 @@ class MapTest {
 
         @Test
         void rejectsNullMethodArgs() {
-            MapNullBehaviorVerifier.verifyRejectsNullArgInMethods(MAP_10);
+            MapNullBehaviorVerifier.verifyRejectsNullArgInMethodsForKeys(MAP_10);
+            MapNullBehaviorVerifier.verifyRejectsNullArgInMethodsForValues(MAP_10);
         }
 
         @Test
@@ -248,7 +266,8 @@ class MapTest {
 
         @Test
         void supportsNullMethodArgs() {
-            MapNullBehaviorVerifier.verifySupportsNullArgInMethods(MAP_10);
+            MapNullBehaviorVerifier.verifySupportsNullArgInMethodsForKeys(MAP_10);
+            MapNullBehaviorVerifier.verifySupportsNullArgInMethodsForValues(MAP_10);
         }
 
         @Test
@@ -448,7 +467,8 @@ class MapTest {
         private final String testName;
         private final TestLogic testLogic;
 
-        private NullSupport nullSupport;
+        private NullSupport keysNullSupport;
+        private NullSupport valuesNullSupport;
         private SetOrder keyOrder;
         private SequencedMapType sequencedMapType;
         private boolean acceptsDuplicatesOnCreation = true;
@@ -469,13 +489,28 @@ class MapTest {
         /**
          * Sets some basic expected properties of the map type to this generator.
          *
-         * @param nullSupport expected null support of the map type
+         * @param nullSupport expected null support of the map type (for keys and values)
          * @param keySetOrder expected order of the map's keys
          * @param sequencedMapType whether the map type extends SequencedMap
          * @return this instance, for chaining
          */
         TestsGenerator expect(NullSupport nullSupport, SetOrder keySetOrder, SequencedMapType sequencedMapType) {
-            this.nullSupport = nullSupport;
+            return expect(nullSupport, nullSupport, keySetOrder, sequencedMapType);
+        }
+
+        /**
+         * Sets some basic expected properties of the map type to this generator.
+         *
+         * @param keysNullSupport expected null support of the map type for keys
+         * @param valuesNullSupport expected null support of the map type for values
+         * @param keySetOrder expected order of the map's keys
+         * @param sequencedMapType whether the map type extends SequencedMap
+         * @return this instance, for chaining
+         */
+        TestsGenerator expect(NullSupport keysNullSupport, NullSupport valuesNullSupport,
+                              SetOrder keySetOrder, SequencedMapType sequencedMapType) {
+            this.keysNullSupport = keysNullSupport;
+            this.valuesNullSupport = valuesNullSupport;
             this.keyOrder = keySetOrder;
             this.sequencedMapType = sequencedMapType;
             return this;
@@ -546,23 +581,41 @@ class MapTest {
         }
 
         private Stream<DynamicTest> createTestsForNullSupport() {
-            List<DynamicTest> tests = switch (nullSupport) {
-                case FULL -> List.of(
-                    testLogic.supportsNullElements(),
-                    testLogic.supportsNullMethodArgs());
+            List<DynamicTest> tests = new ArrayList<>();
 
-                case ARGUMENTS -> List.of(
-                    testLogic.mayNotContainNull(),
-                    testLogic.supportsNullMethodArgs());
+            switch (keysNullSupport) {
+                case FULL -> {
+                    tests.add(testLogic.supportsNullElementsKeys());
+                    tests.add(testLogic.supportsNullMethodKeyArgs());
+                }
+                case ARGUMENTS -> {
+                    tests.add(testLogic.mayNotContainNullKeys());
+                    tests.add(testLogic.supportsNullMethodKeyArgs());
+                }
+                case REJECT -> {
+                    tests.add(testLogic.mayNotContainNullKeys());
+                    tests.add(testLogic.rejectsNullMethodKeyArgs());
+                }
+            }
 
-                case REJECT -> List.of(
-                    testLogic.mayNotContainNull(),
-                    testLogic.rejectsNullMethodArgs());
-            };
+            switch (valuesNullSupport) {
+                case FULL -> {
+                    tests.add(testLogic.supportsNullElementsValues());
+                    tests.add(testLogic.supportsNullMethodValueArgs());
+                }
+                case ARGUMENTS -> {
+                    tests.add(testLogic.mayNotContainNullValues());
+                    tests.add(testLogic.supportsNullMethodValueArgs());
+                }
+                case REJECT -> {
+                    tests.add(testLogic.mayNotContainNullValues());
+                    tests.add(testLogic.rejectsNullMethodValueArgs());
+                }
+            }
 
             if (mapCreator.getSizeLimit() == 0) {
-                // A null element does not apply to an empty map type, skip the test
-                return tests.stream().skip(1);
+                // An entry with null does not apply to an empty map type, skip these tests
+                // TODO return tests.stream().skip(2);
             }
             return tests.stream();
         }
@@ -605,7 +658,10 @@ class MapTest {
                 dynamicTest("mutable_entrySet",
                     () -> MapMutabilityVerifier.verifyMapEntrySetIsMutable(map))));
 
-            if (map instanceof SequencedMap<String, Integer> seqMap) {
+            if (map instanceof SortedMap<String, Integer> sortedMap) {
+                tests.add(dynamicTest("mutable_SortedMap",
+                    () -> MapMutabilityVerifier.verifyMapIsMutableBySortedMapValues(sortedMap)));
+            }  else if (map instanceof SequencedMap<String, Integer> seqMap) {
                 tests.add(dynamicTest("mutable_SequencedMap",
                     () -> MapMutabilityVerifier.verifyMapIsMutableBySequencedMapValues(seqMap)));
             }
@@ -680,28 +736,44 @@ class MapTest {
             this.mapCreator = mapCreator;
         }
 
-        DynamicTest supportsNullElements() {
-            return dynamicTest("supportsNullElements", () -> {
-                assertDoesNotThrow(mapCreator::createMapWithNullKey);
-                assertDoesNotThrow(mapCreator::createMapWithNullValue);
-            });
+        DynamicTest supportsNullElementsKeys() {
+            return dynamicTest("supportsNullElements_keys",
+                () -> assertDoesNotThrow(mapCreator::createMapWithNullKey));
         }
 
-        DynamicTest mayNotContainNull() {
-            return dynamicTest("mayNotContainNull", () -> {
-                assertThrows(NullPointerException.class, mapCreator::createMapWithNullKey);
-                assertThrows(NullPointerException.class, mapCreator::createMapWithNullValue);
-            });
+        DynamicTest supportsNullElementsValues() {
+            return dynamicTest("supportsNullElements_values",
+                () -> assertDoesNotThrow(mapCreator::createMapWithNullValue));
         }
 
-        DynamicTest supportsNullMethodArgs() {
-            return dynamicTest("supportsNullMethodArgs",
-                () -> verifySupportsNullArgInMethods(mapCreator.createMap()));
+        DynamicTest mayNotContainNullKeys() {
+            return dynamicTest("mayNotContainNull_keys",
+                () -> assertThrows(NullPointerException.class, mapCreator::createMapWithNullKey));
         }
 
-        DynamicTest rejectsNullMethodArgs() {
-            return dynamicTest("rejectsNullMethodArgs",
-                () -> verifyRejectsNullArgInMethods(mapCreator.createMap()));
+        DynamicTest mayNotContainNullValues() {
+            return dynamicTest("mayNotContainNull_values",
+                () -> assertThrows(NullPointerException.class, mapCreator::createMapWithNullValue));
+        }
+
+        DynamicTest supportsNullMethodKeyArgs() {
+            return dynamicTest("supportsNullMethodArgs_keys",
+                () -> verifySupportsNullArgInMethodsForKeys(mapCreator.createMap()));
+        }
+
+        DynamicTest supportsNullMethodValueArgs() {
+            return dynamicTest("supportsNullMethodArgs_values",
+                () -> verifySupportsNullArgInMethodsForValues(mapCreator.createMap()));
+        }
+
+        DynamicTest rejectsNullMethodKeyArgs() {
+            return dynamicTest("rejectsNullMethodArgs_keys",
+                () -> verifyRejectsNullArgInMethodsForKeys(mapCreator.createMap()));
+        }
+
+        DynamicTest rejectsNullMethodValueArgs() {
+            return dynamicTest("rejectsNullMethodArgs_values",
+                () -> verifyRejectsNullArgInMethodsForValues(mapCreator.createMap()));
         }
 
         DynamicTest skipsWrappingForOwnClass() {

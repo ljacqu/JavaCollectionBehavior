@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.SortedMap;
 
 import static ch.jalu.collectionbehavior.model.MapCreator.A_VALUE;
 import static ch.jalu.collectionbehavior.model.MapCreator.B_VALUE;
@@ -112,6 +113,35 @@ public final class MapMutabilityVerifier {
         assertThrows(UnsupportedOperationException.class, () -> entrySet.add(Map.entry("z", 7)));
     }
 
+    public static void verifyMapIsMutableBySortedMapValues(SortedMap<String, Integer> map) {
+        assertThat(map, anEmptyMap()); // Validate method contract
+
+        // SequencedMap's #putFirst and #putLast throw an exception because a SortedMap has implicit ordering
+        assertThrows(UnsupportedOperationException.class, () -> map.putFirst("a", 1));
+        assertThrows(UnsupportedOperationException.class, () -> map.putLast("a", 1));
+
+        map.putAll(Map.of("a", 1, "b", 2, "c", 3, "d", 4));
+        SortedMap<String, Integer> subMap = map.subMap("b", "d");
+        subMap.put("b2", 5);
+        assertThat(map.keySet(), contains("a", "b", "b2", "c", "d"));
+
+        SortedMap<String, Integer> tailMap = map.tailMap("b2");
+        tailMap.remove("c");
+        tailMap.put("d2", 8);
+        assertThat(map.keySet(), contains("a", "b", "b2", "d", "d2"));
+
+        SortedMap<String, Integer> headMap = map.headMap("c");
+        headMap.keySet().removeIf(k -> !k.endsWith("2")); // remove a, b
+        assertThat(map.keySet(), contains("b2", "d", "d2"));
+
+        SortedMap<String, Integer> reversed = map.reversed();
+        reversed.put("c1", 17);
+        assertThat(map.keySet(), contains("b2", "c1", "d", "d2"));
+
+        reversed.clear();
+        assertThat(map, anEmptyMap());
+    }
+
     public static void verifyMapIsMutableBySequencedMapValues(SequencedMap<String, Integer> map) {
         assertThat(map, anEmptyMap()); // Validate method contract
 
@@ -123,7 +153,11 @@ public final class MapMutabilityVerifier {
         map.putLast("b", 2);
         assertThat(map.keySet(), contains("a", "c", "b"));
 
-        map.clear();
+        SequencedMap<String, Integer> reversed = map.reversed();
+        assertThat(reversed.keySet(), contains("b", "c", "a"));
+        reversed.putFirst("z", 20);
+        reversed.putLast("u", 10);
+        assertThat(map.keySet(), contains("u", "a", "b", "c", "z"));
     }
 
     public static void unmodifiable_changeToOriginalStructureIsReflectedInSet(MapWithBackingDataModifier setWithBackingDataModifier) {
