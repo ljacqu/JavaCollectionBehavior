@@ -157,7 +157,7 @@ public final class MapMutabilityVerifier {
         assertThat(reversed.keySet(), contains("b", "c", "a"));
         reversed.putFirst("z", 20);
         reversed.putLast("u", 10);
-        assertThat(map.keySet(), contains("u", "a", "b", "c", "z"));
+        assertThat(map.keySet(), contains("u", "a", "c", "b", "z"));
     }
 
     public static void unmodifiable_changeToOriginalStructureIsReflectedInSet(MapWithBackingDataModifier setWithBackingDataModifier) {

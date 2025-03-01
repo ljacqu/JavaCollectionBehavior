@@ -85,7 +85,7 @@ class MapTest {
     }
 
     /**
-     * {@link TreeMap}
+     * {@link TreeMap}: sorted mutable map that supports null values.
      */
     @TestFactory
     List<DynamicTest> jdk_TreeMap() {
@@ -368,7 +368,7 @@ class MapTest {
     @TestFactory
     List<DynamicTest> jdk_Collections_emptyMap() {
         return forMapType(MapCreator.forEmptyMap(Collections::emptyMap))
-            .expect(NullSupport.FULL, SetOrder.INSERTION_ORDER, MapInterfaceType.NONE)
+            .expect(NullSupport.ARGUMENTS, SetOrder.INSERTION_ORDER, MapInterfaceType.NONE)
             .mutability(ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
                     .on(MethodCallEffect.NON_MODIFYING,
@@ -572,7 +572,7 @@ class MapTest {
             return Stream.of(
                     createTestsForNullSupport(),
                     createTestForElementOrder(),
-                    createTestForSequencedMapImpl(),
+                    createTestForMapInterface(),
                     createTestForMutability(),
                     createTestForSkipsWrappingOwnClassIfApplicable(),
                     createTestForDuplicateKeysOnCreation()
@@ -582,43 +582,44 @@ class MapTest {
         }
 
         private Stream<DynamicTest> createTestsForNullSupport() {
-            List<DynamicTest> tests = new ArrayList<>();
+            List<DynamicTest> valueTests = new ArrayList<>();
+            List<DynamicTest> argumentTests = new ArrayList<>();
 
             switch (keysNullSupport) {
                 case FULL -> {
-                    tests.add(testLogic.supportsNullElementsKeys());
-                    tests.add(testLogic.supportsNullMethodKeyArgs());
+                    valueTests.add(testLogic.supportsNullElementsKeys());
+                    argumentTests.add(testLogic.supportsNullMethodKeyArgs());
                 }
                 case ARGUMENTS -> {
-                    tests.add(testLogic.mayNotContainNullKeys());
-                    tests.add(testLogic.supportsNullMethodKeyArgs());
+                    valueTests.add(testLogic.mayNotContainNullKeys());
+                    argumentTests.add(testLogic.supportsNullMethodKeyArgs());
                 }
                 case REJECT -> {
-                    tests.add(testLogic.mayNotContainNullKeys());
-                    tests.add(testLogic.rejectsNullMethodKeyArgs());
+                    valueTests.add(testLogic.mayNotContainNullKeys());
+                    argumentTests.add(testLogic.rejectsNullMethodKeyArgs());
                 }
             }
 
             switch (valuesNullSupport) {
                 case FULL -> {
-                    tests.add(testLogic.supportsNullElementsValues());
-                    tests.add(testLogic.supportsNullMethodValueArgs());
+                    valueTests.add(testLogic.supportsNullElementsValues());
+                    argumentTests.add(testLogic.supportsNullMethodValueArgs());
                 }
                 case ARGUMENTS -> {
-                    tests.add(testLogic.mayNotContainNullValues());
-                    tests.add(testLogic.supportsNullMethodValueArgs());
+                    valueTests.add(testLogic.mayNotContainNullValues());
+                    argumentTests.add(testLogic.supportsNullMethodValueArgs());
                 }
                 case REJECT -> {
-                    tests.add(testLogic.mayNotContainNullValues());
-                    tests.add(testLogic.rejectsNullMethodValueArgs());
+                    valueTests.add(testLogic.mayNotContainNullValues());
+                    argumentTests.add(testLogic.rejectsNullMethodValueArgs());
                 }
             }
 
             if (mapCreator.getSizeLimit() == 0) {
-                // An entry with null does not apply to an empty map type, skip these tests
-                // TODO return tests.stream().skip(2);
+                // Null values do not apply to an empty map type, so use just the argument tests
+                return argumentTests.stream();
             }
-            return tests.stream();
+            return Stream.concat(valueTests.stream(), argumentTests.stream());
         }
 
         private Stream<DynamicTest> createTestForMutability() {
@@ -701,7 +702,7 @@ class MapTest {
             };
         }
 
-        private Stream<DynamicTest> createTestForSequencedMapImpl() {
+        private Stream<DynamicTest> createTestForMapInterface() {
             return switch (mapInterfaceType) {
                 case SEQUENCED_MAP -> Stream.of(testLogic.isSequencedMap());
                 case SORTED_MAP -> Stream.of(testLogic.isSortedMap());
