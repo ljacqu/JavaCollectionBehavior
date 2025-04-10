@@ -1,12 +1,12 @@
 package ch.jalu.collectionbehavior;
 
 import ch.jalu.collectionbehavior.model.MapCreator;
+import ch.jalu.collectionbehavior.model.MapInterfaceType;
 import ch.jalu.collectionbehavior.model.MapMethod;
 import ch.jalu.collectionbehavior.model.MapWithBackingDataModifier;
 import ch.jalu.collectionbehavior.model.MethodCallEffect;
 import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.NullSupport;
-import ch.jalu.collectionbehavior.model.MapInterfaceType;
 import ch.jalu.collectionbehavior.model.SetMethod;
 import ch.jalu.collectionbehavior.model.SetOrder;
 import ch.jalu.collectionbehavior.verification.MapModificationVerifier;
@@ -660,7 +660,10 @@ class MapTest {
                 dynamicTest("mutable_entrySet",
                     () -> MapMutabilityVerifier.verifyMapEntrySetIsMutable(map))));
 
-            if (map instanceof SortedMap<String, Integer> sortedMap) {
+            if (map instanceof NavigableMap<String, Integer> navigableMap) {
+                tests.add(dynamicTest("mutable_NavigableMap",
+                        () -> MapMutabilityVerifier.verifyMapIsMutableByNavigableMapValues(navigableMap)));
+            } else if (map instanceof SortedMap<String, Integer> sortedMap) {
                 tests.add(dynamicTest("mutable_SortedMap",
                     () -> MapMutabilityVerifier.verifyMapIsMutableBySortedMapValues(sortedMap)));
             }  else if (map instanceof SequencedMap<String, Integer> seqMap) {
