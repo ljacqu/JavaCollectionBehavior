@@ -4,8 +4,11 @@ import ch.jalu.collectionbehavior.model.MapWithBackingDataModifier;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.SortedMap;
 
 import static ch.jalu.collectionbehavior.model.MapCreator.A_VALUE;
 import static ch.jalu.collectionbehavior.model.MapCreator.B_VALUE;
@@ -112,6 +115,35 @@ public final class MapMutabilityVerifier {
         assertThrows(UnsupportedOperationException.class, () -> entrySet.add(Map.entry("z", 7)));
     }
 
+    public static void verifyMapIsMutableBySortedMapValues(SortedMap<String, Integer> map) {
+        assertThat(map, anEmptyMap()); // Validate method contract
+
+        // SequencedMap's #putFirst and #putLast throw an exception because a SortedMap has implicit ordering
+        assertThrows(UnsupportedOperationException.class, () -> map.putFirst("a", 1));
+        assertThrows(UnsupportedOperationException.class, () -> map.putLast("a", 1));
+
+        map.putAll(Map.of("a", 1, "b", 2, "c", 3, "d", 4));
+        SortedMap<String, Integer> subMap = map.subMap("b", "d");
+        subMap.put("b2", 5);
+        assertThat(map.keySet(), contains("a", "b", "b2", "c", "d"));
+
+        SortedMap<String, Integer> tailMap = map.tailMap("b2");
+        tailMap.remove("c");
+        tailMap.put("d2", 8);
+        assertThat(map.keySet(), contains("a", "b", "b2", "d", "d2"));
+
+        SortedMap<String, Integer> headMap = map.headMap("c");
+        headMap.keySet().removeIf(k -> !k.endsWith("2")); // remove a, b
+        assertThat(map.keySet(), contains("b2", "d", "d2"));
+
+        SortedMap<String, Integer> reversed = map.reversed();
+        reversed.put("c1", 17);
+        assertThat(map.keySet(), contains("b2", "c1", "d", "d2"));
+
+        reversed.clear();
+        assertThat(map, anEmptyMap());
+    }
+
     public static void verifyMapIsMutableBySequencedMapValues(SequencedMap<String, Integer> map) {
         assertThat(map, anEmptyMap()); // Validate method contract
 
@@ -123,7 +155,58 @@ public final class MapMutabilityVerifier {
         map.putLast("b", 2);
         assertThat(map.keySet(), contains("a", "c", "b"));
 
-        map.clear();
+        SequencedMap<String, Integer> reversed = map.reversed();
+        assertThat(reversed.keySet(), contains("b", "c", "a"));
+        reversed.putFirst("z", 20);
+        reversed.putLast("u", 10);
+        assertThat(map.keySet(), contains("u", "a", "c", "b", "z"));
+    }
+
+    public static void verifyMapIsMutableByNavigableMapValues(NavigableMap<String, Integer> map) {
+        verifyMapIsMutableBySortedMapValues(map);
+        assertThat(map, anEmptyMap()); // Validate method contract
+
+        map.putAll(Map.of("a", 1, "c", 3, "e", 5, "g", 7));
+
+        assertThrows(UnsupportedOperationException.class, () -> map.lowerEntry("e").setValue(4));
+        assertThrows(UnsupportedOperationException.class, () -> map.floorEntry("e").setValue(6));
+        assertThrows(UnsupportedOperationException.class, () -> map.ceilingEntry("d").setValue(8));
+        assertThrows(UnsupportedOperationException.class, () -> map.higherEntry("c").setValue(9));
+        assertThat(map, equalTo(Map.of("a", 1, "c", 3, "e", 5, "g", 7))); // assert unchanged
+
+        Map.Entry<String, Integer> first = map.pollFirstEntry();
+        assertThat(first.getKey(), equalTo("a"));
+        assertThat(map.keySet(), contains("c", "e", "g"));
+
+        Map.Entry<String, Integer> last = map.pollLastEntry();
+        assertThat(last.getKey(), equalTo("g"));
+        assertThat(map.keySet(), contains("c", "e"));
+
+        NavigableMap<String, Integer> descendingMap = map.descendingMap();
+        descendingMap.put("b", 2);
+        assertThat(map.keySet(), contains("b", "c", "e"));
+
+        NavigableSet<String> navigableKeySet = map.navigableKeySet();
+        navigableKeySet.remove("c");
+        assertThat(map.keySet(), contains("b", "e"));
+
+        NavigableSet<String> descendingKeySet = map.descendingKeySet();
+        descendingKeySet.remove("e");
+        assertThat(map.keySet(), contains("b"));
+
+        map.put("d", 4);
+        map.put("e", 5);
+        NavigableMap<String, Integer> subMap = map.subMap("b", true, "e", false);
+        subMap.put("c", 10);
+        assertThat(map.keySet(), contains("b", "c", "d", "e"));
+
+        NavigableMap<String, Integer> headMap = map.headMap("d", true);
+        headMap.remove("b");
+        assertThat(map.keySet(), contains("c", "d", "e"));
+
+        NavigableMap<String, Integer> tailMap = map.tailMap("d", false);
+        tailMap.clear();
+        assertThat(map.keySet(), contains("c", "d"));
     }
 
     public static void unmodifiable_changeToOriginalStructureIsReflectedInSet(MapWithBackingDataModifier setWithBackingDataModifier) {
