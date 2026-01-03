@@ -32,7 +32,7 @@ abstract class UnmodifiableContainerBehaviorTester<C> {
     }
 
     UnmodifiableContainerBehaviorTester<C> test(CollectionMethod method, Consumer<C> action) {
-        MethodCallEffect effect = determineMethodCallEffect(action);
+        MethodCallEffect effect = determineMethodCallEffect(action, false);
         Class<? extends Exception> manuallyDefinedException = expectedBehavior.getExpectedException(method, effect);
         Class<? extends Exception> expectedException = determineExpectedException(effect);
         if (manuallyDefinedException != null) {
@@ -55,9 +55,34 @@ abstract class UnmodifiableContainerBehaviorTester<C> {
         return this;
     }
 
+    UnmodifiableContainerBehaviorTester<C> test(CollectionMethod method, Consumer<C> action,
+                                                boolean argumentIsEmptyCollection) {
+        MethodCallEffect effect = determineMethodCallEffect(action, argumentIsEmptyCollection);
+        Class<? extends Exception> manuallyDefinedException = expectedBehavior.getExpectedException(method, effect);
+        Class<? extends Exception> expectedException = determineExpectedException(effect);
+        if (manuallyDefinedException != null) {
+            if (manuallyDefinedException.equals(expectedException)) {
+                throw new IllegalStateException("Exception for " + method + ", " + effect
+                        + " was registered, but it is in line with the defined behavior!");
+            }
+            expectedException = manuallyDefinedException;
+        }
+
+        if (expectedException != null) {
+            assertThrows(
+                    expectedException, () -> action.accept(originalContainer),
+                    () -> method + " (" + effect + ")");
+        } else {
+            assertDoesNotThrow(
+                    () -> action.accept(originalContainer),
+                    () -> method + " (" + effect + ")");
+        }
+        return this;
+    }
+
     protected abstract int getSize(C container);
 
-    private MethodCallEffect determineMethodCallEffect(Consumer<C> action) {
+    private MethodCallEffect determineMethodCallEffect(Consumer<C> action, boolean argumentIsEmptyCollection) {
         C copy = copyFunction.apply(originalContainer);
 
         try {
@@ -75,7 +100,12 @@ abstract class UnmodifiableContainerBehaviorTester<C> {
         boolean copyIsEqualToOriginal = copyOriginalForEqualsCheck
             ? copy.equals(copyFunction.apply(originalContainer))
             : copy.equals(originalContainer);
-        return copyIsEqualToOriginal ? MethodCallEffect.NON_MODIFYING : MethodCallEffect.MODIFYING;
+        if (!copyIsEqualToOriginal) {
+            return MethodCallEffect.MODIFYING;
+        }
+        return argumentIsEmptyCollection
+            ? MethodCallEffect.NON_MODIFYING_WITH_EMPTY_COLLECTION_ARG
+            : MethodCallEffect.NON_MODIFYING;
     }
 
     private Class<? extends Exception> determineExpectedException(MethodCallEffect effect) {
@@ -89,6 +119,10 @@ abstract class UnmodifiableContainerBehaviorTester<C> {
                 : null;
 
             case NON_MODIFYING -> expectedBehavior.throwsOnNonModifyingModificationMethods
+                ? UnsupportedOperationException.class
+                : null;
+
+            case NON_MODIFYING_WITH_EMPTY_COLLECTION_ARG -> expectedBehavior.throwsOnNonModifyingMethodsWithEmptyCollectionArg
                 ? UnsupportedOperationException.class
                 : null;
 

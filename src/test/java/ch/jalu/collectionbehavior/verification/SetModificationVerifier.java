@@ -3,6 +3,7 @@ package ch.jalu.collectionbehavior.verification;
 import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.SetMethod;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SequencedSet;
@@ -17,12 +18,14 @@ public final class SetModificationVerifier {
         new UnmodifiableCollectionBehaviorTester<>(originalSet, LinkedHashSet::new, expectedBehavior)
             .test(SetMethod.ADD, set -> set.add("a"))
             .test(SetMethod.ADD, set -> set.add("foo"))
+            .test(SetMethod.ADD_ALL, set -> set.addAll(Collections.emptySet()), true)
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of("a", "b")))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of("foo", "bar")))
             .test(SetMethod.REMOVE, set -> set.remove("zzz"))
             .test(SetMethod.REMOVE, set -> set.remove("a"))
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(str -> str.equals("zzz")))
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(str -> str.equals("a")))
+            .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Collections.emptySet()), true)
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of("fff", "xxx")))
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of("fff", "a")))
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(Set.of("a", "b", "c", "d")))

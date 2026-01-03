@@ -294,8 +294,11 @@ class MapTest {
         void unmodifiable_keySet() {
             ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.REMOVE, SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL,
-                          SetMethod.RETAIN_ALL);
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.REMOVE,
+                          SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL, SetMethod.RETAIN_ALL)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING_WITH_EMPTY_COLLECTION_ARG, SetMethod.ADD_ALL, SetMethod.REMOVE,
+                          SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL, SetMethod.RETAIN_ALL);
             MapModificationVerifier.testMethodsForKeySet(MAP_10, modificationBehaviorViews);
         }
 
@@ -303,8 +306,11 @@ class MapTest {
         void unmodifiable_entrySet() {
             ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD_ALL, SetMethod.REMOVE, SetMethod.REMOVE_IF,
-                          SetMethod.REMOVE_ALL, SetMethod.RETAIN_ALL);
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD_ALL, SetMethod.REMOVE,
+                          SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL, SetMethod.RETAIN_ALL)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING_WITH_EMPTY_COLLECTION_ARG, SetMethod.ADD_ALL, SetMethod.REMOVE,
+                          SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL, SetMethod.RETAIN_ALL);
             MapModificationVerifier.testMethodsForEntrySet(MAP_10, modificationBehaviorViews);
         }
 
@@ -312,8 +318,11 @@ class MapTest {
         void unmodifiable_values() {
             ModificationBehavior modificationBehaviorViews = ModificationBehavior.immutable().throwsIfWouldBeModified()
                 .butThrows(UnsupportedOperationException.class)
-                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD_ALL, SetMethod.REMOVE, SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL,
-                          SetMethod.RETAIN_ALL);
+                    .on(MethodCallEffect.NON_MODIFYING, SetMethod.ADD_ALL, SetMethod.REMOVE,
+                          SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL, SetMethod.RETAIN_ALL)
+                .butThrows(UnsupportedOperationException.class)
+                    .on(MethodCallEffect.NON_MODIFYING_WITH_EMPTY_COLLECTION_ARG, SetMethod.ADD_ALL, SetMethod.REMOVE,
+                          SetMethod.REMOVE_IF, SetMethod.REMOVE_ALL, SetMethod.RETAIN_ALL);
             MapModificationVerifier.testMethodsForValues(MAP_10, modificationBehaviorViews);
         }
     }

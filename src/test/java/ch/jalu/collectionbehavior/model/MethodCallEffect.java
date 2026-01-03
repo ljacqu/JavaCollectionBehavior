@@ -22,6 +22,12 @@ public enum MethodCallEffect {
     NON_MODIFYING,
 
     /**
+     * The method call received an empty collection as argument, and it did not modify anything.
+     * Example: {@code removeAll(List.of())}
+     */
+    NON_MODIFYING_WITH_EMPTY_COLLECTION_ARG,
+
+    /**
      * The method call threw an index out of bounds exception.
      */
     INDEX_OUT_OF_BOUNDS,

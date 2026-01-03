@@ -5,6 +5,7 @@ import ch.jalu.collectionbehavior.model.ModificationBehavior;
 import ch.jalu.collectionbehavior.model.SetMethod;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,7 +30,7 @@ public final class MapModificationVerifier {
             .test(MapMethod.PUT, map -> map.put("a", A_VALUE))
             .test(MapMethod.PUT_ALL, map -> map.putAll(Map.of("e", 5, "f", 6)))
             .test(MapMethod.PUT_ALL, map -> map.putAll(Map.of("a", 2)))
-            .test(MapMethod.PUT_ALL, map -> map.putAll(Map.of()))
+            .test(MapMethod.PUT_ALL, map -> map.putAll(Map.of()), true)
             .test(MapMethod.PUT_IF_ABSENT, map -> map.putIfAbsent("e", 5))
             .test(MapMethod.PUT_IF_ABSENT, map -> map.putIfAbsent("a", 1)) 
             .test(MapMethod.REMOVE, map -> map.remove("a")) 
@@ -59,16 +60,17 @@ public final class MapModificationVerifier {
         new UnmodifiableCollectionBehaviorTester<>(originalMap.entrySet(), LinkedHashSet::new, expectedBehavior)
             .test(SetMethod.ADD, set -> set.add(Map.entry("g", 1)))
             .test(SetMethod.ADD, set -> set.add(Map.entry("a", A_VALUE)))
+            .test(SetMethod.ADD_ALL, set -> set.addAll(List.of()), true)
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of(Map.entry("g", 44))))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of(Map.entry("a", A_VALUE))))
-            // TODO .test(SetMethod.ADD_ALL, set -> set.addAll(List.of()))
             .test(SetMethod.REMOVE, set -> set.remove(Map.entry("a", A_VALUE)))
             .test(SetMethod.REMOVE, set -> set.remove(Map.entry("g", 66)))
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(entry -> entry.getKey().equals("b")))
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(entry -> false))
+            .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Collections.emptySet()), true)
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of(Map.entry("a", A_VALUE), Map.entry("b", B_VALUE))))
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of(Map.entry("g", 33))))
-            .test(SetMethod.RETAIN_ALL, set -> set.retainAll(List.of()))
+            .test(SetMethod.RETAIN_ALL, set -> set.retainAll(Collections.emptyList()), true)
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(set))
             .test(SetMethod.CLEAR, set -> set.clear());
 
@@ -82,9 +84,9 @@ public final class MapModificationVerifier {
         new UnmodifiableCollectionBehaviorTester<>(originalMap.keySet(), LinkedHashSet::new, expectedBehavior)
             .test(SetMethod.ADD, set -> set.add("f"))
             .test(SetMethod.ADD, set -> set.add("b"))
+            .test(SetMethod.ADD_ALL, set -> set.addAll(List.of()), true)
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of("g")))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of("a")))
-            // TODO .test(SetMethod.ADD_ALL, set -> set.addAll(List.of()))
             .test(SetMethod.REMOVE, set -> set.remove("b"))
             .test(SetMethod.REMOVE, set -> set.remove("g"))
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(key -> true))
@@ -102,13 +104,14 @@ public final class MapModificationVerifier {
         new UnmodifiableCollectionBehaviorTester<>(originalMap.values(), ArrayList::new, expectedBehavior, true)
             .test(SetMethod.ADD, set -> set.add(1))
             .test(SetMethod.ADD_ALL, set -> set.addAll(List.of(1)))
-            .test(SetMethod.ADD_ALL, set -> set.addAll(List.of()))
+            .test(SetMethod.ADD_ALL, set -> set.addAll(Collections.emptyList()), true)
             .test(SetMethod.REMOVE, set -> set.remove(A_VALUE))
             .test(SetMethod.REMOVE, set -> set.remove(1))
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(value -> true))
             .test(SetMethod.REMOVE_IF, set -> set.removeIf(value -> false))
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of(A_VALUE, D_VALUE)))
             .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Set.of(1, 2)))
+            .test(SetMethod.REMOVE_ALL, set -> set.removeAll(Collections.emptySet()), true)
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(List.of(2)))
             .test(SetMethod.RETAIN_ALL, set -> set.retainAll(set))
             .test(SetMethod.CLEAR, set -> set.clear());

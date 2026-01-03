@@ -44,6 +44,12 @@ public final class ModificationBehavior {
     public final boolean throwsOnNonModifyingModificationMethods;
 
     /**
+     * Same as {@link #throwsOnNonModifyingModificationMethods} but for non-modifying methods that are non-modifying
+     * because their argument was an empty collection.
+     */
+    public final boolean throwsOnNonModifyingMethodsWithEmptyCollectionArg;
+
+    /**
      * Contains (method, effect) pairs that are expected to throw an exception that is not in line with the rules
      * generally defined in this behavior object. This acts to document exceptions on types that have false for
      * {@link #throwsOnNonModifyingModificationMethods}.
@@ -52,11 +58,13 @@ public final class ModificationBehavior {
         HashBasedTable.create();
 
     private ModificationBehavior(boolean isImmutable, boolean throwsOnModification,
-                                 boolean throwsOnSizeModification, boolean throwsOnNonModifyingModificationMethods) {
+                                 boolean throwsOnSizeModification, boolean throwsOnNonModifyingModificationMethods,
+                                 boolean throwsOnNonModifyingMethodsWithEmptyCollectionArg) {
         this.isImmutable = isImmutable;
         this.throwsOnModification = throwsOnModification;
         this.throwsOnSizeModification = throwsOnSizeModification;
         this.throwsOnNonModifyingModificationMethods = throwsOnNonModifyingModificationMethods;
+        this.throwsOnNonModifyingMethodsWithEmptyCollectionArg = throwsOnNonModifyingMethodsWithEmptyCollectionArg;
     }
 
     /**
@@ -65,7 +73,7 @@ public final class ModificationBehavior {
      * @return modifiable behavior object
      */
     public static ModificationBehavior mutable() {
-        return new ModificationBehavior(false, false, false, false);
+        return new ModificationBehavior(false, false, false, false, false);
     }
 
     /**
@@ -167,7 +175,7 @@ public final class ModificationBehavior {
          * @return behavior definition
          */
         public ModificationBehavior alwaysThrows() {
-            return new ModificationBehavior(isImmutable,true, true, true);
+            return new ModificationBehavior(isImmutable,true, true, true, true);
         }
 
         /**
@@ -177,7 +185,7 @@ public final class ModificationBehavior {
          * @return behavior definition
          */
         public ModificationBehavior throwsIfWouldBeModified() {
-            return new ModificationBehavior(isImmutable, true, true, false);
+            return new ModificationBehavior(isImmutable, true, true, false, false);
         }
 
         /**
@@ -188,7 +196,7 @@ public final class ModificationBehavior {
          */
         public ModificationBehavior throwsOnSizeModification() {
             Preconditions.checkState(!isImmutable);
-            return new ModificationBehavior(isImmutable, false, true, false);
+            return new ModificationBehavior(isImmutable, false, true, false, false);
         }
     }
 }
