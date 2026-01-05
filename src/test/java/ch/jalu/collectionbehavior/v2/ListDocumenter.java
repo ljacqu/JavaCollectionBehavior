@@ -39,6 +39,8 @@ public class ListDocumenter {
         testedList.collectClassNamesBySize();
         testedList.documentNullElementSupport();
         testedList.checkImplementsRandomAccess();
+        testedList.documentSelfWrapping();
+        testedList.documentBehaviorWithBackingStructure();
 
         for (ListMethodCall method : methods) {
             testedList.test(method);

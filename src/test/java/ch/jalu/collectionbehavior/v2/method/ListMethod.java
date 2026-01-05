@@ -29,6 +29,7 @@ public class ListMethod {
                 remove(),
                 removeWithIndex(),
                 removeFirst(),
+                removeLast(),
                 removeAll(),
                 removeIf(),
                 retainAll(),
@@ -151,6 +152,12 @@ public class ListMethod {
     private static Stream<ListMethodCall> removeFirst() {
         return Stream.of(
             new ListMethodCall(list -> list.removeFirst())
+        );
+    }
+
+    private static Stream<ListMethodCall> removeLast() {
+        return Stream.of(
+            new ListMethodCall(list -> list.removeLast())
         );
     }
 

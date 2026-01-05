@@ -63,7 +63,7 @@ public abstract class ListCreator {
     }
 
     public static ListCreator Arrays_asList() {
-        return new ListCreator() {
+        return new ArrayBasedListCreator() {
 
             @Override
             public List<String> createList(String... elements) {
@@ -189,27 +189,41 @@ public abstract class ListCreator {
         return createList("a", "b", "c", "d");
     }
 
-    public abstract static class ListBasedListCreator extends ListCreator {
+    public abstract static class BackingStructurBasedListCreator extends ListCreator {
+
+        public abstract ListWithBackingStructure createListWithBackingStructure();
+
+    }
+
+    public abstract static class ListBasedListCreator extends BackingStructurBasedListCreator {
 
         @Override
         public List<String> createList(String... elements) throws SizeNotSupportedException {
             return fromList(Arrays.asList(elements));
         }
 
+        @Override
         public ListWithBackingStructure createListWithBackingStructure() {
             ArrayList<String> arrayList = new ArrayList<>(List.of("a", "b", "c", "d"));
-            return new ListWithBackingStructure(fromList(arrayList), () -> arrayList.set(2, "changed"));
+            return new ListWithBackingStructure(
+                fromList(arrayList),
+                () -> arrayList.set(2, "changed"),
+                () -> arrayList);
         }
 
         public abstract List<String> fromList(List<String> original);
 
     }
 
-    public abstract static class ArrayBasedListCreator extends ListCreator {
+    public abstract static class ArrayBasedListCreator extends BackingStructurBasedListCreator {
 
+        @Override
         public ListWithBackingStructure createListWithBackingStructure() {
-            String[] arrayList = new String[]{ "a", "b", "c", "d" };
-            return new ListWithBackingStructure(createList(arrayList), () -> arrayList[2] = "changed");
+            String[] array = new String[]{ "a", "b", "c", "d" };
+            return new ListWithBackingStructure(
+                createList(array),
+                () -> array[2] = "changed",
+                () -> List.of(array));
         }
     }
 }

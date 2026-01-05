@@ -13,6 +13,9 @@ public class ListDocumentation {
     private RandomAccessType randomAccessType;
     private boolean supportsNullElements;
 
+    private Boolean doesNotRewrapItself;
+    private List<BackingStructureBehavior> backingStructureBehaviors = new ArrayList<>();
+
     // Methods
     private final List<ListMethodBehavior> behaviors = new ArrayList<>();
 
@@ -35,6 +38,14 @@ public class ListDocumentation {
 
     public void setRandomAccessType(RandomAccessType randomAccessType) {
         this.randomAccessType = randomAccessType;
+    }
+
+    public void setDoesNotRewrapItself(boolean doesNotRewrapItself) {
+        this.doesNotRewrapItself = doesNotRewrapItself;
+    }
+
+    public void addBackingStructureBehavior(BackingStructureBehavior behavior) {
+        backingStructureBehaviors.add(behavior);
     }
 
     @Override

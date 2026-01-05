@@ -1,13 +1,16 @@
 package ch.jalu.collectionbehavior.v2;
 
 import ch.jalu.collectionbehavior.v2.creator.ListCreator;
+import ch.jalu.collectionbehavior.v2.creator.ListWithBackingStructure;
 import ch.jalu.collectionbehavior.v2.creator.SizeNotSupportedException;
+import ch.jalu.collectionbehavior.v2.documentation.BackingStructureBehavior;
 import ch.jalu.collectionbehavior.v2.documentation.ListDocumentation;
 import ch.jalu.collectionbehavior.v2.documentation.ListMethodBehavior;
 import ch.jalu.collectionbehavior.v2.documentation.MethodDefinition;
 import ch.jalu.collectionbehavior.v2.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.v2.method.CallEffect;
 import ch.jalu.collectionbehavior.v2.method.ListMethodCall;
+import com.google.common.base.Preconditions;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -75,13 +78,48 @@ public class ListUnderTest {
         documentation.setClassNamesBySize(classNamesBySize);
     }
 
-    public void documentNullElementSupport() {
+    void documentNullElementSupport() {
         try {
             listCreator.createList((String)null);
             documentation.setSupportsNullElements(true);
         } catch (NullPointerException e) {
             documentation.setSupportsNullElements(false);
         } catch (SizeNotSupportedException ignore) {
+        }
+    }
+
+    void documentSelfWrapping() {
+        if (listCreator instanceof ListCreator.ListBasedListCreator lbc) {
+            List<String> list1 = lbc.fromList(Arrays.asList("o", "g"));
+            List<String> list2 = lbc.fromList(list1);
+
+            boolean doesNotWrapItself = list1 == list2; // == intentional, need to see if it's the same object
+            documentation.setDoesNotRewrapItself(doesNotWrapItself);
+        }
+    }
+
+    void documentBehaviorWithBackingStructure() {
+        if (listCreator instanceof ListCreator.BackingStructurBasedListCreator lbc) {
+            // Check if changing the backing structure changes the list
+            ListWithBackingStructure listWithBackingStructure = lbc.createListWithBackingStructure();
+            List<String> list = listWithBackingStructure.getList();
+            Preconditions.checkState(list.equals(List.of("a", "b", "c", "d")));
+            listWithBackingStructure.modifyBackingStructure();
+            if (!list.equals(List.of("a", "b", "c", "d"))) {
+                documentation.addBackingStructureBehavior(BackingStructureBehavior.STRUCTURE_INFLUENCES_COLLECTION);
+            }
+
+            // Check if changing the list (if allowed) changes the backing structure
+            listWithBackingStructure = lbc.createListWithBackingStructure();
+            list = listWithBackingStructure.getList();
+            Preconditions.checkState(list.equals(List.of("a", "b", "c", "d")));
+            try {
+                list.set(2, "changed");
+                if (listWithBackingStructure.getBackingStructureAsList().equals(List.of("a", "b", "changed", "d"))) {
+                    documentation.addBackingStructureBehavior(BackingStructureBehavior.COLLECTION_INFLUENCES_STRUCTURE);
+                }
+            } catch (UnsupportedOperationException ignore) {
+            }
         }
     }
 
