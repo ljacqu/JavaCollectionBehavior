@@ -62,7 +62,7 @@ public class ListUnderTest {
         List<String> elements = new ArrayList<>();
         Map<Integer, String> classNamesBySize = new TreeMap<>();
 
-        for (int i = 0; i <= 10; ++i) {
+        for (int i = 0; i <= 20; ++i) {
             try {
                 List<String> list = listCreator.createList(elements.toArray(String[]::new));
                 classNamesBySize.put(i, list.getClass().getName());
@@ -151,7 +151,7 @@ public class ListUnderTest {
                     .map(Class::getSimpleName)
                     .collect(Collectors.joining(", "));
             } else {
-                lastCalledMethod = "";
+                lastCalledMethodParameters = "";
             }
 
             if (args == null) {

@@ -28,6 +28,7 @@ public class ListMethod {
                 lastIndexOf(),
                 remove(),
                 removeWithIndex(),
+                removeFirst(),
                 removeAll(),
                 removeIf(),
                 retainAll(),
@@ -147,6 +148,12 @@ public class ListMethod {
         );
     }
 
+    private static Stream<ListMethodCall> removeFirst() {
+        return Stream.of(
+            new ListMethodCall(list -> list.removeFirst())
+        );
+    }
+
     private static Stream<ListMethodCall> removeAll() {
         return Stream.of(
             new ListMethodCall(list -> list.removeAll(List.of("a", "b"))),
@@ -158,8 +165,8 @@ public class ListMethod {
 
     private static Stream<ListMethodCall> removeIf() {
         return Stream.of(
-            new ListMethodCall(list -> list.removeIf(elem -> true)),
-            new ListMethodCall(list -> list.removeIf(elem -> false))
+            new ListMethodCall(list -> list.removeIf(new PrettyPredicate<>(e -> true, "e -> true"))),
+            new ListMethodCall(list -> list.removeIf(new PrettyPredicate<>(e -> false, "e -> false")))
         );
     }
 
@@ -174,9 +181,9 @@ public class ListMethod {
 
     private static Stream<ListMethodCall> replaceAll() {
         return Stream.of(
-            new ListMethodCall(list -> list.replaceAll(e -> e)),
-            new ListMethodCall(list -> list.replaceAll(e -> e.toUpperCase())),
-            new ListMethodCall(list -> list.replaceAll(_ -> null), NULL_ARGUMENT)
+            new ListMethodCall(list -> list.replaceAll(new PrettyUnaryOperator<>(e -> e, "e -> e"))),
+            new ListMethodCall(list -> list.replaceAll(new PrettyUnaryOperator<>(String::toUpperCase, "String::toUpperCase"))),
+            new ListMethodCall(list -> list.replaceAll(new PrettyUnaryOperator<>(e -> null, "e -> null")), NULL_ARGUMENT)
         );
     }
 
@@ -192,8 +199,8 @@ public class ListMethod {
 
     private static Stream<ListMethodCall> sort() {
         return Stream.of(
-            new ListMethodCall(list -> list.sort(Comparator.naturalOrder())),
-            new ListMethodCall(list -> list.sort(Comparator.<String>naturalOrder().reversed()))
+            new ListMethodCall(list -> list.sort(new PrettyComparator<String>(Comparator.naturalOrder(), "Comparator.naturalOrder()"))),
+            new ListMethodCall(list -> list.sort(new PrettyComparator<>(Comparator.<String>naturalOrder().reversed(), "Comparator.reversed")))
         );
     }
 }
