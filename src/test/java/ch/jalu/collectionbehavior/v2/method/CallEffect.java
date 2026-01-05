@@ -8,6 +8,8 @@ public enum CallEffect {
 
     NON_MODIFYING,
 
-    INDEX_OUT_OF_BOUNDS
+    INDEX_OUT_OF_BOUNDS,
+
+    NO_SUCH_ELEMENT,
 
 }

@@ -22,6 +22,12 @@ public class ListDocumenter {
         documenter.createDocumentation(ListCreator.Arrays_asList(), "JDK Arrays#asList");
         documenter.createDocumentation(ListCreator.Guava_ImmutableList_of(), "JDK ImmutableList#of");
         documenter.createDocumentation(ListCreator.Guava_ImmutableList_copyOf(), "Guava ImmutableList#copyOf");
+        documenter.createDocumentation(ListCreator.Collections_emptyList(), "JDK Collections#emptyList");
+        documenter.createDocumentation(ListCreator.Collections_singletonList(), "JDK Collections#singletonList");
+        documenter.createDocumentation(ListCreator.Collections_unmodifiableList(), "JDK Collections#unmodifiableList");
+        documenter.createDocumentation(ListCreator.Collectors_toList(), "JDK Collectors#toList");
+        documenter.createDocumentation(ListCreator.Collectors_toUnmodifiableList(), "JDK Collectors#toUnmodifiableList");
+        documenter.createDocumentation(ListCreator.Stream_toList(), "JDK Stream#toList");
 
         documenter.documentations.forEach(System.out::println);
     }

@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -76,10 +77,11 @@ public class ListUnderTest {
 
     public void documentNullElementSupport() {
         try {
-            listCreator.createList("a", null);
+            listCreator.createList((String)null);
             documentation.setSupportsNullElements(true);
         } catch (NullPointerException e) {
             documentation.setSupportsNullElements(false);
+        } catch (SizeNotSupportedException ignore) {
         }
     }
 
@@ -94,6 +96,8 @@ public class ListUnderTest {
             invokeMethodWithObserver(methodCall, observer);
         } catch (IndexOutOfBoundsException e) {
             effect = CallEffect.INDEX_OUT_OF_BOUNDS;
+        } catch (NoSuchElementException e) {
+            effect = CallEffect.NO_SUCH_ELEMENT;
         }
 
 
@@ -165,8 +169,10 @@ public class ListUnderTest {
             try {
                 return method.invoke(list, args);
             } catch (InvocationTargetException e) {
-                if (e.getCause() instanceof IndexOutOfBoundsException) {
-                    throw e.getCause();
+                if (e.getCause() instanceof IndexOutOfBoundsException iob) {
+                    throw iob;
+                } else if (e.getCause() instanceof NoSuchElementException nse) {
+                    throw nse;
                 }
                 throw e;
             }

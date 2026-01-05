@@ -4,8 +4,10 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class ListCreator {
 
@@ -106,10 +108,80 @@ public abstract class ListCreator {
             public List<String> fromList(List<String> original) {
                 return ImmutableList.copyOf(original);
             }
-
         };
     }
 
+    public static ListCreator Collections_emptyList() {
+        return new ListCreator() {
+            @Override
+            public List<String> createList(String... elements) throws SizeNotSupportedException {
+                if (elements.length == 0) {
+                    return Collections.emptyList();
+                }
+                throw new SizeNotSupportedException();
+            }
+
+            @Override
+            public List<String> createAbcdListOrLargestSubset() {
+                return Collections.emptyList();
+            }
+        };
+    }
+
+    public static ListCreator Collections_singletonList() {
+        return new ListCreator() {
+            @Override
+            public List<String> createList(String... elements) throws SizeNotSupportedException {
+                if (elements.length == 1) {
+                    return Collections.singletonList(elements[0]);
+                }
+                throw new SizeNotSupportedException();
+            }
+
+            @Override
+            public List<String> createAbcdListOrLargestSubset() {
+                return Collections.singletonList("a");
+            }
+        };
+    }
+
+    public static ListCreator Collections_unmodifiableList() {
+        return new ListBasedListCreator() {
+            @Override
+            public List<String> fromList(List<String> original) {
+                return Collections.unmodifiableList(original);
+            }
+        };
+    }
+
+    public static ListCreator Collectors_toList() {
+        return new ListCreator() {
+            @Override
+            public List<String> createList(String... elements) throws SizeNotSupportedException {
+                return Arrays.stream(elements)
+                    .collect(Collectors.toList());
+            }
+        };
+    }
+
+    public static ListCreator Collectors_toUnmodifiableList() {
+        return new ListCreator() {
+            @Override
+            public List<String> createList(String... elements) throws SizeNotSupportedException {
+                return Arrays.stream(elements)
+                    .collect(Collectors.toUnmodifiableList());
+            }
+        };
+    }
+
+    public static ListCreator Stream_toList() {
+        return new ListCreator() {
+            @Override
+            public List<String> createList(String... elements) throws SizeNotSupportedException {
+                return Arrays.stream(elements).toList();
+            }
+        };
+    }
 
     public abstract List<String> createList(String... elements) throws SizeNotSupportedException;
 
@@ -139,9 +211,5 @@ public abstract class ListCreator {
             String[] arrayList = new String[]{ "a", "b", "c", "d" };
             return new ListWithBackingStructure(createList(arrayList), () -> arrayList[2] = "changed");
         }
-    }
-
-
-    public record ListWithBackingStructure(List<String> list, Runnable backingStructureModifier) {
     }
 }
