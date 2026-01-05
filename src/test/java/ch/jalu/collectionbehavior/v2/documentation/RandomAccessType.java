@@ -1,7 +1,7 @@
 package ch.jalu.collectionbehavior.v2.documentation;
 
 /**
- * Defines whether a list type (or list returned from a method) implements RandomAccess.
+ * Defines whether a list type implements RandomAccess.
  */
 public enum RandomAccessType {
 

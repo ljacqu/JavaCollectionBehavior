@@ -9,7 +9,8 @@ public class ListDocumentation {
     private final String description;
 
     // Class
-    private Map<Integer, String> classNamesBySize;
+    private Range supportedSize;
+    private Map<Range, String> classesByRange;
     private RandomAccessType randomAccessType;
     private boolean supportsNullElements;
 
@@ -17,19 +18,23 @@ public class ListDocumentation {
     private List<BackingStructureBehavior> backingStructureBehaviors = new ArrayList<>();
 
     // Methods
-    private final List<ListMethodBehavior> behaviors = new ArrayList<>();
+    private final List<MethodBehavior> behaviors = new ArrayList<>();
 
 
     public ListDocumentation(String description) {
         this.description = description;
     }
 
-    public void addBehavior(ListMethodBehavior behavior) {
+    public void addBehavior(MethodBehavior behavior) {
         behaviors.add(behavior);
     }
 
-    public void setClassNamesBySize(Map<Integer, String> classNamesBySize) {
-        this.classNamesBySize = classNamesBySize;
+    public void setSupportedSize(Range supportedSize) {
+        this.supportedSize = supportedSize;
+    }
+
+    public void setClassesByRange(Map<Range, String> classesByRange) {
+        this.classesByRange = classesByRange;
     }
 
     public void setSupportsNullElements(boolean supportsNullElements) {

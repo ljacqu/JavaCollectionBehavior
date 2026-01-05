@@ -124,13 +124,13 @@ public class ListMethod {
 
     private static Stream<ListMethodCall> indexOf() {
         return Stream.of(
-            new ListMethodCall(list -> list.indexOf(null))
+            new ListMethodCall(list -> list.indexOf(null), NULL_ARGUMENT)
         );
     }
 
     private static Stream<ListMethodCall> lastIndexOf() {
         return Stream.of(
-            new ListMethodCall(list -> list.lastIndexOf(null))
+            new ListMethodCall(list -> list.lastIndexOf(null), NULL_ARGUMENT)
         );
     }
 
@@ -138,7 +138,7 @@ public class ListMethod {
         return Stream.of(
             new ListMethodCall(list -> list.remove("a")),
             new ListMethodCall(list -> list.remove("zzz")),
-            new ListMethodCall(list -> list.remove(null))
+            new ListMethodCall(list -> list.remove(null), NULL_ARGUMENT)
         );
     }
 
@@ -196,11 +196,11 @@ public class ListMethod {
 
     private static Stream<ListMethodCall> set() {
         return Stream.of(
-            new ListMethodCall(list -> list.set(0, "f")),
+            new ListMethodCall(list -> list.set(0, "d")),
             new ListMethodCall(list -> list.set(0, "a")),
             new ListMethodCall(list -> list.set(0, null), NULL_ARGUMENT),
             new ListMethodCall(list -> list.set(17, "G")),
-            new ListMethodCall(list -> list.set(17, null))
+            new ListMethodCall(list -> list.set(17, null), NULL_ARGUMENT)
         );
     }
 

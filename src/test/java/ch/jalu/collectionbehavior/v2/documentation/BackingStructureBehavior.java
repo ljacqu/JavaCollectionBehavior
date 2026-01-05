@@ -1,5 +1,8 @@
 package ch.jalu.collectionbehavior.v2.documentation;
 
+/**
+ * Behaviors that can be observed from a list that is created from a backing structure (list or array).
+ */
 public enum BackingStructureBehavior {
 
     /**
