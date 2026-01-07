@@ -10,6 +10,7 @@ import ch.jalu.collectionbehavior.v2.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.v2.documentation.Range;
 import ch.jalu.collectionbehavior.v2.method.CallEffect;
 import ch.jalu.collectionbehavior.v2.method.ListMethodCall;
+import ch.jalu.collectionbehavior.v2.method.MethodCallProperty;
 import ch.jalu.collectionbehavior.v2.method.MethodInvocationRecorder;
 import com.google.common.base.Preconditions;
 
@@ -25,6 +26,9 @@ import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import static ch.jalu.collectionbehavior.v2.method.CallEffect.MODIFYING;
+import static ch.jalu.collectionbehavior.v2.method.CallEffect.SIZE_ALTERING;
 
 public class ListUnderTest {
 
@@ -213,7 +217,50 @@ public class ListUnderTest {
             effect = effect == null ? determineEffect(copy, copyUnmodified) : effect;
         }
 
-        documentation.addBehavior(new MethodBehavior(observer.getLastMethodCall(), effect, exception));
+        documentation.addBehavior(
+            new MethodBehavior(observer.getLastMethodCall(), effect, exception, methodCall.properties()));
+    }
+
+    void analyzeMethodBehaviors() {
+        boolean canChangeSize = false;
+        boolean canBeModified = false;
+
+        int nullCallsOk = 0;
+        int nullCallsBad = 0;
+
+        for (MethodBehavior methodBehavior : documentation.getMethodBehaviors()) {
+            if (methodBehavior.getEffect() == MODIFYING && methodBehavior.getException() == null) {
+                canBeModified = true;
+            } else if (methodBehavior.getEffect() == SIZE_ALTERING && methodBehavior.getException() == null) {
+                canChangeSize = true;
+            }
+
+            if (methodBehavior.getProperties().contains(MethodCallProperty.NULL_ARGUMENT)
+                && methodBehavior.getProperties().contains(MethodCallProperty.READ_METHOD)) {
+                if (methodBehavior.getException() == null) {
+                    ++nullCallsOk;
+                } else if (methodBehavior.getEffect() != CallEffect.INDEX_OUT_OF_BOUNDS
+                           && !methodBehavior.getException().equals("IndexOutOfBoundsException")) {
+                    ++nullCallsBad;
+                }
+            }
+        }
+
+        Preconditions.checkState(!canChangeSize || canBeModified,
+            "Inconsistent finding: List can change size but can't be modified");
+        documentation.setCanBeModified(canBeModified);
+        documentation.setCanChangeSize(canChangeSize);
+
+        // Be strict with checks here just to make sure we don't infer something weird. As we add more method calls
+        // we'll need to adapt the numbers here; at some point we can be less strict.
+        if (nullCallsOk == 5) {
+            documentation.setSupportsNullArguments(true);
+        } else if (nullCallsBad >= 4) {
+            documentation.setSupportsNullArguments(false);
+        } else {
+            throw new IllegalStateException("Unknown combination. Good null calls="
+                + nullCallsOk + ", bad null calls=" + nullCallsBad);
+        }
     }
 
     public ListDocumentation getDocumentation() {
@@ -222,12 +269,12 @@ public class ListUnderTest {
 
     private static CallEffect determineEffect(List<String> copyUnmodified, List<String> copy) {
         if (copy.size() != copyUnmodified.size()) {
-            return CallEffect.SIZE_ALTERING;
+            return SIZE_ALTERING;
         }
 
         return copy.equals(copyUnmodified)
             ? CallEffect.NON_MODIFYING
-            : CallEffect.MODIFYING;
+            : MODIFYING;
     }
 
     private static void invokeMethodWithObserver(ListMethodCall call, MethodInvocationRecorder observer) {
@@ -235,5 +282,4 @@ public class ListUnderTest {
             new Class[]{ List.class }, observer);
         call.invoke(listProxy);
     }
-
 }

@@ -46,6 +46,7 @@ public class ListDocumenter {
             testedList.test(method);
         }
 
+        testedList.analyzeMethodBehaviors();
         documentations.add(testedList.getDocumentation());
     }
 

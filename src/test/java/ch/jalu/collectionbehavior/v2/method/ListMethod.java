@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 import static ch.jalu.collectionbehavior.v2.method.MethodCallProperty.EMPTY_COLLECTION_ARGUMENT;
 import static ch.jalu.collectionbehavior.v2.method.MethodCallProperty.NULL_ARGUMENT;
+import static ch.jalu.collectionbehavior.v2.method.MethodCallProperty.READ_METHOD;
 
 public class ListMethod {
 
@@ -103,7 +104,7 @@ public class ListMethod {
 
     private static Stream<ListMethodCall> contains() {
         return Stream.of(
-            new ListMethodCall(list -> list.contains(null), NULL_ARGUMENT)
+            new ListMethodCall(list -> list.contains(null), NULL_ARGUMENT, READ_METHOD)
         );
     }
 
@@ -117,20 +118,20 @@ public class ListMethod {
         listWithNull2.add(null);
 
         return Stream.of(
-            new ListMethodCall(list -> list.containsAll(listWithNull), NULL_ARGUMENT),
-            new ListMethodCall(list -> list.containsAll(listWithNull2), NULL_ARGUMENT)
+            new ListMethodCall(list -> list.containsAll(listWithNull), NULL_ARGUMENT, READ_METHOD),
+            new ListMethodCall(list -> list.containsAll(listWithNull2), NULL_ARGUMENT, READ_METHOD)
         );
     }
 
     private static Stream<ListMethodCall> indexOf() {
         return Stream.of(
-            new ListMethodCall(list -> list.indexOf(null), NULL_ARGUMENT)
+            new ListMethodCall(list -> list.indexOf(null), NULL_ARGUMENT, READ_METHOD)
         );
     }
 
     private static Stream<ListMethodCall> lastIndexOf() {
         return Stream.of(
-            new ListMethodCall(list -> list.lastIndexOf(null), NULL_ARGUMENT)
+            new ListMethodCall(list -> list.lastIndexOf(null), NULL_ARGUMENT, READ_METHOD)
         );
     }
 

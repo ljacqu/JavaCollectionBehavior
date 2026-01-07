@@ -1,6 +1,9 @@
 package ch.jalu.collectionbehavior.v2.documentation;
 
 import ch.jalu.collectionbehavior.v2.method.CallEffect;
+import ch.jalu.collectionbehavior.v2.method.MethodCallProperty;
+
+import java.util.Set;
 
 /**
  * Records a method call on a collection and the result it led to.
@@ -19,10 +22,30 @@ public class MethodBehavior {
     /** If the list threw an exception for the method, the exception name. */
     private final String exception;
 
-    public MethodBehavior(MethodInvocation methodInvocation, CallEffect effect, String exception) {
+    private final Set<MethodCallProperty> properties;
+
+    public MethodBehavior(MethodInvocation methodInvocation, CallEffect effect, String exception,
+                          Set<MethodCallProperty> properties) {
         this.methodInvocation = methodInvocation;
         this.effect = effect;
         this.exception = exception;
+        this.properties = properties;
+    }
+
+    public MethodInvocation getMethodInvocation() {
+        return methodInvocation;
+    }
+
+    public CallEffect getEffect() {
+        return effect;
+    }
+
+    public String getException() {
+        return exception;
+    }
+
+    public Set<MethodCallProperty> getProperties() {
+        return properties;
     }
 
     @Override

@@ -13,6 +13,10 @@ public class ListDocumentation {
     private Map<Range, String> classesByRange;
     private RandomAccessType randomAccessType;
     private boolean supportsNullElements;
+    private Boolean supportsNullArguments;
+
+    private boolean canChangeSize;
+    private boolean canBeModified;
 
     private Boolean doesNotRewrapItself;
     private List<BackingStructureBehavior> backingStructureBehaviors = new ArrayList<>();
@@ -29,6 +33,10 @@ public class ListDocumentation {
         behaviors.add(behavior);
     }
 
+    public List<MethodBehavior> getMethodBehaviors() {
+        return behaviors;
+    }
+
     public void setSupportedSize(Range supportedSize) {
         this.supportedSize = supportedSize;
     }
@@ -39,6 +47,18 @@ public class ListDocumentation {
 
     public void setSupportsNullElements(boolean supportsNullElements) {
         this.supportsNullElements = supportsNullElements;
+    }
+
+    public void setSupportsNullArguments(boolean supportsNullArguments) {
+        this.supportsNullArguments = supportsNullArguments;
+    }
+
+    public void setCanChangeSize(boolean canChangeSize) {
+        this.canChangeSize = canChangeSize;
+    }
+
+    public void setCanBeModified(boolean canBeModified) {
+        this.canBeModified = canBeModified;
     }
 
     public void setRandomAccessType(RandomAccessType randomAccessType) {
