@@ -1,9 +1,9 @@
-package ch.jalu.collectionbehavior.v2;
+package ch.jalu.collectionbehavior;
 
-import ch.jalu.collectionbehavior.v2.creator.ListCreator;
-import ch.jalu.collectionbehavior.v2.documentation.ListDocumentation;
-import ch.jalu.collectionbehavior.v2.method.ListMethod;
-import ch.jalu.collectionbehavior.v2.method.ListMethodCall;
+import ch.jalu.collectionbehavior.creator.ListCreator;
+import ch.jalu.collectionbehavior.documentation.ListDocumentation;
+import ch.jalu.collectionbehavior.method.ListMethod;
+import ch.jalu.collectionbehavior.method.ListMethodCall;
 
 import java.util.ArrayList;
 import java.util.List;

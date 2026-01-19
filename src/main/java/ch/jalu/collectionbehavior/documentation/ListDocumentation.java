@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.documentation;
+package ch.jalu.collectionbehavior.documentation;
 
 import java.util.ArrayList;
 import java.util.List;

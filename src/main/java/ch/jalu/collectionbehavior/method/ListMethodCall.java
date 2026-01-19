@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.method;
+package ch.jalu.collectionbehavior.method;
 
 import java.util.List;
 import java.util.Set;

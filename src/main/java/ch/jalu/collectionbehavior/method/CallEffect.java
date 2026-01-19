@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.method;
+package ch.jalu.collectionbehavior.method;
 
 /**
  * Categorizes the effect a method has on a collection.

@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.method;
+package ch.jalu.collectionbehavior.method;
 
 /**
  * Properties to annotate various method calls that are being tested.

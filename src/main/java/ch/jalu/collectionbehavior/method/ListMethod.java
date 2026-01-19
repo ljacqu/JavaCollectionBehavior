@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.method;
+package ch.jalu.collectionbehavior.method;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static ch.jalu.collectionbehavior.v2.method.MethodCallProperty.EMPTY_COLLECTION_ARGUMENT;
-import static ch.jalu.collectionbehavior.v2.method.MethodCallProperty.NULL_ARGUMENT;
-import static ch.jalu.collectionbehavior.v2.method.MethodCallProperty.READ_METHOD;
+import static ch.jalu.collectionbehavior.method.MethodCallProperty.EMPTY_COLLECTION_ARGUMENT;
+import static ch.jalu.collectionbehavior.method.MethodCallProperty.NULL_ARGUMENT;
+import static ch.jalu.collectionbehavior.method.MethodCallProperty.READ_METHOD;
 
 public class ListMethod {
 

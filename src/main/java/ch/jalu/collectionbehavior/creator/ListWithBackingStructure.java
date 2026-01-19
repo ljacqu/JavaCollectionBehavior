@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.creator;
+package ch.jalu.collectionbehavior.creator;
 
 import java.util.List;
 import java.util.function.Supplier;

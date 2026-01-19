@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.creator;
+package ch.jalu.collectionbehavior.creator;
 
 public class SizeNotSupportedException extends RuntimeException {
 

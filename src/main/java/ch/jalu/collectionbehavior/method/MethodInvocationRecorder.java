@@ -1,6 +1,6 @@
-package ch.jalu.collectionbehavior.v2.method;
+package ch.jalu.collectionbehavior.method;
 
-import ch.jalu.collectionbehavior.v2.documentation.MethodInvocation;
+import ch.jalu.collectionbehavior.documentation.MethodInvocation;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;

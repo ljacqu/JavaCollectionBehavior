@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.creator;
+package ch.jalu.collectionbehavior.creator;
 
 import com.google.common.collect.ImmutableList;
 

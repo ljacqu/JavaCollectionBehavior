@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.documentation;
+package ch.jalu.collectionbehavior.documentation;
 
 /**
  * Defines whether a list type implements RandomAccess.

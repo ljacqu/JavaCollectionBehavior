@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.documentation;
+package ch.jalu.collectionbehavior.documentation;
 
 /**
  * Behaviors that can be observed from a list that is created from a backing structure (list or array).

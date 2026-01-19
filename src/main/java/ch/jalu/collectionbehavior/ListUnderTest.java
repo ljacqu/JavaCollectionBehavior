@@ -1,17 +1,17 @@
-package ch.jalu.collectionbehavior.v2;
+package ch.jalu.collectionbehavior;
 
-import ch.jalu.collectionbehavior.v2.creator.ListCreator;
-import ch.jalu.collectionbehavior.v2.creator.ListWithBackingStructure;
-import ch.jalu.collectionbehavior.v2.creator.SizeNotSupportedException;
-import ch.jalu.collectionbehavior.v2.documentation.ListDocumentation;
-import ch.jalu.collectionbehavior.v2.documentation.MethodBehavior;
-import ch.jalu.collectionbehavior.v2.documentation.ModificationBehavior;
-import ch.jalu.collectionbehavior.v2.documentation.RandomAccessType;
-import ch.jalu.collectionbehavior.v2.documentation.Range;
-import ch.jalu.collectionbehavior.v2.method.CallEffect;
-import ch.jalu.collectionbehavior.v2.method.ListMethodCall;
-import ch.jalu.collectionbehavior.v2.method.MethodCallProperty;
-import ch.jalu.collectionbehavior.v2.method.MethodInvocationRecorder;
+import ch.jalu.collectionbehavior.creator.ListCreator;
+import ch.jalu.collectionbehavior.creator.ListWithBackingStructure;
+import ch.jalu.collectionbehavior.creator.SizeNotSupportedException;
+import ch.jalu.collectionbehavior.documentation.ListDocumentation;
+import ch.jalu.collectionbehavior.documentation.MethodBehavior;
+import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
+import ch.jalu.collectionbehavior.documentation.RandomAccessType;
+import ch.jalu.collectionbehavior.documentation.Range;
+import ch.jalu.collectionbehavior.method.CallEffect;
+import ch.jalu.collectionbehavior.method.ListMethodCall;
+import ch.jalu.collectionbehavior.method.MethodCallProperty;
+import ch.jalu.collectionbehavior.method.MethodInvocationRecorder;
 import com.google.common.base.Preconditions;
 
 import java.lang.reflect.Proxy;
@@ -26,8 +26,8 @@ import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 import java.util.TreeMap;
 
-import static ch.jalu.collectionbehavior.v2.method.CallEffect.MODIFYING;
-import static ch.jalu.collectionbehavior.v2.method.CallEffect.SIZE_ALTERING;
+import static ch.jalu.collectionbehavior.method.CallEffect.MODIFYING;
+import static ch.jalu.collectionbehavior.method.CallEffect.SIZE_ALTERING;
 
 public class ListUnderTest {
 

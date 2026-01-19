@@ -1,7 +1,7 @@
-package ch.jalu.collectionbehavior.v2.documentation;
+package ch.jalu.collectionbehavior.documentation;
 
-import ch.jalu.collectionbehavior.v2.method.CallEffect;
-import ch.jalu.collectionbehavior.v2.method.MethodCallProperty;
+import ch.jalu.collectionbehavior.method.CallEffect;
+import ch.jalu.collectionbehavior.method.MethodCallProperty;
 
 import java.util.Set;
 

@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.v2.documentation;
+package ch.jalu.collectionbehavior.documentation;
 
 public record MethodInvocation(String methodName,
                                String methodParameters,
