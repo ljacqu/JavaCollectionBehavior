@@ -1,7 +1,9 @@
 package ch.jalu.collectionbehavior;
 
 import ch.jalu.collectionbehavior.creator.ListCreator;
+import ch.jalu.collectionbehavior.creator.SizeNotSupportedException;
 import ch.jalu.collectionbehavior.documentation.ListDocumentation;
+import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.method.ListMethod;
 import ch.jalu.collectionbehavior.method.ListMethodCall;
 
@@ -15,24 +17,31 @@ public class ListDocumenter {
     static void main() {
         ListDocumenter documenter = new ListDocumenter();
 
-        documenter.createDocumentation(ListCreator.ArrayList(), "JDK ArrayList");
-        documenter.createDocumentation(ListCreator.LinkedList(), "JDK LinkedList");
-        documenter.createDocumentation(ListCreator.List_of(), "JDK List#of");
-        documenter.createDocumentation(ListCreator.List_copyOf(), "JDK List#copyOf");
-        documenter.createDocumentation(ListCreator.Arrays_asList(), "JDK Arrays#asList");
-        documenter.createDocumentation(ListCreator.Guava_ImmutableList_of(), "JDK ImmutableList#of");
-        documenter.createDocumentation(ListCreator.Guava_ImmutableList_copyOf(), "Guava ImmutableList#copyOf");
-        documenter.createDocumentation(ListCreator.Collections_emptyList(), "JDK Collections#emptyList");
-        documenter.createDocumentation(ListCreator.Collections_singletonList(), "JDK Collections#singletonList");
-        documenter.createDocumentation(ListCreator.Collections_unmodifiableList(), "JDK Collections#unmodifiableList");
-        documenter.createDocumentation(ListCreator.Collectors_toList(), "JDK Collectors#toList");
-        documenter.createDocumentation(ListCreator.Collectors_toUnmodifiableList(), "JDK Collectors#toUnmodifiableList");
-        documenter.createDocumentation(ListCreator.Stream_toList(), "JDK Stream#toList");
+        documenter.document(ListCreator.ArrayList(), "JDK ArrayList");
+        documenter.document(ListCreator.LinkedList(), "JDK LinkedList");
+        documenter.document(ListCreator.List_of(), "JDK List#of");
+        documenter.document(ListCreator.List_copyOf(), "JDK List#copyOf");
+        documenter.document(ListCreator.Arrays_asList(), "JDK Arrays#asList");
+        documenter.document(ListCreator.Guava_ImmutableList_of(), "JDK ImmutableList#of");
+        documenter.document(ListCreator.Guava_ImmutableList_copyOf(), "Guava ImmutableList#copyOf");
+        documenter.document(ListCreator.Collections_emptyList(), "JDK Collections#emptyList");
+        documenter.document(ListCreator.Collections_singletonList(), "JDK Collections#singletonList");
+        documenter.document(ListCreator.Collections_unmodifiableList(), "JDK Collections#unmodifiableList");
+        documenter.document(ListCreator.Collectors_toList(), "JDK Collectors#toList");
+        documenter.document(ListCreator.Collectors_toUnmodifiableList(), "JDK Collectors#toUnmodifiableList");
+        documenter.document(ListCreator.Stream_toList(), "JDK Stream#toList");
 
         documenter.documentations.forEach(System.out::println);
     }
 
-    private void createDocumentation(ListCreator listCreator, String description) {
+    private void document(ListCreator listCreator, String description) {
+        ListDocumentation doc = createDocumentation(listCreator, description);
+
+        ListCreator subListCreator = new SubListCreator(listCreator, doc.getSupportedSize());
+        createDocumentation(subListCreator, description + " (sublist)");
+    }
+
+    private ListDocumentation createDocumentation(ListCreator listCreator, String description) {
         List<ListMethodCall> methods = ListMethod.createAll();
 
         ListUnderTest testedList = new ListUnderTest(listCreator, description);
@@ -47,7 +56,51 @@ public class ListDocumenter {
         }
 
         testedList.analyzeMethodBehaviors();
-        documentations.add(testedList.getDocumentation());
+        ListDocumentation documentation = testedList.getDocumentation();
+        documentations.add(documentation);
+        return documentation;
     }
 
+    private static final class SubListCreator extends ListCreator {
+
+        private final ListCreator parent;
+        private final boolean usePadding;
+
+        private SubListCreator(ListCreator parent, Range parentRange) {
+            this.parent = parent;
+            this.usePadding = parentRange.min() == 0 && parentRange.max() == null;
+        }
+
+        @Override
+        public List<String> createAbcdListOrLargestSubset() {
+            List<String> abcdOrSubset = parent.createAbcdListOrLargestSubset();
+            boolean padElements = abcdOrSubset.size() == 4;
+            return createList(abcdOrSubset.toArray(String[]::new), padElements);
+        }
+
+        @Override
+        public List<String> createList(String... elements) throws SizeNotSupportedException {
+            return createList(elements, usePadding);
+        }
+
+        private List<String> createList(String[] elements, boolean usePadding) {
+            if (!usePadding) {
+                return parent.createList(elements).subList(0, elements.length);
+            }
+
+            String[] paddedElements = padElements(elements);
+            List<String> list = parent.createList(paddedElements);
+            return list.subList(1, paddedElements.length - 1);
+        }
+
+        private static String[] padElements(String[] elements) {
+            String[] paddedElements = new String[2 + elements.length];
+
+            paddedElements[0] = "0";
+            System.arraycopy(elements, 0, paddedElements, 1, elements.length);
+            paddedElements[paddedElements.length - 1] = "0";
+
+            return paddedElements;
+        }
+    }
 }

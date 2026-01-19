@@ -38,6 +38,10 @@ public class ListDocumentation {
         return behaviors;
     }
 
+    public Range getSupportedSize() {
+        return supportedSize;
+    }
+
     public void setSupportedSize(Range supportedSize) {
         this.supportedSize = supportedSize;
     }
