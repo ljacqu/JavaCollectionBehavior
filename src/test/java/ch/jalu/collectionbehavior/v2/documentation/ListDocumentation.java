@@ -15,11 +15,8 @@ public class ListDocumentation {
     private boolean supportsNullElements;
     private Boolean supportsNullArguments;
 
-    private boolean canChangeSize;
-    private boolean canBeModified;
-
+    private List<ModificationBehavior> modificationBehaviors = new ArrayList<>();
     private Boolean doesNotRewrapItself;
-    private List<BackingStructureBehavior> backingStructureBehaviors = new ArrayList<>();
 
     // Methods
     private final List<MethodBehavior> behaviors = new ArrayList<>();
@@ -27,6 +24,10 @@ public class ListDocumentation {
 
     public ListDocumentation(String description) {
         this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public void addBehavior(MethodBehavior behavior) {
@@ -53,24 +54,16 @@ public class ListDocumentation {
         this.supportsNullArguments = supportsNullArguments;
     }
 
-    public void setCanChangeSize(boolean canChangeSize) {
-        this.canChangeSize = canChangeSize;
-    }
-
-    public void setCanBeModified(boolean canBeModified) {
-        this.canBeModified = canBeModified;
-    }
-
     public void setRandomAccessType(RandomAccessType randomAccessType) {
         this.randomAccessType = randomAccessType;
     }
 
-    public void setDoesNotRewrapItself(boolean doesNotRewrapItself) {
-        this.doesNotRewrapItself = doesNotRewrapItself;
+    public void addModificationBehavior(ModificationBehavior behavior) {
+        modificationBehaviors.add(behavior);
     }
 
-    public void addBackingStructureBehavior(BackingStructureBehavior behavior) {
-        backingStructureBehaviors.add(behavior);
+    public void setDoesNotRewrapItself(boolean doesNotRewrapItself) {
+        this.doesNotRewrapItself = doesNotRewrapItself;
     }
 
     @Override

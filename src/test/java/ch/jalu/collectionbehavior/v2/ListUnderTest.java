@@ -3,9 +3,9 @@ package ch.jalu.collectionbehavior.v2;
 import ch.jalu.collectionbehavior.v2.creator.ListCreator;
 import ch.jalu.collectionbehavior.v2.creator.ListWithBackingStructure;
 import ch.jalu.collectionbehavior.v2.creator.SizeNotSupportedException;
-import ch.jalu.collectionbehavior.v2.documentation.BackingStructureBehavior;
 import ch.jalu.collectionbehavior.v2.documentation.ListDocumentation;
 import ch.jalu.collectionbehavior.v2.documentation.MethodBehavior;
+import ch.jalu.collectionbehavior.v2.documentation.ModificationBehavior;
 import ch.jalu.collectionbehavior.v2.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.v2.documentation.Range;
 import ch.jalu.collectionbehavior.v2.method.CallEffect;
@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import static ch.jalu.collectionbehavior.v2.method.CallEffect.MODIFYING;
 import static ch.jalu.collectionbehavior.v2.method.CallEffect.SIZE_ALTERING;
@@ -107,13 +106,12 @@ public class ListUnderTest {
 
             Map<Range, String> newClassesByRange = collectClassesByRange(classNamesBySize);
             if (!newClassesByRange.equals(classesByRange)) { // Something is different
-                return newClassesByRange.entrySet().stream()
-                    .map(e -> Map.entry(new Range(-e.getKey().min(), -e.getKey().max()), e.getValue()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                        (_, _) -> {
-                            throw new IllegalStateException();
-                        },
-                        LinkedHashMap::new));
+                LinkedHashMap<Range, String> classesByRangeAdditions = new LinkedHashMap<>(classesByRange.size());
+                classesByRange.forEach((range, clazz) -> {
+                    Range rangeAddition = new Range(100 + range.min(), range.max() == null ? null : 100 + range.max());
+                    classesByRangeAdditions.put(rangeAddition, clazz);
+                });
+                return classesByRangeAdditions;
             }
         }
         return Collections.emptyMap();
@@ -175,7 +173,7 @@ public class ListUnderTest {
             Preconditions.checkState(list.equals(List.of("a", "b", "c", "d")));
             listWithBackingStructure.modifyBackingStructure();
             if (!list.equals(List.of("a", "b", "c", "d"))) {
-                documentation.addBackingStructureBehavior(BackingStructureBehavior.STRUCTURE_INFLUENCES_COLLECTION);
+                documentation.addModificationBehavior(ModificationBehavior.STRUCTURE_INFLUENCES_COLLECTION);
             }
 
             // Check if changing the list (if allowed) changes the backing structure
@@ -185,7 +183,7 @@ public class ListUnderTest {
             try {
                 list.set(2, "changed");
                 if (listWithBackingStructure.getBackingStructureAsList().equals(List.of("a", "b", "changed", "d"))) {
-                    documentation.addBackingStructureBehavior(BackingStructureBehavior.COLLECTION_INFLUENCES_STRUCTURE);
+                    documentation.addModificationBehavior(ModificationBehavior.COLLECTION_INFLUENCES_STRUCTURE);
                 }
             } catch (UnsupportedOperationException ignore) {
             }
@@ -214,7 +212,14 @@ public class ListUnderTest {
             effect = determineEffect(copyUnmodified, abcdList);
         } catch (Exception e) {
             exception = e.getClass().getSimpleName();
-            effect = effect == null ? determineEffect(copy, copyUnmodified) : effect;
+            effect = effect == null ? determineEffect(copyUnmodified, copy) : effect;
+        }
+
+        // Sanity check: modification should be the same as on our copy
+        if (exception == null && !abcdList.equals(copy)) {
+            throw new IllegalStateException("For " + documentation.getDescription()
+                + ": expected list to be equal to copy for call " + observer.getLastMethodCall()
+                + ", but got " + abcdList + " vs. copy list: " + copy);
         }
 
         documentation.addBehavior(
@@ -248,8 +253,12 @@ public class ListUnderTest {
 
         Preconditions.checkState(!canChangeSize || canBeModified,
             "Inconsistent finding: List can change size but can't be modified");
-        documentation.setCanBeModified(canBeModified);
-        documentation.setCanChangeSize(canChangeSize);
+        if (canBeModified) {
+            documentation.addModificationBehavior(ModificationBehavior.CAN_MODIFY_ENTRIES);
+        }
+        if (canChangeSize) {
+            documentation.addModificationBehavior(ModificationBehavior.CAN_CHANGE_SIZE);
+        }
 
         // Be strict with checks here just to make sure we don't infer something weird. As we add more method calls
         // we'll need to adapt the numbers here; at some point we can be less strict.

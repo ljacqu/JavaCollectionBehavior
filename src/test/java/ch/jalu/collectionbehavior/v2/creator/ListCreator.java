@@ -13,20 +13,26 @@ public abstract class ListCreator {
 
     public static ListCreator ArrayList() {
         return new ListCreator() {
-
             @Override
             public List<String> createList(String... elements) {
-                return new ArrayList<>(Arrays.asList(elements));
+                List<String> arrayList = new ArrayList<>();
+                for (String element : elements) {
+                    arrayList.add(element);
+                }
+                return arrayList;
             }
         };
     }
 
     public static ListCreator LinkedList() {
         return new ListCreator() {
-
             @Override
             public List<String> createList(String... elements) {
-                return new LinkedList<>(Arrays.asList(elements));
+                List<String> linkedList = new LinkedList<>();
+                for (String element : elements) {
+                    linkedList.add(element);
+                }
+                return linkedList;
             }
         };
     }
