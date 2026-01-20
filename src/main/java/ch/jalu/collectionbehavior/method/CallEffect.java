@@ -30,4 +30,9 @@ public enum CallEffect {
      */
     NO_SUCH_ELEMENT,
 
+    /**
+     * An {@link IllegalStateException} was thrown.
+     */
+    ILLEGAL_STATE,
+
 }

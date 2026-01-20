@@ -11,10 +11,9 @@ import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.method.CallEffect;
 import ch.jalu.collectionbehavior.method.ListMethodCall;
 import ch.jalu.collectionbehavior.method.MethodCallProperty;
-import ch.jalu.collectionbehavior.method.MethodInvocationRecorder;
+import ch.jalu.collectionbehavior.method.MethodTester;
 import com.google.common.base.Preconditions;
 
-import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 import java.util.TreeMap;
 
@@ -117,7 +115,8 @@ public class ListUnderTest {
         return Collections.emptyMap();
     }
 
-    private static Map<Range, String> collectClassesByRange(TreeMap<Integer, String> classNamesBySize) {
+    // todo: move somewhere more generic
+    public static Map<Range, String> collectClassesByRange(TreeMap<Integer, String> classNamesBySize) {
         Map<Range, String> classesByRange = new LinkedHashMap<>();
 
         Integer start = null;
@@ -191,39 +190,10 @@ public class ListUnderTest {
     }
 
     void test(ListMethodCall methodCall) {
-        List<String> abcdList = listCreator.createAbcdListOrLargestSubset();
-        List<String> copyUnmodified = new ArrayList<>(abcdList);
-        List<String> copy = new ArrayList<>(abcdList);
+        MethodTester methodTester = new MethodTester();
 
-        CallEffect effect = null;
-        MethodInvocationRecorder observer = new MethodInvocationRecorder(copy);
-        try {
-            invokeMethodWithObserver(methodCall, observer);
-        } catch (IndexOutOfBoundsException e) {
-            effect = CallEffect.INDEX_OUT_OF_BOUNDS;
-        } catch (NoSuchElementException e) {
-            effect = CallEffect.NO_SUCH_ELEMENT;
-        }
-
-
-        String exception = null;
-        try {
-            methodCall.invoke(abcdList);
-            effect = determineEffect(copyUnmodified, abcdList);
-        } catch (Exception e) {
-            exception = e.getClass().getSimpleName();
-            effect = effect == null ? determineEffect(copyUnmodified, copy) : effect;
-        }
-
-        // Sanity check: modification should be the same as on our copy
-        if (exception == null && !abcdList.equals(copy)) {
-            throw new IllegalStateException("For " + documentation.getDescription()
-                + ": expected list to be equal to copy for call " + observer.getLastMethodCall()
-                + ", but got " + abcdList + " vs. copy list: " + copy);
-        }
-
-        documentation.addBehavior(
-            new MethodBehavior(observer.getLastMethodCall(), effect, exception, methodCall.properties()));
+        MethodBehavior behavior = methodTester.test(documentation.getDescription(), listCreator, methodCall);
+        documentation.addBehavior(behavior);
     }
 
     void analyzeMethodBehaviors() {
@@ -274,21 +244,5 @@ public class ListUnderTest {
 
     public ListDocumentation getDocumentation() {
         return documentation;
-    }
-
-    private static CallEffect determineEffect(List<String> copyUnmodified, List<String> copy) {
-        if (copy.size() != copyUnmodified.size()) {
-            return SIZE_ALTERING;
-        }
-
-        return copy.equals(copyUnmodified)
-            ? CallEffect.NON_MODIFYING
-            : MODIFYING;
-    }
-
-    private static void invokeMethodWithObserver(ListMethodCall call, MethodInvocationRecorder observer) {
-        List<String> listProxy = (List) Proxy.newProxyInstance(List.class.getClassLoader(),
-            new Class[]{ List.class }, observer);
-        call.invoke(listProxy);
     }
 }

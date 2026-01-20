@@ -12,7 +12,7 @@ import static ch.jalu.collectionbehavior.method.MethodCallProperty.EMPTY_COLLECT
 import static ch.jalu.collectionbehavior.method.MethodCallProperty.NULL_ARGUMENT;
 import static ch.jalu.collectionbehavior.method.MethodCallProperty.READ_METHOD;
 
-public class ListMethod {
+public final class ListMethod {
 
     public static List<ListMethodCall> createAll() {
         return Stream.of(
