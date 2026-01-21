@@ -8,6 +8,7 @@ import ch.jalu.collectionbehavior.documentation.MethodBehavior;
 import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
 import ch.jalu.collectionbehavior.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.documentation.Range;
+import ch.jalu.collectionbehavior.documentation.SpliteratorCharacteristic;
 import ch.jalu.collectionbehavior.method.CallEffect;
 import ch.jalu.collectionbehavior.method.ListMethodCall;
 import ch.jalu.collectionbehavior.method.MethodCallProperty;
@@ -187,6 +188,13 @@ public class ListUnderTest {
             } catch (UnsupportedOperationException ignore) {
             }
         }
+    }
+
+    void documentSpliteratorCharacteristics() {
+        List<String> list = listCreator.createAbcdListOrLargestSubset();
+
+        int characteristics = list.spliterator().characteristics();
+        documentation.setSpliteratorCharacteristics(SpliteratorCharacteristic.create(characteristics));
     }
 
     void test(ListMethodCall methodCall) {

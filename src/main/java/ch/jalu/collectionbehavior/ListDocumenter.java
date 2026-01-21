@@ -52,6 +52,9 @@ public class ListDocumenter {
         ListCreator subListCreator = new SubListCreator(listCreator, doc.getSupportedSize());
         createDocumentation(subListCreator, description + " (sublist)");
         createDocumentationForListIterator(listCreator, description + " (listIterator)");
+
+        ReversedListCreator reversedListCreator = new ReversedListCreator(listCreator);
+        createDocumentation(reversedListCreator, description + " (reversed)");
     }
 
     private ListDocumentation createDocumentation(ListCreator listCreator, String description) {
@@ -63,6 +66,7 @@ public class ListDocumenter {
         testedList.checkImplementsRandomAccess();
         testedList.documentSelfWrapping();
         testedList.documentBehaviorWithBackingStructure();
+        testedList.documentSpliteratorCharacteristics();
 
         for (ListMethodCall method : methods) {
             testedList.test(method);
@@ -148,6 +152,25 @@ public class ListDocumenter {
             paddedElements[paddedElements.length - 1] = "0";
 
             return paddedElements;
+        }
+    }
+
+    private static final class ReversedListCreator extends ListCreator {
+
+        private final ListCreator parent;
+
+        private ReversedListCreator(ListCreator parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public List<String> createList(String... elements) throws SizeNotSupportedException {
+            return parent.createList(elements).reversed();
+        }
+
+        @Override
+        public List<String> createAbcdListOrLargestSubset() {
+            return parent.createAbcdListOrLargestSubset().reversed();
         }
     }
 }

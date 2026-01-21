@@ -3,6 +3,7 @@ package ch.jalu.collectionbehavior.documentation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ListDocumentation implements CollectionDocumentation {
 
@@ -17,6 +18,7 @@ public class ListDocumentation implements CollectionDocumentation {
 
     private List<ModificationBehavior> modificationBehaviors = new ArrayList<>();
     private Boolean doesNotRewrapItself;
+    private Set<SpliteratorCharacteristic> spliteratorCharacteristics;
 
     // Methods
     private final List<MethodBehavior> behaviors = new ArrayList<>();
@@ -68,6 +70,10 @@ public class ListDocumentation implements CollectionDocumentation {
 
     public void setDoesNotRewrapItself(boolean doesNotRewrapItself) {
         this.doesNotRewrapItself = doesNotRewrapItself;
+    }
+
+    public void setSpliteratorCharacteristics(Set<SpliteratorCharacteristic> spliteratorCharacteristics) {
+        this.spliteratorCharacteristics = spliteratorCharacteristics;
     }
 
     @Override
