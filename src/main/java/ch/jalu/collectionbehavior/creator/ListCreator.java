@@ -7,10 +7,39 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Produces a list of a type to be documented.
+ */
 public abstract class ListCreator {
 
+    /**
+     * Creates a list with the given elements.
+     *
+     * @param elements the elements the list should be populated with
+     * @return list with the elements
+     * @throws SizeNotSupportedException if the list does not support the number of elements provided
+     */
+    public abstract List<String> createList(String... elements) throws SizeNotSupportedException;
+
+    /**
+     * Creates a list with the elements "a", "b", "c", "d", or the largest list supported by the type.
+     *
+     * @return list with a, b, c, d or largest possible subset (e.g. just "a")
+     */
+    public List<String> createAbcdListOrLargestSubset() {
+        return createList("a", "b", "c", "d");
+    }
+
+    // ----------
+    // Implementations
+    // ----------
+
+    /**
+     * {@link ArrayList}: general-purpose list mutable implementation. Full null support.
+     */
     public static ListCreator ArrayList() {
         return new ListCreator() {
             @Override
@@ -24,6 +53,9 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link LinkedList}: mutable implementation. Full null support.
+     */
     public static ListCreator LinkedList() {
         return new ListCreator() {
             @Override
@@ -37,6 +69,9 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link List#of}: immutable list that rejects nulls.
+     */
     public static ListCreator List_of() {
         return new ArrayBasedListCreator() {
             @Override
@@ -59,25 +94,23 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link List#copyOf}: creates an immutable copy of a list; rejects nulls.
+     */
     public static ListCreator List_copyOf() {
-        return new ListBasedListCreator() {
-            @Override
-            public List<String> fromList(List<String> original) {
-                return List.copyOf(original);
-            }
-        };
+        return ListBasedListCreator.of(List::copyOf);
     }
 
+    /**
+     * {@link Arrays#asList}: creates a list-view based on the array. The list can be modified but cannot change size.
+     */
     public static ListCreator Arrays_asList() {
-        return new ArrayBasedListCreator() {
-
-            @Override
-            public List<String> createList(String... elements) {
-                return Arrays.asList(elements);
-            }
-        };
+        return ArrayBasedListCreator.of(Arrays::asList);
     }
 
+    /**
+     * {@link ImmutableList#of}: immutable list that may not contain nulls. Method calls with nulls are OK.
+     */
     public static ListCreator Guava_ImmutableList_of() {
         return new ArrayBasedListCreator() {
             @Override
@@ -107,16 +140,16 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link ImmutableList#copyOf}: copies a list to an immutable list which may not contain nulls.
+     */
     public static ListCreator Guava_ImmutableList_copyOf() {
-        return new ListBasedListCreator() {
-
-            @Override
-            public List<String> fromList(List<String> original) {
-                return ImmutableList.copyOf(original);
-            }
-        };
+        return ListBasedListCreator.of(ImmutableList::copyOf);
     }
 
+    /**
+     * {@link Collections#emptyList}: empty list, therefore immutable.
+     */
     public static ListCreator Collections_emptyList() {
         return new ListCreator() {
             @Override
@@ -134,6 +167,9 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link Collections#singletonList}: single-element, immutable list. May contain null.
+     */
     public static ListCreator Collections_singletonList() {
         return new ListCreator() {
             @Override
@@ -151,15 +187,16 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link Collections#unmodifiableList}: wraps a list in an unmodifiable view.
+     */
     public static ListCreator Collections_unmodifiableList() {
-        return new ListBasedListCreator() {
-            @Override
-            public List<String> fromList(List<String> original) {
-                return Collections.unmodifiableList(original);
-            }
-        };
+        return ListBasedListCreator.of(Collections::unmodifiableList);
     }
 
+    /**
+     * {@link Collectors#toList}: actually produces an ArrayList, though the documentation does not make any guarantees.
+     */
     public static ListCreator Collectors_toList() {
         return new ListCreator() {
             @Override
@@ -170,6 +207,9 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link Collectors#toUnmodifiableList}: produces an unmodifiable list that rejects nulls.
+     */
     public static ListCreator Collectors_toUnmodifiableList() {
         return new ListCreator() {
             @Override
@@ -180,6 +220,9 @@ public abstract class ListCreator {
         };
     }
 
+    /**
+     * {@link java.util.stream.Stream#toList}: produces an unmodifiable list that supports nulls.
+     */
     public static ListCreator Stream_toList() {
         return new ListCreator() {
             @Override
@@ -189,12 +232,14 @@ public abstract class ListCreator {
         };
     }
 
-    public abstract List<String> createList(String... elements) throws SizeNotSupportedException;
 
-    public List<String> createAbcdListOrLargestSubset() {
-        return createList("a", "b", "c", "d");
-    }
+    // -----------
+    // Specializations
+    // -----------
 
+    /**
+     * List creator that was created from another structure (list or array).
+     */
     public abstract static class BackingStructurBasedListCreator extends ListCreator {
 
         public abstract ListWithBackingStructure createListWithBackingStructure();
@@ -210,7 +255,7 @@ public abstract class ListCreator {
 
         @Override
         public ListWithBackingStructure createListWithBackingStructure() {
-            ArrayList<String> arrayList = new ArrayList<>(List.of("a", "b", "c", "d"));
+            List<String> arrayList = new ArrayList<>(List.of("a", "b", "c", "d"));
             return new ListWithBackingStructure(
                 fromList(arrayList),
                 () -> arrayList.set(2, "changed"),
@@ -218,6 +263,15 @@ public abstract class ListCreator {
         }
 
         public abstract List<String> fromList(List<String> original);
+
+        static ListBasedListCreator of(Function<List<String>, List<String>> listCreator) {
+            return new ListBasedListCreator() {
+                @Override
+                public List<String> fromList(List<String> original) {
+                    return listCreator.apply(original);
+                }
+            };
+        }
 
     }
 
@@ -230,6 +284,15 @@ public abstract class ListCreator {
                 createList(array),
                 () -> array[2] = "changed",
                 () -> List.of(array));
+        }
+
+        static ArrayBasedListCreator of(Function<String[], List<String>> listCreator) {
+            return new ArrayBasedListCreator() {
+                @Override
+                public List<String> createList(String... elements) throws SizeNotSupportedException {
+                    return listCreator.apply(elements);
+                }
+            };
         }
     }
 }

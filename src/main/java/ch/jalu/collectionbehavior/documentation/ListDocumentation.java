@@ -3,6 +3,7 @@ package ch.jalu.collectionbehavior.documentation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class ListDocumentation implements CollectionDocumentation {
@@ -13,15 +14,15 @@ public class ListDocumentation implements CollectionDocumentation {
     private Range supportedSize;
     private Map<Range, String> classesByRange;
     private RandomAccessType randomAccessType;
-    private boolean supportsNullElements;
+    private Optional<Boolean> supportsNullElements;
     private Boolean supportsNullArguments;
 
     private List<ModificationBehavior> modificationBehaviors = new ArrayList<>();
-    private Boolean doesNotRewrapItself;
+    private Optional<Boolean> doesNotRewrapItself;
     private Set<SpliteratorCharacteristic> spliteratorCharacteristics;
 
     // Methods
-    private final List<MethodBehavior> behaviors = new ArrayList<>();
+    private List<MethodBehavior> methodBehaviors = new ArrayList<>();
 
 
     public ListDocumentation(String description) {
@@ -32,14 +33,6 @@ public class ListDocumentation implements CollectionDocumentation {
         return description;
     }
 
-    public void addBehavior(MethodBehavior behavior) {
-        behaviors.add(behavior);
-    }
-
-    public List<MethodBehavior> getMethodBehaviors() {
-        return behaviors;
-    }
-
     public Range getSupportedSize() {
         return supportedSize;
     }
@@ -48,36 +41,72 @@ public class ListDocumentation implements CollectionDocumentation {
         this.supportedSize = supportedSize;
     }
 
+    public Map<Range, String> getClassesByRange() {
+        return classesByRange;
+    }
+
     public void setClassesByRange(Map<Range, String> classesByRange) {
         this.classesByRange = classesByRange;
     }
 
-    public void setSupportsNullElements(boolean supportsNullElements) {
-        this.supportsNullElements = supportsNullElements;
-    }
-
-    public void setSupportsNullArguments(boolean supportsNullArguments) {
-        this.supportsNullArguments = supportsNullArguments;
+    public RandomAccessType getRandomAccessType() {
+        return randomAccessType;
     }
 
     public void setRandomAccessType(RandomAccessType randomAccessType) {
         this.randomAccessType = randomAccessType;
     }
 
-    public void addModificationBehavior(ModificationBehavior behavior) {
-        modificationBehaviors.add(behavior);
+    public Optional<Boolean> getSupportsNullElements() {
+        return supportsNullElements;
     }
 
-    public void setDoesNotRewrapItself(boolean doesNotRewrapItself) {
+    public void setSupportsNullElements(Optional<Boolean> supportsNullElements) {
+        this.supportsNullElements = supportsNullElements;
+    }
+
+    public Boolean getSupportsNullArguments() {
+        return supportsNullArguments;
+    }
+
+    public void setSupportsNullArguments(Boolean supportsNullArguments) {
+        this.supportsNullArguments = supportsNullArguments;
+    }
+
+    public List<ModificationBehavior> getModificationBehaviors() {
+        return modificationBehaviors;
+    }
+
+    public void setModificationBehaviors(List<ModificationBehavior> modificationBehaviors) {
+        this.modificationBehaviors = modificationBehaviors;
+    }
+
+    public Optional<Boolean> getDoesNotRewrapItself() {
+        return doesNotRewrapItself;
+    }
+
+    public void setDoesNotRewrapItself(Optional<Boolean> doesNotRewrapItself) {
         this.doesNotRewrapItself = doesNotRewrapItself;
+    }
+
+    public Set<SpliteratorCharacteristic> getSpliteratorCharacteristics() {
+        return spliteratorCharacteristics;
     }
 
     public void setSpliteratorCharacteristics(Set<SpliteratorCharacteristic> spliteratorCharacteristics) {
         this.spliteratorCharacteristics = spliteratorCharacteristics;
     }
 
+    public List<MethodBehavior> getMethodBehaviors() {
+        return methodBehaviors;
+    }
+
+    public void setMethodBehaviors(List<MethodBehavior> methodBehaviors) {
+        this.methodBehaviors = methodBehaviors;
+    }
+
     @Override
     public String toString() {
-        return description + ": " + behaviors;
+        return description + ": " + methodBehaviors;
     }
 }

@@ -14,7 +14,7 @@ import static ch.jalu.collectionbehavior.method.CallEffect.SIZE_ALTERING;
 
 public class MethodTester {
 
-    public MethodBehavior test(String description, ListCreator listCreator, ListMethodCall methodCall) {
+    public MethodBehavior test(ListCreator listCreator, ListMethodCall methodCall) {
         List<String> abcdList = listCreator.createAbcdListOrLargestSubset();
         List<String> copyUnmodified = new ArrayList<>(abcdList);
         List<String> copy = new ArrayList<>(abcdList);
@@ -42,8 +42,7 @@ public class MethodTester {
 
         // Sanity check: modification should be the same as on our copy
         if (exception == null && !abcdList.equals(copy)) {
-            throw new IllegalStateException("For " + description
-                + ": expected list to be equal to copy for call " + observer.getLastMethodCall()
+            throw new IllegalStateException("Expected list to be equal to copy for call " + observer.getLastMethodCall()
                 + ", but got " + abcdList + " vs. copy list: " + copy);
         }
 

@@ -1,17 +1,19 @@
 package ch.jalu.collectionbehavior;
 
+import ch.jalu.collectionbehavior.analysis.ListAnalyzer;
+import ch.jalu.collectionbehavior.analysis.ListMethodAnalyzer;
 import ch.jalu.collectionbehavior.creator.ListCreator;
 import ch.jalu.collectionbehavior.creator.SizeNotSupportedException;
 import ch.jalu.collectionbehavior.documentation.CollectionDocumentation;
 import ch.jalu.collectionbehavior.documentation.ListDocumentation;
 import ch.jalu.collectionbehavior.documentation.ListIteratorDocumentation;
 import ch.jalu.collectionbehavior.documentation.MethodBehavior;
+import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
 import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.method.ListIteratorMethod;
 import ch.jalu.collectionbehavior.method.ListIteratorMethodCall;
-import ch.jalu.collectionbehavior.method.ListMethod;
-import ch.jalu.collectionbehavior.method.ListMethodCall;
 import ch.jalu.collectionbehavior.method.MethodTester;
+import ch.jalu.collectionbehavior.util.RangeUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,8 +21,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.TreeMap;
-
-import static ch.jalu.collectionbehavior.ListUnderTest.collectClassesByRange;
 
 public class ListDocumenter {
 
@@ -58,22 +58,24 @@ public class ListDocumenter {
     }
 
     private ListDocumentation createDocumentation(ListCreator listCreator, String description) {
-        List<ListMethodCall> methods = ListMethod.createAll();
+        ListAnalyzer analyzer = new ListAnalyzer(listCreator);
+        ListDocumentation documentation = new ListDocumentation(description);
+        documentation.setRandomAccessType(analyzer.determineRandomAccessType());
+        documentation.setSupportedSize(analyzer.determineSupportedSize());
+        documentation.setClassesByRange(analyzer.collectClassNamesBySize());
+        documentation.setSupportsNullElements(analyzer.hasNullElementSupport());
+        documentation.setDoesNotRewrapItself(analyzer.skipsSelfWrapping());
+        documentation.setSpliteratorCharacteristics(analyzer.determineSpliteratorProperties());
 
-        ListUnderTest testedList = new ListUnderTest(listCreator, description);
-        testedList.collectClassNamesBySize();
-        testedList.documentNullElementSupport();
-        testedList.checkImplementsRandomAccess();
-        testedList.documentSelfWrapping();
-        testedList.documentBehaviorWithBackingStructure();
-        testedList.documentSpliteratorCharacteristics();
+        ListMethodAnalyzer methodAnalyzer = ListMethodAnalyzer.analyzeMethods(listCreator);
+        documentation.setMethodBehaviors(methodAnalyzer.getMethodBehaviors());
+        documentation.setSupportsNullArguments(methodAnalyzer.getSupportsNullArguments());
 
-        for (ListMethodCall method : methods) {
-            testedList.test(method);
-        }
+        List<ModificationBehavior> modificationBehaviors = new ArrayList<>();
+        modificationBehaviors.addAll(methodAnalyzer.getModificationBehaviors());
+        modificationBehaviors.addAll(analyzer.determineBackingStructureBehaviors());
+        documentation.setModificationBehaviors(modificationBehaviors);
 
-        testedList.analyzeMethodBehaviors();
-        ListDocumentation documentation = testedList.getDocumentation();
         documentations.add(documentation);
         return documentation;
     }
@@ -108,7 +110,7 @@ public class ListDocumenter {
             }
         }
 
-        Map<Range, String> classesByRange = collectClassesByRange(classNamesBySize);
+        Map<Range, String> classesByRange = RangeUtils.collectValuesByRange(classNamesBySize);
         iteratorDocumentation.setClassesByRange(classesByRange);
     }
 
