@@ -1,6 +1,5 @@
 package ch.jalu.collectionbehavior.documentation;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -17,12 +16,12 @@ public class ListDocumentation implements CollectionDocumentation {
     private Optional<Boolean> supportsNullElements;
     private Boolean supportsNullArguments;
 
-    private List<ModificationBehavior> modificationBehaviors = new ArrayList<>();
+    private List<ModificationBehavior> modificationBehaviors;
     private Optional<Boolean> doesNotRewrapItself;
     private Set<SpliteratorCharacteristic> spliteratorCharacteristics;
 
     // Methods
-    private List<MethodBehavior> methodBehaviors = new ArrayList<>();
+    private List<MethodBehavior> methodBehaviors;
 
 
     public ListDocumentation(String description) {

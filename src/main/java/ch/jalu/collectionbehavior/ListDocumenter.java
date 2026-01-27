@@ -1,26 +1,19 @@
 package ch.jalu.collectionbehavior;
 
 import ch.jalu.collectionbehavior.analysis.ListAnalyzer;
+import ch.jalu.collectionbehavior.analysis.ListIteratorAnalyzer;
+import ch.jalu.collectionbehavior.analysis.ListIteratorMethodAnalyzer;
 import ch.jalu.collectionbehavior.analysis.ListMethodAnalyzer;
 import ch.jalu.collectionbehavior.creator.ListCreator;
 import ch.jalu.collectionbehavior.creator.SizeNotSupportedException;
 import ch.jalu.collectionbehavior.documentation.CollectionDocumentation;
 import ch.jalu.collectionbehavior.documentation.ListDocumentation;
 import ch.jalu.collectionbehavior.documentation.ListIteratorDocumentation;
-import ch.jalu.collectionbehavior.documentation.MethodBehavior;
 import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
 import ch.jalu.collectionbehavior.documentation.Range;
-import ch.jalu.collectionbehavior.method.ListIteratorMethod;
-import ch.jalu.collectionbehavior.method.ListIteratorMethodCall;
-import ch.jalu.collectionbehavior.method.MethodTester;
-import ch.jalu.collectionbehavior.util.RangeUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class ListDocumenter {
 
@@ -58,8 +51,8 @@ public class ListDocumenter {
     }
 
     private ListDocumentation createDocumentation(ListCreator listCreator, String description) {
-        ListAnalyzer analyzer = new ListAnalyzer(listCreator);
         ListDocumentation documentation = new ListDocumentation(description);
+        ListAnalyzer analyzer = new ListAnalyzer(listCreator);
         documentation.setRandomAccessType(analyzer.determineRandomAccessType());
         documentation.setSupportedSize(analyzer.determineSupportedSize());
         documentation.setClassesByRange(analyzer.collectClassNamesBySize());
@@ -81,37 +74,15 @@ public class ListDocumenter {
     }
 
     private void createDocumentationForListIterator(ListCreator listCreator, String description) {
-        List<ListIteratorMethodCall> methods = ListIteratorMethod.createAll();
-
         ListIteratorDocumentation documentation = new ListIteratorDocumentation(description);
+        ListIteratorAnalyzer analyzer = new ListIteratorAnalyzer(listCreator);
+        documentation.setClassesByRange(analyzer.collectClassNamesBySize());
 
-        MethodTester methodTester = new MethodTester();
-
-        for (ListIteratorMethodCall method : methods) {
-            MethodBehavior behavior = methodTester.test(description, listCreator, method);
-            documentation.addBehavior(behavior);
-        }
-
-        collectListIteratorClassesBySize(listCreator, documentation);
-
+        ListIteratorMethodAnalyzer methodAnalyzer = ListIteratorMethodAnalyzer.analyzeMethods(listCreator);
+        documentation.setMethodBehaviors(methodAnalyzer.getMethodBehaviors());
+        documentation.setModificationBehaviors(methodAnalyzer.getModificationBehaviors());
+        documentation.setSupportsNullArguments(methodAnalyzer.getSupportsNullElements());
         documentations.add(documentation);
-    }
-
-    void collectListIteratorClassesBySize(ListCreator listCreator, ListIteratorDocumentation iteratorDocumentation) {
-        List<String> elements = Collections.nCopies(20, "o");
-        TreeMap<Integer, String> classNamesBySize = new TreeMap<>();
-
-        for (int i = 0; i <= 20; ++i) {
-            try {
-                List<String> list = listCreator.createList(elements.subList(0, i).toArray(String[]::new));
-                ListIterator<String> iterator = list.listIterator();
-                classNamesBySize.put(i, iterator.getClass().getName());
-            } catch (SizeNotSupportedException ignore) {
-            }
-        }
-
-        Map<Range, String> classesByRange = RangeUtils.collectValuesByRange(classNamesBySize);
-        iteratorDocumentation.setClassesByRange(classesByRange);
     }
 
     private static final class SubListCreator extends ListCreator {

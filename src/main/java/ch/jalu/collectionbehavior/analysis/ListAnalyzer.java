@@ -144,7 +144,7 @@ public class ListAnalyzer {
         return SpliteratorCharacteristic.create(characteristics);
     }
 
-    // ---- old
+    // ---- utils
 
     private static TreeMap<Integer, String> getClassNamesBySize(UnaryOperator<List<String>> createListFn) {
         List<String> elements = Collections.nCopies(MAX_SIZE_TO_INSTANTIATE, "o");
