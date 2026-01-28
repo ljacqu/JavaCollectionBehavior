@@ -56,8 +56,8 @@ public class ListDocumenter {
         documentation.setRandomAccessType(analyzer.determineRandomAccessType());
         documentation.setSupportedSize(analyzer.determineSupportedSize());
         documentation.setClassesByRange(analyzer.collectClassNamesBySize());
-        documentation.setSupportsNullElements(analyzer.hasNullElementSupport());
-        documentation.setDoesNotRewrapItself(analyzer.skipsSelfWrapping());
+        documentation.setNullElementSupport(analyzer.determineNullElementSupport());
+        documentation.setDoesNotRewrapItself(analyzer.determineSkipsSelfWrapping());
         documentation.setSpliteratorCharacteristics(analyzer.determineSpliteratorProperties());
 
         ListMethodAnalyzer methodAnalyzer = ListMethodAnalyzer.analyzeMethods(listCreator);

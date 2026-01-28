@@ -2,7 +2,6 @@ package ch.jalu.collectionbehavior.documentation;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public class ListDocumentation implements CollectionDocumentation {
@@ -13,11 +12,11 @@ public class ListDocumentation implements CollectionDocumentation {
     private Range supportedSize;
     private Map<Range, String> classesByRange;
     private RandomAccessType randomAccessType;
-    private Optional<Boolean> supportsNullElements;
+    private Support nullElementSupport;
     private Boolean supportsNullArguments;
 
     private List<ModificationBehavior> modificationBehaviors;
-    private Optional<Boolean> doesNotRewrapItself;
+    private Support doesNotRewrapItself;
     private Set<SpliteratorCharacteristic> spliteratorCharacteristics;
 
     // Methods
@@ -56,12 +55,12 @@ public class ListDocumentation implements CollectionDocumentation {
         this.randomAccessType = randomAccessType;
     }
 
-    public Optional<Boolean> getSupportsNullElements() {
-        return supportsNullElements;
+    public Support getNullElementSupport() {
+        return nullElementSupport;
     }
 
-    public void setSupportsNullElements(Optional<Boolean> supportsNullElements) {
-        this.supportsNullElements = supportsNullElements;
+    public void setNullElementSupport(Support nullElementSupport) {
+        this.nullElementSupport = nullElementSupport;
     }
 
     public Boolean getSupportsNullArguments() {
@@ -80,11 +79,11 @@ public class ListDocumentation implements CollectionDocumentation {
         this.modificationBehaviors = modificationBehaviors;
     }
 
-    public Optional<Boolean> getDoesNotRewrapItself() {
+    public Support getDoesNotRewrapItself() {
         return doesNotRewrapItself;
     }
 
-    public void setDoesNotRewrapItself(Optional<Boolean> doesNotRewrapItself) {
+    public void setDoesNotRewrapItself(Support doesNotRewrapItself) {
         this.doesNotRewrapItself = doesNotRewrapItself;
     }
 

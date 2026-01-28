@@ -7,6 +7,7 @@ import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
 import ch.jalu.collectionbehavior.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.documentation.SpliteratorCharacteristic;
+import ch.jalu.collectionbehavior.documentation.Support;
 import ch.jalu.collectionbehavior.util.RangeUtils;
 import com.google.common.base.Preconditions;
 
@@ -17,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.RandomAccess;
 import java.util.Set;
 import java.util.TreeMap;
@@ -87,26 +87,26 @@ public class ListAnalyzer {
         return classesByRange;
     }
 
-    public Optional<Boolean> hasNullElementSupport() {
+    public Support determineNullElementSupport() {
         try {
             listCreator.createList((String)null);
-            return Optional.of(true);
+            return Support.YES;
         } catch (NullPointerException e) {
-            return Optional.of(false);
+            return Support.NO;
         } catch (SizeNotSupportedException ignore) {
-            return Optional.empty();
+            return Support.NOT_APPLICABLE;
         }
     }
 
-    public Optional<Boolean> skipsSelfWrapping() {
+    public Support determineSkipsSelfWrapping() {
         if (listCreator instanceof ListCreator.ListBasedListCreator lbc) {
             List<String> list1 = lbc.fromList(Arrays.asList("o", "g"));
             List<String> list2 = lbc.fromList(list1);
 
             boolean doesNotWrapItself = list1 == list2; // == is intentional: need to see if it's the same object
-            return Optional.of(doesNotWrapItself);
+            return doesNotWrapItself ? Support.YES : Support.NO;
         }
-        return Optional.empty();
+        return Support.NOT_APPLICABLE;
     }
 
     public List<ModificationBehavior> determineBackingStructureBehaviors() {
