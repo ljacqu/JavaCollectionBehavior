@@ -8,12 +8,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Invocation handler that records the call to a list and saves the method name and the arguments.
+ * Invocation handler that records the call to a container and saves the method name and the arguments.
  */
-public final class MethodInvocationRecorder<C> implements InvocationHandler {
+final class MethodInvocationRecorder<C> implements InvocationHandler {
 
     private final C container;
 
@@ -21,11 +22,11 @@ public final class MethodInvocationRecorder<C> implements InvocationHandler {
     private String lastCalledMethodParameters;
     private String lastArguments;
 
-    public MethodInvocationRecorder(C container) {
+    MethodInvocationRecorder(C container) {
         this.container = container;
     }
 
-    public void invoke(MethodCall<C> call, Class<? super C> interfaceType) {
+    void invoke(MethodCall<C> call, Class<? super C> interfaceType) {
         C proxy = (C) Proxy.newProxyInstance(interfaceType.getClassLoader(),
             new Class[]{ interfaceType }, this);
         call.invoke(proxy);
@@ -34,32 +35,17 @@ public final class MethodInvocationRecorder<C> implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         lastCalledMethod = method.getDeclaringClass().getSimpleName() + "#" + method.getName();
-
-        if (method.getParameterCount() > 0) {
-            lastCalledMethodParameters = Arrays.stream(method.getParameterTypes())
-                .map(Class::getSimpleName)
-                .collect(Collectors.joining(", "));
-        } else {
-            lastCalledMethodParameters = "";
-        }
-
-        if (args == null) {
-            lastArguments = "";
-        } else {
-            lastArguments = Arrays.stream(args)
-                .map(String::valueOf)
-                .collect(Collectors.joining(", "));
-        }
+        lastCalledMethodParameters = toCommaSeparatedList(method.getParameterTypes(), Class::getSimpleName);
+        lastArguments = args == null ? "" : toCommaSeparatedList(args, String::valueOf);
 
         try {
             return method.invoke(container, args);
         } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof IndexOutOfBoundsException iob) {
-                throw iob;
-            } else if (e.getCause() instanceof NoSuchElementException nse) {
-                throw nse;
-            } else if (e.getCause() instanceof IllegalStateException ise) {
-                throw ise;
+            Throwable cause = e.getCause();
+            if (cause instanceof IndexOutOfBoundsException
+                || cause instanceof NoSuchElementException
+                || cause instanceof IllegalStateException) {
+                throw cause;
             }
             throw e;
         }
@@ -67,5 +53,11 @@ public final class MethodInvocationRecorder<C> implements InvocationHandler {
 
     public MethodInvocation getLastMethodCall() {
         return new MethodInvocation(lastCalledMethod, lastCalledMethodParameters, lastArguments);
+    }
+
+    private static <T> String toCommaSeparatedList(T[] args, Function<T, String> mapper) {
+        return Arrays.stream(args)
+            .map(mapper)
+            .collect(Collectors.joining(", "));
     }
 }

@@ -82,9 +82,9 @@ public class ListMethodAnalyzer {
 
         // Be strict with checks here just to make sure we don't infer something weird. As we add more method calls
         // we'll need to adapt the numbers here; at some point we can be less strict.
-        if (nullCallsOk == 5) {
+        if (nullCallsOk == 6) {
             supportsNullArguments = true;
-        } else if (nullCallsBad >= 4) {
+        } else if (nullCallsBad >= 5) {
             supportsNullArguments = false;
         } else {
             throw new IllegalStateException("Unknown combination. Good null calls="

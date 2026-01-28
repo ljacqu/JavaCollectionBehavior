@@ -1,5 +1,9 @@
 package ch.jalu.collectionbehavior.method;
 
+import ch.jalu.collectionbehavior.util.PrettyComparator;
+import ch.jalu.collectionbehavior.util.PrettyPredicate;
+import ch.jalu.collectionbehavior.util.PrettyUnaryOperator;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,7 +16,13 @@ import static ch.jalu.collectionbehavior.method.MethodCallProperty.EMPTY_COLLECT
 import static ch.jalu.collectionbehavior.method.MethodCallProperty.NULL_ARGUMENT;
 import static ch.jalu.collectionbehavior.method.MethodCallProperty.READ_METHOD;
 
+/**
+ * Creates {@link ListMethodCall} objects.
+ */
 public final class ListMethod {
+
+    private ListMethod() {
+    }
 
     public static List<ListMethodCall> createAll() {
         return Stream.of(
@@ -42,6 +52,7 @@ public final class ListMethod {
             .toList();
     }
 
+    /** {@link List#add(Object)} */
     private static Stream<ListMethodCall> add() {
         return Stream.of(
             new ListMethodCall(list -> list.add("f")),
@@ -49,8 +60,10 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#add(int, Object)} */
     private static Stream<ListMethodCall> addWithIndex() {
         return Stream.of(
+            new ListMethodCall(list -> list.add(0, "p")),
             new ListMethodCall(list -> list.add(1, "G")),
             new ListMethodCall(list -> list.add(2, null), NULL_ARGUMENT),
             new ListMethodCall(list -> list.add(17, "G")),
@@ -58,6 +71,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#addFirst(Object)} */
     private static Stream<ListMethodCall> addFirst() {
         return Stream.of(
             new ListMethodCall(list -> list.addFirst("o")),
@@ -65,6 +79,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#addLast(Object)} */
     private static Stream<ListMethodCall> addLast() {
         return Stream.of(
             new ListMethodCall(list -> list.addLast("o")),
@@ -72,6 +87,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#addAll(java.util.Collection)} */
     private static Stream<ListMethodCall> addAll() {
         List<String> listWithNull = new ArrayList<>();
         listWithNull.add(null);
@@ -83,11 +99,13 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#addAll(int, java.util.Collection)} */
     private static Stream<ListMethodCall> addAllWithIndex() {
         List<String> listWithNull = new ArrayList<>();
         listWithNull.add(null);
 
         return Stream.of(
+            new ListMethodCall(list -> list.addAll(0, List.of("m"))),
             new ListMethodCall(list -> list.addAll(2, List.of("f", "g"))),
             new ListMethodCall(list -> list.addAll(2, Collections.emptyList()), EMPTY_COLLECTION_ARGUMENT),
             new ListMethodCall(list -> list.addAll(2, listWithNull), NULL_ARGUMENT),
@@ -96,18 +114,21 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#clear()} */
     private static Stream<ListMethodCall> clear() {
         return Stream.of(
             new ListMethodCall(list -> list.clear())
         );
     }
 
+    /** {@link List#contains(Object)} */
     private static Stream<ListMethodCall> contains() {
         return Stream.of(
             new ListMethodCall(list -> list.contains(null), NULL_ARGUMENT, READ_METHOD)
         );
     }
 
+    /** {@link List#containsAll(java.util.Collection)} */
     private static Stream<ListMethodCall> containsAll() {
         List<String> listWithNull = new ArrayList<>();
         listWithNull.add("a");
@@ -118,23 +139,27 @@ public final class ListMethod {
         listWithNull2.add(null);
 
         return Stream.of(
+            new ListMethodCall(list -> list.containsAll(Collections.singletonList(null)), NULL_ARGUMENT, READ_METHOD),
             new ListMethodCall(list -> list.containsAll(listWithNull), NULL_ARGUMENT, READ_METHOD),
             new ListMethodCall(list -> list.containsAll(listWithNull2), NULL_ARGUMENT, READ_METHOD)
         );
     }
 
+    /** {@link List#indexOf(Object)} */
     private static Stream<ListMethodCall> indexOf() {
         return Stream.of(
             new ListMethodCall(list -> list.indexOf(null), NULL_ARGUMENT, READ_METHOD)
         );
     }
 
+    /** {@link List#lastIndexOf(Object)} */
     private static Stream<ListMethodCall> lastIndexOf() {
         return Stream.of(
             new ListMethodCall(list -> list.lastIndexOf(null), NULL_ARGUMENT, READ_METHOD)
         );
     }
 
+    /** {@link List#remove(Object)} */
     private static Stream<ListMethodCall> remove() {
         return Stream.of(
             new ListMethodCall(list -> list.remove("a")),
@@ -143,6 +168,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#remove(int)} */
     private static Stream<ListMethodCall> removeWithIndex() {
         return Stream.of(
             new ListMethodCall(list -> list.remove(0)),
@@ -150,18 +176,21 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#removeFirst()} */
     private static Stream<ListMethodCall> removeFirst() {
         return Stream.of(
             new ListMethodCall(list -> list.removeFirst())
         );
     }
 
+    /** {@link List#removeLast()} */
     private static Stream<ListMethodCall> removeLast() {
         return Stream.of(
             new ListMethodCall(list -> list.removeLast())
         );
     }
 
+    /** {@link List#removeAll(java.util.Collection)} */
     private static Stream<ListMethodCall> removeAll() {
         return Stream.of(
             new ListMethodCall(list -> list.removeAll(List.of("a", "b"))),
@@ -171,6 +200,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link java.util.Collection#removeIf(java.util.function.Predicate)} */
     private static Stream<ListMethodCall> removeIf() {
         return Stream.of(
             new ListMethodCall(list -> list.removeIf(new PrettyPredicate<>(e -> true, "e -> true"))),
@@ -178,6 +208,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#retainAll(java.util.Collection)} */
     private static Stream<ListMethodCall> retainAll() {
         return Stream.of(
             new ListMethodCall(list -> list.retainAll(List.of("b", "d"))),
@@ -187,6 +218,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#replaceAll(java.util.function.UnaryOperator)} */
     private static Stream<ListMethodCall> replaceAll() {
         return Stream.of(
             new ListMethodCall(list -> list.replaceAll(new PrettyUnaryOperator<>(e -> e, "e -> e"))),
@@ -195,6 +227,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#set(int, Object)} */
     private static Stream<ListMethodCall> set() {
         return Stream.of(
             new ListMethodCall(list -> list.set(0, "d")),
@@ -205,6 +238,7 @@ public final class ListMethod {
         );
     }
 
+    /** {@link List#sort(Comparator)} */
     private static Stream<ListMethodCall> sort() {
         return Stream.of(
             new ListMethodCall(list -> list.sort(new PrettyComparator<String>(Comparator.naturalOrder(), "Comparator.naturalOrder()"))),

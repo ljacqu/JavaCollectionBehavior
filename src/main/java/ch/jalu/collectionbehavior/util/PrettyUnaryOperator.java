@@ -1,4 +1,4 @@
-package ch.jalu.collectionbehavior.method;
+package ch.jalu.collectionbehavior.util;
 
 import java.util.function.UnaryOperator;
 
