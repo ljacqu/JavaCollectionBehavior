@@ -2,12 +2,14 @@ package ch.jalu.collectionbehavior.documentation.export;
 
 import ch.jalu.collectionbehavior.documentation.MethodBehavior;
 import ch.jalu.collectionbehavior.documentation.MethodInvocation;
+import ch.jalu.collectionbehavior.documentation.ModifiableProperty;
 import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.method.CallEffect;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import static ch.jalu.collectionbehavior.analysis.ListAnalyzer.MAX_SIZE_TO_INSTANTIATE;
@@ -51,7 +53,11 @@ abstract class AbstrDocumentationExporter {
     // Method behaviors
     // ----------------
 
-    protected void addMethodBehaviors(StringBuilder sb, Collection<MethodBehavior> behaviors) {
+    protected void addMethodBehaviors(StringBuilder sb, Collection<MethodBehavior> behaviors,
+                                      List<ModifiableProperty> modifiableProperties) {
+        final boolean modifiableWithFixedSize = modifiableProperties.contains(ModifiableProperty.CAN_MODIFY_ENTRIES)
+            && !modifiableProperties.contains(ModifiableProperty.CAN_CHANGE_SIZE);
+
         sb.append("\n| Method call | Effect | Exception |");
         sb.append("\n| ----------- | ------ | --------- |");
 
@@ -59,7 +65,7 @@ abstract class AbstrDocumentationExporter {
             String methodCall = formatMethodCall(behavior.getMethodInvocation());
 
             sb.append("\n | ").append(methodCall)
-                .append(" | ").append(formatMethodCallEffect(behavior.getEffect()))
+                .append(" | ").append(formatMethodCallEffect(behavior.getEffect(), modifiableWithFixedSize))
                 .append(" | ").append(formatMethodCallException(behavior.getException()))
                 .append(" |");
         }
@@ -74,11 +80,16 @@ abstract class AbstrDocumentationExporter {
             + "**(" + invocation.arguments() + ")";
     }
 
-    private static String formatMethodCallEffect(CallEffect effect) {
+    private static String formatMethodCallEffect(CallEffect effect, boolean modifiableWithFixedSize) {
+        if (modifiableWithFixedSize && effect == CallEffect.SIZE_ALTERING) {
+            // Size altering and modifying is treated the same, unless it's relevant to the list -> that's when it can
+            // modify existing entries but it can't change size
+            return "Modifying (size)";
+        }
+
         return switch (effect) {
-            case MODIFYING -> "Modifying";
-            case SIZE_ALTERING -> "Size-altering";
-            case NON_MODIFYING -> "Non-modifying";
+            case MODIFYING, SIZE_ALTERING -> "Modifying";
+            case NON_MODIFYING -> "–";
             case INDEX_OUT_OF_BOUNDS -> "Invalid index";
             case NO_SUCH_ELEMENT -> "No element";
             case ILLEGAL_STATE -> "n/a"; // doesn't happen for List

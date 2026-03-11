@@ -19,7 +19,7 @@ public class ListIteratorDocumentationExporter extends AbstrDocumentationExporte
 
         sb.append("\n");
         sb.append("\n## Method behavior");
-        addMethodBehaviors(sb, doc.getMethodBehaviors());
+        addMethodBehaviors(sb, doc.getMethodBehaviors(), doc.getModificationBehaviors());
     }
 
     private void addMutabilityBullet(StringBuilder sb, List<ModifiableProperty> modifiableProperties) {

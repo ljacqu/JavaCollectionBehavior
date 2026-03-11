@@ -36,7 +36,7 @@ public class ListDocumentationExporter extends AbstrDocumentationExporter {
 
         sb.append("\n");
         sb.append("\n## Method behavior");
-        addMethodBehaviors(sb, doc.getMethodBehaviors());
+        addMethodBehaviors(sb, doc.getMethodBehaviors(), doc.getModificationBehaviors());
     }
 
     // -------
