@@ -9,7 +9,6 @@ import ch.jalu.collectionbehavior.creator.SizeNotSupportedException;
 import ch.jalu.collectionbehavior.documentation.CollectionDocumentation;
 import ch.jalu.collectionbehavior.documentation.ListDocumentation;
 import ch.jalu.collectionbehavior.documentation.ListIteratorDocumentation;
-import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
 import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.documentation.export.DocumentationExporter;
 
@@ -67,11 +66,8 @@ public class ListDocumenter {
         ListMethodAnalyzer methodAnalyzer = ListMethodAnalyzer.analyzeMethods(listCreator);
         documentation.setMethodBehaviors(methodAnalyzer.getMethodBehaviors());
         documentation.setSupportsNullArguments(methodAnalyzer.getSupportsNullArguments());
-
-        List<ModificationBehavior> modificationBehaviors = new ArrayList<>();
-        modificationBehaviors.addAll(methodAnalyzer.getModificationBehaviors());
-        modificationBehaviors.addAll(analyzer.determineBackingStructureBehaviors());
-        documentation.setModificationBehaviors(modificationBehaviors);
+        documentation.setModificationBehaviors(methodAnalyzer.getModificationBehaviors());
+        documentation.setBackingStructureBehaviors(analyzer.determineBackingStructureBehaviors());
 
         documentations.add(documentation);
         return documentation;

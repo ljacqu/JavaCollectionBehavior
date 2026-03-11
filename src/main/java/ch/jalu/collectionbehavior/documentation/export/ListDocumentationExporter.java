@@ -1,7 +1,8 @@
 package ch.jalu.collectionbehavior.documentation.export;
 
+import ch.jalu.collectionbehavior.documentation.BackingStructureBehavior;
 import ch.jalu.collectionbehavior.documentation.ListDocumentation;
-import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
+import ch.jalu.collectionbehavior.documentation.ModifiableProperty;
 import ch.jalu.collectionbehavior.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.documentation.SpliteratorCharacteristic;
@@ -16,7 +17,8 @@ public class ListDocumentationExporter extends AbstrDocumentationExporter {
     public void toMarkdown(StringBuilder sb, ListDocumentation doc) {
         sb.append("# ").append(doc.getDescription());
         sb.append("\n## General properties");
-        addMutabilityBullets(sb, doc.getDoesNotRewrapItself(), doc.getModificationBehaviors());
+        addMutabilityBullets(sb, doc.getDoesNotRewrapItself(),
+            doc.getModificationBehaviors(), doc.getBackingStructureBehaviors());
         addSizeRestrictionBullet(sb, doc.getSupportedSize());
         addNullElementBullet(sb, doc.getNullElementSupport());
         addNullParametersBullet(sb, doc.getSupportsNullArguments());
@@ -42,19 +44,20 @@ public class ListDocumentationExporter extends AbstrDocumentationExporter {
     // -------
 
     private void addMutabilityBullets(StringBuilder sb, Support doesNotWrapItself,
-                                      List<ModificationBehavior> modificationBehaviors) {
+                                      List<ModifiableProperty> modifiableProperties,
+                                      List<BackingStructureBehavior> backingStructureBehaviors) {
         sb.append("\n- ");
-        if (modificationBehaviors.contains(ModificationBehavior.CAN_CHANGE_SIZE)
-            && modificationBehaviors.contains(ModificationBehavior.CAN_MODIFY_ENTRIES)) {
+        if (modifiableProperties.contains(ModifiableProperty.CAN_CHANGE_SIZE)
+            && modifiableProperties.contains(ModifiableProperty.CAN_MODIFY_ENTRIES)) {
             sb.append("✍\uD83C\uDFFB Modifiable list");
-        } else if (modificationBehaviors.contains(ModificationBehavior.CAN_CHANGE_SIZE)) {
+        } else if (modifiableProperties.contains(ModifiableProperty.CAN_CHANGE_SIZE)) {
             // Currently not for any list. If this happens, we should extend modification behavior to specify whether
             // entries can be added and/or removed.
             throw new UnsupportedOperationException("can change size but not entries");
-        } else if (modificationBehaviors.contains(ModificationBehavior.CAN_MODIFY_ENTRIES)) {
+        } else if (modifiableProperties.contains(ModifiableProperty.CAN_MODIFY_ENTRIES)) {
             sb.append("⚠\uFE0F Entries can be modified, but entries cannot be removed or added");
         } else { // not contains CAN_CHANGE_SIZE and not contains CAN_MODIFY_ENTRIES
-            if (modificationBehaviors.contains(ModificationBehavior.STRUCTURE_INFLUENCES_COLLECTION)) {
+            if (backingStructureBehaviors.contains(BackingStructureBehavior.STRUCTURE_INFLUENCES_COLLECTION)) {
                 Preconditions.checkState(doesNotWrapItself != Support.NOT_APPLICABLE);
                 sb.append("\uD83D\uDD12 Unmodifiable list (original structure does modify the list, see below)");
             } else {
@@ -63,14 +66,13 @@ public class ListDocumentationExporter extends AbstrDocumentationExporter {
         }
 
         if (doesNotWrapItself != Support.NOT_APPLICABLE) {
-            sb.append("\n- Original structure: ");
-            if (modificationBehaviors.contains(ModificationBehavior.COLLECTION_INFLUENCES_STRUCTURE)) {
-                sb.append("Changes to the list change the original structure");
-            } else if (modificationBehaviors.contains(ModificationBehavior.STRUCTURE_INFLUENCES_COLLECTION)) {
-                sb.append("Changes to the original structure are reflected in the list");
-            } else {
-                sb.append("Changes to the structure or the list do not influence the other");
+            if (backingStructureBehaviors.contains(BackingStructureBehavior.COLLECTION_INFLUENCES_STRUCTURE)) {
+                sb.append("\n - ➡\uFE0F Changes to the list change the original structure");
             }
+            if (backingStructureBehaviors.contains(BackingStructureBehavior.STRUCTURE_INFLUENCES_COLLECTION)) {
+                sb.append("\n - ⬅\uFE0F Changes to the original structure are reflected in the list");
+            }
+            // don't output anything if we have nothing, since it means it's immutable --> obvious
         }
     }
 

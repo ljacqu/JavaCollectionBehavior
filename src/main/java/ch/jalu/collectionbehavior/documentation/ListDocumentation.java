@@ -15,7 +15,8 @@ public class ListDocumentation implements CollectionDocumentation {
     private Support nullElementSupport;
     private Boolean supportsNullArguments;
 
-    private List<ModificationBehavior> modificationBehaviors;
+    private List<ModifiableProperty> modifiableProperties;
+    private List<BackingStructureBehavior> backingStructureBehaviors;
     private Support doesNotRewrapItself;
     private Set<SpliteratorCharacteristic> spliteratorCharacteristics;
 
@@ -71,12 +72,20 @@ public class ListDocumentation implements CollectionDocumentation {
         this.supportsNullArguments = supportsNullArguments;
     }
 
-    public List<ModificationBehavior> getModificationBehaviors() {
-        return modificationBehaviors;
+    public List<ModifiableProperty> getModificationBehaviors() {
+        return modifiableProperties;
     }
 
-    public void setModificationBehaviors(List<ModificationBehavior> modificationBehaviors) {
-        this.modificationBehaviors = modificationBehaviors;
+    public void setModificationBehaviors(List<ModifiableProperty> modifiableProperties) {
+        this.modifiableProperties = modifiableProperties;
+    }
+
+    public List<BackingStructureBehavior> getBackingStructureBehaviors() {
+        return backingStructureBehaviors;
+    }
+
+    public void setBackingStructureBehaviors(List<BackingStructureBehavior> backingStructureBehaviors) {
+        this.backingStructureBehaviors = backingStructureBehaviors;
     }
 
     public Support getDoesNotRewrapItself() {

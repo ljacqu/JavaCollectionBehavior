@@ -2,7 +2,7 @@ package ch.jalu.collectionbehavior.analysis;
 
 import ch.jalu.collectionbehavior.creator.ListCreator;
 import ch.jalu.collectionbehavior.documentation.MethodBehavior;
-import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
+import ch.jalu.collectionbehavior.documentation.ModifiableProperty;
 import ch.jalu.collectionbehavior.method.CallEffect;
 import ch.jalu.collectionbehavior.method.ListIteratorMethod;
 import ch.jalu.collectionbehavior.method.ListIteratorMethodCall;
@@ -17,7 +17,7 @@ public class ListIteratorMethodAnalyzer {
 
     private final ListCreator listCreator;
     private final List<MethodBehavior> methodBehaviors = new ArrayList<>();
-    private List<ModificationBehavior> modificationBehaviors;
+    private List<ModifiableProperty> modifiableProperties;
     private Boolean supportsNullElements;
 
     public ListIteratorMethodAnalyzer(ListCreator listCreator) {
@@ -67,14 +67,14 @@ public class ListIteratorMethodAnalyzer {
 
         Preconditions.checkState(!canChangeSize || canBeModified,
             "Inconsistent finding: List can change size but can't be modified");
-        List<ModificationBehavior> modificationBehaviors = new ArrayList<>();
+        List<ModifiableProperty> modifiableProperties = new ArrayList<>();
         if (canBeModified) {
-            modificationBehaviors.add(ModificationBehavior.CAN_MODIFY_ENTRIES);
+            modifiableProperties.add(ModifiableProperty.CAN_MODIFY_ENTRIES);
         }
         if (canChangeSize) {
-            modificationBehaviors.add(ModificationBehavior.CAN_CHANGE_SIZE);
+            modifiableProperties.add(ModifiableProperty.CAN_CHANGE_SIZE);
         }
-        this.modificationBehaviors = modificationBehaviors;
+        this.modifiableProperties = modifiableProperties;
 
         // Be strict with checks here just to make sure we don't infer something weird. As we add more method calls
         // we'll need to adapt the numbers here; at some point we can be less strict.
@@ -94,8 +94,8 @@ public class ListIteratorMethodAnalyzer {
         return methodBehaviors;
     }
 
-    public List<ModificationBehavior> getModificationBehaviors() {
-        return modificationBehaviors;
+    public List<ModifiableProperty> getModificationBehaviors() {
+        return modifiableProperties;
     }
 
     public Boolean getSupportsNullElements() {

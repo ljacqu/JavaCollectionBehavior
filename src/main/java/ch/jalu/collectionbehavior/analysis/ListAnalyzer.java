@@ -3,7 +3,7 @@ package ch.jalu.collectionbehavior.analysis;
 import ch.jalu.collectionbehavior.creator.ListCreator;
 import ch.jalu.collectionbehavior.creator.ListWithBackingStructure;
 import ch.jalu.collectionbehavior.creator.SizeNotSupportedException;
-import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
+import ch.jalu.collectionbehavior.documentation.BackingStructureBehavior;
 import ch.jalu.collectionbehavior.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.documentation.Range;
 import ch.jalu.collectionbehavior.documentation.SpliteratorCharacteristic;
@@ -109,8 +109,8 @@ public class ListAnalyzer {
         return Support.NOT_APPLICABLE;
     }
 
-    public List<ModificationBehavior> determineBackingStructureBehaviors() {
-        List<ModificationBehavior> behaviors = new ArrayList<>();
+    public List<BackingStructureBehavior> determineBackingStructureBehaviors() {
+        List<BackingStructureBehavior> behaviors = new ArrayList<>();
         if (listCreator instanceof ListCreator.BackingStructurBasedListCreator lbc) {
             // Check if changing the backing structure changes the list
             ListWithBackingStructure listWithBackingStructure = lbc.createListWithBackingStructure();
@@ -118,7 +118,7 @@ public class ListAnalyzer {
             Preconditions.checkState(list.equals(List.of("a", "b", "c", "d")));
             listWithBackingStructure.modifyBackingStructure();
             if (!list.equals(List.of("a", "b", "c", "d"))) {
-                behaviors.add(ModificationBehavior.STRUCTURE_INFLUENCES_COLLECTION);
+                behaviors.add(BackingStructureBehavior.STRUCTURE_INFLUENCES_COLLECTION);
             }
 
             // Check if changing the list (if allowed) changes the backing structure
@@ -128,7 +128,7 @@ public class ListAnalyzer {
             try {
                 list.set(2, "changed");
                 if (listWithBackingStructure.getBackingStructureAsList().equals(List.of("a", "b", "changed", "d"))) {
-                    behaviors.add(ModificationBehavior.COLLECTION_INFLUENCES_STRUCTURE);
+                    behaviors.add(BackingStructureBehavior.COLLECTION_INFLUENCES_STRUCTURE);
                 }
             } catch (UnsupportedOperationException ignore) {
             }

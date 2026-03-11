@@ -9,7 +9,7 @@ public class ListIteratorDocumentation implements CollectionDocumentation {
 
     private Map<Range, String> classesByRange;
     private Boolean supportsNullArguments;
-    private List<ModificationBehavior> modificationBehaviors;
+    private List<ModifiableProperty> modifiableProperties;
     private List<MethodBehavior> methodBehaviors;
 
     public ListIteratorDocumentation(String description) {
@@ -36,12 +36,12 @@ public class ListIteratorDocumentation implements CollectionDocumentation {
         this.supportsNullArguments = supportsNullArguments;
     }
 
-    public List<ModificationBehavior> getModificationBehaviors() {
-        return modificationBehaviors;
+    public List<ModifiableProperty> getModificationBehaviors() {
+        return modifiableProperties;
     }
 
-    public void setModificationBehaviors(List<ModificationBehavior> modificationBehaviors) {
-        this.modificationBehaviors = modificationBehaviors;
+    public void setModificationBehaviors(List<ModifiableProperty> modifiableProperties) {
+        this.modifiableProperties = modifiableProperties;
     }
 
     public List<MethodBehavior> getMethodBehaviors() {
