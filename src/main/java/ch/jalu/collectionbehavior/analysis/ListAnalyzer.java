@@ -25,7 +25,7 @@ import java.util.function.UnaryOperator;
 
 public class ListAnalyzer {
 
-    private static final int MAX_SIZE_TO_INSTANTIATE = 20;
+    public static final int MAX_SIZE_TO_INSTANTIATE = 20;
 
     private final ListCreator listCreator;
 

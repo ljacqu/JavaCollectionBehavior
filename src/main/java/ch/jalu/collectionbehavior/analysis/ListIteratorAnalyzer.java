@@ -11,6 +11,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static ch.jalu.collectionbehavior.analysis.ListAnalyzer.MAX_SIZE_TO_INSTANTIATE;
+
 public class ListIteratorAnalyzer {
 
     private final ListCreator listCreator;
@@ -20,10 +22,10 @@ public class ListIteratorAnalyzer {
     }
 
     public Map<Range, String> collectClassNamesBySize() {
-        List<String> elements = Collections.nCopies(20, "o");
+        List<String> elements = Collections.nCopies(MAX_SIZE_TO_INSTANTIATE, "o");
         TreeMap<Integer, String> classNamesBySize = new TreeMap<>();
 
-        for (int i = 0; i <= 20; ++i) {
+        for (int i = 0; i <= MAX_SIZE_TO_INSTANTIATE; ++i) {
             try {
                 List<String> list = listCreator.createList(elements.subList(0, i).toArray(String[]::new));
                 ListIterator<String> iterator = list.listIterator();

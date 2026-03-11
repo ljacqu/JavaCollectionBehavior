@@ -11,6 +11,7 @@ import ch.jalu.collectionbehavior.documentation.ListDocumentation;
 import ch.jalu.collectionbehavior.documentation.ListIteratorDocumentation;
 import ch.jalu.collectionbehavior.documentation.ModificationBehavior;
 import ch.jalu.collectionbehavior.documentation.Range;
+import ch.jalu.collectionbehavior.documentation.export.DocumentationExporter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,9 @@ public class ListDocumenter {
         documenter.document(ListCreator.Stream_toList(), "JDK Stream#toList");
 
         documenter.documentations.forEach(System.out::println);
+
+        DocumentationExporter exporter = new DocumentationExporter();
+        exporter.writeMarkdown(documenter.documentations, "lists.md");
     }
 
     private void document(ListCreator listCreator, String description) {

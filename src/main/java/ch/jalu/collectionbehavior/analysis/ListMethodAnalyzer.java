@@ -11,7 +11,9 @@ import ch.jalu.collectionbehavior.method.MethodTester;
 import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static ch.jalu.collectionbehavior.method.CallEffect.MODIFYING;
 import static ch.jalu.collectionbehavior.method.CallEffect.SIZE_ALTERING;
@@ -93,7 +95,16 @@ public class ListMethodAnalyzer {
     }
 
     public List<MethodBehavior> getMethodBehaviors() {
-        return methodBehaviors;
+        record MethodBehaviorDistinct(String method, String params, CallEffect effect, String exception) { }
+        Set<MethodBehaviorDistinct> seenBehaviors = new HashSet<>();
+
+        return methodBehaviors.stream()
+            .filter(method -> {
+                MethodBehaviorDistinct distinct = new MethodBehaviorDistinct(method.getMethodInvocation().methodName(),
+                    method.getMethodInvocation().methodParameters(), method.getEffect(), method.getException());
+                return seenBehaviors.add(distinct);
+            })
+            .toList();
     }
 
     public List<ModificationBehavior> getModificationBehaviors() {
