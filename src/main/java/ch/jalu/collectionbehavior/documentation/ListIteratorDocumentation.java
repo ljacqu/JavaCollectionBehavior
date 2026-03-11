@@ -16,6 +16,10 @@ public class ListIteratorDocumentation implements CollectionDocumentation {
         this.description = description;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public Map<Range, String> getClassesByRange() {
         return classesByRange;
     }

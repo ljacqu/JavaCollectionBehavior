@@ -24,8 +24,8 @@ public class DocumentationExporter {
         StringBuilder sb = new StringBuilder();
 
         for (CollectionDocumentation documentation : documentations) {
-            sb.append(generateMarkdown(documentation))
-                .append("\n\n");
+            generateMarkdown(sb, documentation);
+            sb.append("\n\n");
         }
 
         Path mdDocument = Paths.get(EXPORT_PATH, filename);
@@ -37,11 +37,11 @@ public class DocumentationExporter {
         }
     }
 
-    private String generateMarkdown(CollectionDocumentation documentation) {
-        return switch (documentation) {
-            case ListDocumentation ld -> listDocumentationExporter.toMarkdown(ld);
-            case ListIteratorDocumentation lid -> ""; //listIteratorDocumentationExporter.toMarkdown(lid);
+    private void generateMarkdown(StringBuilder sb, CollectionDocumentation documentation) {
+        switch (documentation) {
+            case ListDocumentation ld -> listDocumentationExporter.toMarkdown(sb, ld);
+            case ListIteratorDocumentation lid -> listIteratorDocumentationExporter.toMarkdown(sb, lid);
             default -> throw new UnsupportedOperationException("Unknown class: " + documentation.getClass());
-        };
+        }
     }
 }
