@@ -40,6 +40,7 @@ public class ListDocumenter {
 
         DocumentationExporter exporter = new DocumentationExporter();
         exporter.writeMarkdown(documenter.documentations, "lists.md");
+        exporter.writeMethodCallsTable(documenter.documentations, "list_methods.md");
     }
 
     private void document(ListCreator listCreator, String description) {

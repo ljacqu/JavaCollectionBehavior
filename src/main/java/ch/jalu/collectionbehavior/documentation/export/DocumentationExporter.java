@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.List;
 
 public class DocumentationExporter {
 
@@ -19,6 +20,8 @@ public class DocumentationExporter {
         new ListDocumentationExporter();
     private final ListIteratorDocumentationExporter listIteratorDocumentationExporter =
         new ListIteratorDocumentationExporter();
+    private final ListMethodsDocumentationExporter listMethodsDocumentationExporter =
+        new ListMethodsDocumentationExporter();
 
     public void writeMarkdown(Collection<CollectionDocumentation> documentations, String filename) {
         StringBuilder sb = new StringBuilder();
@@ -28,6 +31,10 @@ public class DocumentationExporter {
             sb.append("\n\n");
         }
 
+        writeToFile(sb, filename);
+    }
+
+    private static void writeToFile(StringBuilder sb, String filename) {
         Path mdDocument = Paths.get(EXPORT_PATH, filename);
         try {
             Files.createDirectories(mdDocument.getParent());
@@ -35,6 +42,16 @@ public class DocumentationExporter {
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to write to " + filename, e);
         }
+    }
+
+    public void writeMethodCallsTable(Collection<CollectionDocumentation> documentations, String filename) {
+        List<ListDocumentation> listDocumentations = documentations.stream()
+            .filter(doc -> doc instanceof ListDocumentation)
+            .map(doc -> (ListDocumentation) doc)
+            .toList();
+        StringBuilder methodsTable = listMethodsDocumentationExporter.exportMethodsTable(listDocumentations);
+
+        writeToFile(methodsTable, filename);
     }
 
     private void generateMarkdown(StringBuilder sb, CollectionDocumentation documentation) {
