@@ -32,7 +32,8 @@ abstract class AbstrDocumentationExporter {
 
         if (classesByRange.size() == 1) {
             Map.Entry<Range, String> firstEntry = Iterables.get(classesByRange.entrySet(), 0);
-            sb.append("\nProduces objects of the class ").append(firstEntry.getValue());
+            sb.append("\nProduces objects of the class ")
+                .append(sanitizeClassNameForMarkdown(firstEntry.getValue()));
             return;
         }
 
@@ -45,8 +46,14 @@ abstract class AbstrDocumentationExporter {
             } else if (range.max() != range.min()) {
                 rangeText += ".." + range.max();
             }
-            sb.append("\n| ").append(rangeText).append(" | ").append(clz).append("|");
+            sb.append("\n| ").append(rangeText).append(" | ")
+                .append(sanitizeClassNameForMarkdown(clz))
+                .append("|");
         });
+    }
+
+    private static String sanitizeClassNameForMarkdown(String clazz) {
+        return clazz.replace("$", "\\$");
     }
 
     // ----------------
