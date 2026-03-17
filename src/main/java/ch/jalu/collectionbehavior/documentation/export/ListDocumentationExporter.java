@@ -1,7 +1,10 @@
 package ch.jalu.collectionbehavior.documentation.export;
 
+import ch.jalu.collectionbehavior.analysis.MethodSummarizer;
+import ch.jalu.collectionbehavior.analysis.MethodSummarizer.Summary;
 import ch.jalu.collectionbehavior.documentation.BackingStructureBehavior;
 import ch.jalu.collectionbehavior.documentation.ListDocumentation;
+import ch.jalu.collectionbehavior.documentation.MethodBehavior;
 import ch.jalu.collectionbehavior.documentation.ModifiableProperty;
 import ch.jalu.collectionbehavior.documentation.RandomAccessType;
 import ch.jalu.collectionbehavior.documentation.Range;
@@ -13,6 +16,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class ListDocumentationExporter extends AbstrDocumentationExporter {
+
+    private final MethodSummarizer methodSummarizer = new MethodSummarizer();
 
     public void toMarkdown(StringBuilder sb, ListDocumentation doc) {
         sb.append("# ").append(doc.getDescription());
@@ -36,7 +41,7 @@ public class ListDocumentationExporter extends AbstrDocumentationExporter {
 
         sb.append("\n");
         sb.append("\n## Method behavior");
-        addMethodBehaviors(sb, doc.getMethodBehaviors(), doc.getModificationBehaviors());
+        addMethodSummary(sb, doc.getMethodBehaviors(), doc.getModificationBehaviors());
     }
 
     // -------
@@ -131,5 +136,22 @@ public class ListDocumentationExporter extends AbstrDocumentationExporter {
         for (SpliteratorCharacteristic characteristic : characteristics) {
             sb.append("\n- ").append(characteristic.name());
         }
+    }
+
+    // --------------
+    // Method summary
+    // --------------
+
+    private void addMethodSummary(StringBuilder sb, List<MethodBehavior> methodBehaviors,
+                                  List<ModifiableProperty> modifiableProperties) {
+        Summary summary = methodSummarizer.summarize(methodBehaviors);
+        summary.summary().forEach(sum -> sb.append("\n- ").append(sum));
+        // todo: link to full methods table somehow?
+
+        if (!summary.remainingMethods().isEmpty()) {
+            sb.append("\n### Other methods");
+            addMethodBehaviors(sb, summary.remainingMethods(), modifiableProperties);
+        }
+
     }
 }
